@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>SetLab — DJ Set Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<!-- PWA -->
+<link id="pwa-manifest" rel="manifest"/>
+<meta name="theme-color" content="#030302"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SetLab"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23030302'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c9a84c' stroke-width='8'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%23c9a84c' opacity='.3'/%3E%3C/svg%3E"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#030302;font-family:'Syne',sans-serif}
+  ::-webkit-scrollbar{display:none}
+  input[type=range]{-webkit-appearance:none;height:1.5px;border-radius:1px;background:#161412;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#c9a84c;cursor:pointer;box-shadow:0 0 0 3px #c9a84c18}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useMemo, useRef, useEffect } = React;
+
+const T = {
+  gold: "#c9a84c", goldDim: "#7a6230", goldGlow: "#c9a84c22",
+  surface: "#080808", border: "#141414",
+  text: "#e8e2d9", textMid: "#a09890", textDim: "#706860", textGhost: "#504844",
+  green: "#22c55e", lime: "#84cc16", yellow: "#eab308",
+  orange: "#f97316", red: "#ef4444",
+  sans: "'Syne', sans-serif",
+  mono: "'DM Mono', monospace",
+};
+const E_COLORS = ["","#2d3748","#1e40af","#2563eb","#0284c7","#059669","#65a30d","#ca8a04","#ea580c","#dc2626","#9f1239"];
+const HOUSE_ACCENT = "#4a90d9";
+
+function LogoMark({ size = 36 }) {
+  const g = T.gold;
+  return (
+    <div style={{ position:"relative", width:size, height:size }}>
+      <style>{`
+        @keyframes slSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slBub1 { 0%,100%{transform:translateY(0);opacity:.7} 50%{transform:translateY(-4px);opacity:.25} }
+        @keyframes slBub2 { 0%,100%{transform:translateY(0);opacity:.5} 60%{transform:translateY(-5px);opacity:.15} }
+        @keyframes slBub3 { 0%,100%{transform:translateY(0);opacity:.55} 40%{transform:translateY(-3px);opacity:.2} }
+        @keyframes slNeedle { from{transform:rotate(-26deg)} to{transform:rotate(-13deg)} }
+        .sl-disk { transform-origin: 50% 50%; animation: slSpin 4s linear infinite; }
+        .sl-b1 { animation: slBub1 2.2s ease-in-out infinite; }
+        .sl-b2 { animation: slBub2 2.8s ease-in-out infinite .6s; }
+        .sl-b3 { animation: slBub3 2s ease-in-out infinite 1.1s; }
+        .sl-needle { transform-origin: 94% 30%; animation: slNeedle 1.2s cubic-bezier(.4,0,.2,1) forwards .3s; transform:rotate(-26deg); }
+      `}</style>
+      <svg width={size} height={size} viewBox="0 0 44 44" fill="none" overflow="visible">
+        <g className="sl-disk">
+          <circle cx="22" cy="22" r="20" fill="#0c0a08"/>
+          <circle cx="22" cy="22" r="20" fill="none" stroke={g} strokeWidth="0.5" opacity="0.35"/>
+          <circle cx="22" cy="22" r="18.5" fill="none" stroke="#4a4540" strokeWidth="1.1"/>
+          <circle cx="22" cy="22" r="16"   fill="none" stroke="#3d3830" strokeWidth="0.8"/>
+          <circle cx="22" cy="22" r="13.5" fill="none" stroke="#4a4540" strokeWidth="0.8"/>
+          <circle cx="22" cy="22" r="11"   fill="none" stroke={g} strokeWidth="0.4" opacity="0.3"/>
+          <circle cx="22" cy="22" r="9" fill="#1f1a0e"/>
+          <circle cx="22" cy="22" r="9" fill="none" stroke={g} strokeWidth="0.8" opacity="0.7"/>
+          <rect x="19.5" y="13.5" width="5" height="5.5" rx="1.2" fill="none" stroke={g} strokeWidth="1.1"/>
+          <line x1="20.2" y1="16.5" x2="24.2" y2="16.5" stroke={g} strokeWidth="0.5" opacity="0.45"/>
+          <path d="M19.5 19 L14 30 Q13.5 32 15.5 32 L28.5 32 Q30.5 32 30 30 L24.5 19 Z" fill="#0e0c07" stroke={g} strokeWidth="1.1" strokeLinejoin="round"/>
+          <path d="M14.5 28.5 L29.5 28.5 Q30.2 32 28.5 32 L15.5 32 Q13.8 32 14.5 28.5 Z" fill={g} opacity="0.2"/>
+          <ellipse cx="22" cy="27" rx="5.5" ry="2.2" fill="none" stroke={g} strokeWidth="0.4" opacity="0.25"/>
+          <ellipse cx="22" cy="27" rx="3" ry="1.2" fill="none" stroke={g} strokeWidth="0.35" opacity="0.18"/>
+          <circle className="sl-b1" cx="17" cy="24" r="0.9" fill={g} opacity="0.7"/>
+          <circle className="sl-b2" cx="22" cy="26" r="0.7" fill={g} opacity="0.5"/>
+          <circle className="sl-b3" cx="19.5" cy="21" r="0.6" fill={g} opacity="0.55"/>
+          <circle cx="25.5" cy="25" r="0.5" fill={g} opacity="0.3"/>
+        </g>
+        <circle cx="22" cy="22" r="1.4" fill="#030201"/>
+        <circle cx="22" cy="22" r="1.4" fill="none" stroke={g} strokeWidth="0.4" opacity="0.4"/>
+        <circle cx="40" cy="7" r="2.8" fill="#141210" stroke={g} strokeWidth="0.6" opacity="0.7"/>
+        <circle cx="40" cy="7" r="1.2" fill={g} opacity="0.55"/>
+        <g className="sl-needle">
+          <line x1="40" y1="7" x2="27" y2="30" stroke={g} strokeWidth="1.1" strokeLinecap="round" opacity="0.75"/>
+          <rect x="24.5" y="28.5" width="5" height="3" rx="1" fill="#1a1408" stroke={g} strokeWidth="0.8" opacity="0.9"/>
+          <circle cx="27" cy="33" r="1.1" fill={g} opacity="0.95"/>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function LogoFull() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+      <LogoMark size={36}/>
+      <div style={{ display:"flex", flexDirection:"column", gap:0, lineHeight:1 }}>
+        <div style={{ display:"flex", alignItems:"baseline", gap:0 }}>
+          <span style={{fontFamily:T.sans,fontSize:18,fontWeight:800,letterSpacing:-0.5,color:T.gold,lineHeight:1}}>SET</span>
+          <span style={{fontFamily:T.sans,fontSize:18,fontWeight:300,letterSpacing:4,color:"#aca49a",lineHeight:1,marginLeft:2}}>LAB</span>
+        </div>
+        <div style={{fontFamily:T.mono,fontSize:6.5,letterSpacing:2.5,color:"#b8b0a8",textTransform:"uppercase",marginTop:2}}>dj set planner</div>
+      </div>
+    </div>
+  );
+}
+
+const TRACKS = [
+  // --- TECHNO OSCURO / BERLIN ---
+  {id:1,  title:"Heartbeat",              artist:"Adam Beyer",           bpm:132,key:"11A",energy:8,style:["techno","dark"],               pop:42, label:"Drumcode"},
+  {id:2,  title:"Your Mind Is a Box (Let Us Fill It With Wonder)", artist:"Adam Beyer & Ida Engberg", bpm:130,key:"10A",energy:7,style:["techno","dark"],pop:38,label:"Drumcode"},
+  {id:3,  title:"Doppler",                artist:"Charlotte de Witte",   bpm:134,key:"12A",energy:9,style:["techno","hard techno"],         pop:52, label:"KNTXT"},
+  {id:4,  title:"Doppler (Remixed)",      artist:"Charlotte de Witte",   bpm:136,key:"1A", energy:9,style:["techno","hard techno"],         pop:48, label:"KNTXT"},
+  {id:5,  title:"Return to Nowhere",      artist:"Charlotte de Witte",   bpm:131,key:"11B",energy:8,style:["techno","dark"],                pop:55, label:"KNTXT"},
+  {id:6,  title:"Obscur",                 artist:"Amelie Lens",          bpm:133,key:"12B",energy:8,style:["techno","dark"],                pop:50, label:"Exhale"},
+  {id:7,  title:"LOVE",                   artist:"Amelie Lens",          bpm:135,key:"2A", energy:9,style:["techno","hard techno"],         pop:58, label:"Exhale"},
+  {id:8,  title:"Exhale",                 artist:"Amelie Lens",          bpm:129,key:"10B",energy:7,style:["techno","dark"],                pop:45, label:"Exhale"},
+  {id:9,  title:"Skin",                   artist:"Ben Klock",            bpm:126,key:"9A", energy:6,style:["deep techno","dark"],           pop:40, label:"Ostgut Ton"},
+  {id:10, title:"Subzero",                artist:"Ben Klock",            bpm:128,key:"10A",energy:7,style:["deep techno","dark"],           pop:38, label:"Ostgut Ton"},
+  {id:11, title:"One",                    artist:"Ben Klock",            bpm:125,key:"8B", energy:7,style:["techno","dark"],                pop:44, label:"Ostgut Ton"},
+  {id:12, title:"Solitary Daze",          artist:"Ben Klock",            bpm:130,key:"11A",energy:8,style:["techno","dark"],                pop:36, label:"Ostgut Ton"},
+  {id:13, title:"Tresor",                 artist:"Surgeon",              bpm:127,key:"9B", energy:7,style:["techno","industrial"],          pop:32, label:"Counterbalance"},
+  {id:14, title:"Force + Form",           artist:"Surgeon",              bpm:130,key:"10A",energy:8,style:["techno","industrial"],          pop:28, label:"Counterbalance"},
+  {id:15, title:"Magneze",                artist:"Marcel Dettmann",      bpm:127,key:"9A", energy:7,style:["deep techno","dark"],           pop:35, label:"MDR"},
+  {id:16, title:"Undulation",             artist:"Marcel Dettmann",      bpm:125,key:"8A", energy:6,style:["deep techno","minimal"],        pop:30, label:"MDR"},
+  {id:17, title:"Pylon",                  artist:"Perc",                 bpm:133,key:"11A",energy:8,style:["industrial techno","hard techno"],pop:22,label:"Perc Trax"},
+  {id:18, title:"Black Acid",             artist:"Perc",                 bpm:130,key:"10A",energy:8,style:["industrial techno","acid"],     pop:19, label:"Perc Trax"},
+  {id:19, title:"Predator",               artist:"Ancient Methods",      bpm:134,key:"10B",energy:9,style:["industrial techno","dark"],     pop:28, label:"Figure"},
+  {id:20, title:"Metropolis",             artist:"Ancient Methods",      bpm:136,key:"11A",energy:9,style:["industrial techno","hard techno"],pop:24,label:"Figure"},
+  // --- TECHNO HIPNÓTICO / BERGHAIN ---
+  {id:21, title:"Ritual",                 artist:"DVS1",                 bpm:126,key:"9A", energy:7,style:["deep techno","dark"],           pop:30, label:"Houndstooth"},
+  {id:22, title:"Nothing Is Real",        artist:"DVS1",                 bpm:127,key:"8A", energy:7,style:["techno","dark"],                pop:28, label:"Houndstooth"},
+  {id:23, title:"Aleph",                  artist:"Donato Dozzy",         bpm:117,key:"5B", energy:4,style:["deep techno","hypnotic"],       pop:25, label:"Spazio Disponibile"},
+  {id:24, title:"K",                      artist:"Donato Dozzy",         bpm:115,key:"4A", energy:4,style:["hypnotic","deep techno"],       pop:22, label:"Spazio Disponibile"},
+  {id:25, title:"Mono No Aware",          artist:"Shifted",              bpm:122,key:"7A", energy:6,style:["deep techno","minimal"],        pop:18, label:"Mote-Evolver"},
+  {id:26, title:"Phase Space",            artist:"Phase Fatale",         bpm:126,key:"8A", energy:7,style:["dark techno","hypnotic"],       pop:32, label:"Afterlife"},
+  {id:27, title:"Eltanin",                artist:"Phase Fatale",         bpm:128,key:"9B", energy:7,style:["dark techno","hypnotic"],       pop:29, label:"Afterlife"},
+  {id:28, title:"Labyrinth",              artist:"Svreca",               bpm:131,key:"11B",energy:8,style:["industrial techno","hard techno"],pop:18,label:"Semantica Records"},
+  {id:29, title:"Arrhythmia",             artist:"Cio D'Or",             bpm:125,key:"8A", energy:6,style:["techno","minimal"],             pop:15, label:"Semantica Records"},
+  {id:30, title:"Klartraum",              artist:"Rrose",                bpm:123,key:"7B", energy:6,style:["techno","ambient techno"],      pop:20, label:"Eaux"},
+  // --- TECHNO DURO / HARD TECHNO ---
+  {id:31, title:"Hydro Bounce",           artist:"Headless Horseman",    bpm:138,key:"1A", energy:9,style:["hard techno","industrial"],     pop:28, label:"Muscletone"},
+  {id:32, title:"Bionic",                 artist:"Headless Horseman",    bpm:140,key:"2A", energy:9,style:["hard techno","dark"],           pop:25, label:"Muscletone"},
+  {id:33, title:"Trinity",                artist:"Reinier Zonneveld",    bpm:141,key:"3A", energy:9,style:["hard techno","techno"],         pop:42, label:"Filth on Acid"},
+  {id:34, title:"Psycho",                 artist:"Reinier Zonneveld",    bpm:138,key:"12B",energy:9,style:["hard techno","industrial"],     pop:38, label:"Filth on Acid"},
+  {id:35, title:"Machine",               artist:"Alignment",            bpm:136,key:"1B", energy:9,style:["hard techno","dark"],           pop:35, label:"Filth on Acid"},
+  {id:36, title:"Labyrinth",             artist:"Alignment",            bpm:134,key:"12A",energy:8,style:["hard techno","techno"],         pop:30, label:"Filth on Acid"},
+  {id:37, title:"Machination",            artist:"Drumcell",             bpm:133,key:"11A",energy:8,style:["industrial techno","hard techno"],pop:18,label:"Droid Recordings"},
+  // --- DUB TECHNO / MINIMAL ---
+  {id:38, title:"C2",                     artist:"Kareem",               bpm:124,key:"8B", energy:6,style:["techno","dub techno"],          pop:14, label:"Sandwell District"},
+  {id:39, title:"Wad",                    artist:"Developer",            bpm:126,key:"9A", energy:6,style:["techno","industrial"],          pop:12, label:"Sandwell District"},
+  {id:40, title:"Refraction",             artist:"Answer Code Req.",     bpm:128,key:"10A",energy:7,style:["techno","dub techno"],          pop:18, label:"Token Records"},
+  {id:41, title:"Demonize",               artist:"Answer Code Req.",     bpm:130,key:"11A",energy:7,style:["techno","dark"],                pop:15, label:"Token Records"},
+  // --- ELECTRO / ACID ---
+  {id:42, title:"Drexciyan Storm",        artist:"DJ Stingray 313",      bpm:123,key:"9A", energy:7,style:["electro","techno"],             pop:30, label:"Tresor Records"},
+  {id:43, title:"Poltergeist",            artist:"Legowelt",             bpm:119,key:"6A", energy:5,style:["acid","electro"],               pop:28, label:"Clone Records"},
+  {id:44, title:"The Simulation",         artist:"I-f",                  bpm:130,key:"10A",energy:8,style:["acid","electro"],               pop:20, label:"Clone Records"},
+  {id:45, title:"Lost in Space",          artist:"Nina Kraviz",          bpm:131,key:"11B",energy:8,style:["techno","acid"],                pop:52, label:"трип"},
+  {id:46, title:"I'm Gonna Get You",      artist:"Nina Kraviz",          bpm:128,key:"9A", energy:7,style:["techno","acid"],                pop:55, label:"трип"},
+  {id:47, title:"Ghetto Kraviz",          artist:"Nina Kraviz",          bpm:126,key:"8B", energy:7,style:["techno","chicago"],             pop:60, label:"трип"},
+  // --- MELODIC TECHNO / DARK TRANCE ---
+  {id:48, title:"Menhir",                 artist:"Innellea",             bpm:130,key:"10B",energy:7,style:["melodic techno","dark"],        pop:32, label:"Innellea"},
+  {id:49, title:"The Ritual",             artist:"Alignment",            bpm:133,key:"12A",energy:8,style:["melodic techno","dark"],        pop:28, label:"Afterlife"},
+  {id:50, title:"Pantheon",               artist:"Tale Of Us",           bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"],pop:55,label:"Afterlife"},
+  {id:51, title:"Another Earth",          artist:"Tale Of Us",           bpm:126,key:"8A", energy:5,style:["melodic techno","deep techno"], pop:48, label:"Afterlife"},
+  {id:52, title:"Koor",                   artist:"Recondite",            bpm:120,key:"7A", energy:5,style:["deep techno","ambient techno"], pop:22, label:"Ghostly International"},
+  {id:53, title:"Hinterland",             artist:"Recondite",            bpm:118,key:"6A", energy:4,style:["deep techno","minimal"],        pop:20, label:"Ghostly International"},
+  // --- TECHNO CLÁSICO / DETROIT ---
+  {id:54, title:"Strings of Life",        artist:"Derrick May",          bpm:122,key:"7A", energy:7,style:["detroit techno","classic"],     pop:55, label:"Transmat"},
+  {id:55, title:"Beyond the Dance",       artist:"Derrick May",          bpm:120,key:"6B", energy:6,style:["detroit techno","classic"],     pop:45, label:"Transmat"},
+  {id:56, title:"It Is What It Is",       artist:"Surgeon",              bpm:129,key:"10B",energy:7,style:["techno","industrial"],          pop:24, label:"Counterbalance"},
+  // --- DARK HOUSE / DUB HOUSE ---
+  {id:57, title:"Creep",                  artist:"Pearson Sound",        bpm:126,key:"8B", energy:7,style:["dark house","bass"],            pop:24, label:"Hessle Audio"},
+  {id:58, title:"Agnes Apparatus",        artist:"Objekt",               bpm:126,key:"10A",energy:7,style:["techno","dark"],               pop:30, label:"TJ Hertz / Objekt"},
+  {id:59, title:"Two Completely Different Things", artist:"Objekt",      bpm:124,key:"9B", energy:6,style:["techno","minimal"],             pop:32, label:"TJ Hertz / Objekt"},
+  {id:60, title:"Violence",               artist:"Andy Stott",           bpm:119,key:"5A", energy:5,style:["dark house","dub"],             pop:28, label:"Modern Love"},
+  {id:61, title:"Needle & Thread",        artist:"Andy Stott",           bpm:117,key:"4B", energy:4,style:["dark house","ambient"],        pop:26, label:"Modern Love"},
+  {id:62, title:"Shed",                   artist:"Shed",                 bpm:122,key:"7B", energy:6,style:["deep house","dark"],            pop:15, label:"Ostgut Ton"},
+  {id:63, title:"Substance",              artist:"L.B. Dub Corp",        bpm:119,key:"6B", energy:5,style:["dub house","deep house"],       pop:10, label:"Ostgut Ton"},
+  {id:64, title:"Untitled 4",             artist:"Actress",              bpm:118,key:"5B", energy:4,style:["dark house","minimal"],         pop:18, label:"Werkdiscs"},
+  // --- DEEP HOUSE / CLÁSICOS ---
+  {id:65, title:"You're Mine",            artist:"Larry Heard",          bpm:116,key:"3B", energy:4,style:["deep house","chicago"],        pop:38, label:"Alleviated Records"},
+  {id:66, title:"The Sun Can't Compare",  artist:"Larry Heard",          bpm:115,key:"3A", energy:4,style:["deep house","chicago"],        pop:35, label:"Alleviated Records"},
+  {id:67, title:"Glisten",                artist:"Bicep",                bpm:128,key:"10A",energy:6,style:["deep house","melodic house"],   pop:62, label:"Ninja Tune"},
+  {id:68, title:"Orca",                   artist:"Bicep",                bpm:130,key:"11B",energy:7,style:["deep house","melodic house"],   pop:58, label:"Ninja Tune"},
+  {id:69, title:"Aura",                   artist:"Bicep",                bpm:124,key:"8A", energy:5,style:["melodic house","deep house"],   pop:55, label:"Ninja Tune"},
+  {id:70, title:"Atlas",                  artist:"Bicep",                bpm:126,key:"9B", energy:6,style:["melodic house","deep house"],   pop:50, label:"Ninja Tune"},
+  {id:71, title:"I'm Gonna Get You",      artist:"DJ Deeon",             bpm:127,key:"8A", energy:7,style:["ghetto house","chicago"],      pop:14, label:"Dance Mania"},
+  {id:72, title:"We On",                  artist:"DJ Deeon",             bpm:126,key:"7B", energy:7,style:["ghetto house","chicago"],      pop:12, label:"Dance Mania"},
+  // --- DRUM & BASS / DUBSTEP ---
+  {id:73, title:"Nothing",               artist:"Burial",               bpm:140,key:"5A", energy:5,style:["dubstep","dark house"],        pop:45, label:"Hyperdub"},
+  {id:74, title:"Archangel",             artist:"Burial",               bpm:138,key:"4B", energy:6,style:["dubstep","ambient"],           pop:48, label:"Hyperdub"},
+  {id:75, title:"Blood on My Hands",     artist:"Shackleton",           bpm:138,key:"2B", energy:7,style:["dubstep","tribal"],            pop:20, label:"Skull Disco"},
+  {id:76, title:"Northern Exposure",     artist:"Pessimist",            bpm:172,key:"4A", energy:8,style:["drum and bass","dark"],        pop:22, label:"Pessimist Productions"},
+
+  // --- TECHNO ADICIONAL ---
+  {id:77,  title:"Siren",                 artist:"Blawan",               bpm:134,key:"12A",energy:9,style:["industrial techno","hard techno"], pop:30, label:"Ternesc"},
+  {id:78,  title:"Getting Me Down",       artist:"Blawan",               bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],      pop:28, label:"Ternesc"},
+  {id:79,  title:"Cascades",              artist:"Function",             bpm:128,key:"9A", energy:7,style:["deep techno","dark"],              pop:22, label:"Sandwell District"},
+  {id:80,  title:"Obsession",             artist:"Function",             bpm:126,key:"8A", energy:6,style:["deep techno","ambient techno"],    pop:20, label:"Sandwell District"},
+  {id:81,  title:"Boiler",                artist:"Paula Temple",         bpm:136,key:"1A", energy:9,style:["industrial techno","hard techno"], pop:25, label:"Noise Manifesto"},
+  {id:82,  title:"Core",                  artist:"Paula Temple",         bpm:138,key:"2B", energy:9,style:["hard techno","industrial techno"], pop:22, label:"Noise Manifesto"},
+  {id:83,  title:"Eternal Drift",         artist:"Truncate",             bpm:130,key:"11A",energy:8,style:["techno","dark"],                   pop:20, label:"Truncate"},
+  {id:84,  title:"Payload",               artist:"Truncate",             bpm:128,key:"9B", energy:7,style:["techno","industrial techno"],      pop:18, label:"Truncate"},
+  {id:85,  title:"Takt",                  artist:"Sigha",                bpm:127,key:"9A", energy:7,style:["deep techno","minimal"],           pop:15, label:"Token Records"},
+  {id:86,  title:"Aether",                artist:"Sigha",                bpm:125,key:"8A", energy:6,style:["deep techno","ambient techno"],    pop:14, label:"Token Records"},
+  {id:87,  title:"Parallax",              artist:"Inigo Kennedy",        bpm:129,key:"10A",energy:7,style:["techno","dark"],                   pop:16, label:"Token Records"},
+  {id:88,  title:"Void",                  artist:"Inigo Kennedy",        bpm:131,key:"11B",energy:8,style:["techno","industrial techno"],      pop:14, label:"Token Records"},
+  {id:89,  title:"Raw Cut",               artist:"Surgeon",              bpm:133,key:"12A",energy:8,style:["techno","industrial"],             pop:24, label:"Counterbalance"},
+  {id:90,  title:"Force Majeure",         artist:"Ancient Methods",      bpm:135,key:"1A", energy:9,style:["industrial techno","dark"],        pop:26, label:"Figure"},
+  {id:91,  title:"Kharon",               artist:"Rebekah",              bpm:134,key:"12B",energy:8,style:["industrial techno","techno"],      pop:22, label:"Infrastructure"},
+  {id:92,  title:"Binary",               artist:"Rebekah",              bpm:132,key:"11A",energy:8,style:["techno","dark"],                   pop:20, label:"Infrastructure"},
+  {id:93,  title:"Hyper Tension",        artist:"Truss",                bpm:128,key:"10A",energy:7,style:["techno","industrial techno"],      pop:16, label:"Perc Trax"},
+  {id:94,  title:"Plasticity",           artist:"Varg",                 bpm:140,key:"2A", energy:9,style:["hard techno","industrial techno"], pop:20, label:"Northern Electronics"},
+  {id:95,  title:"Mördare",              artist:"Varg",                 bpm:138,key:"1B", energy:9,style:["industrial techno","dark"],        pop:18, label:"Northern Electronics"},
+  {id:96,  title:"Swarm",               artist:"Orphx",                bpm:136,key:"12A",energy:8,style:["industrial techno","hard techno"], pop:14, label:"Sonic Groove"},
+  {id:97,  title:"Overdrive",            artist:"Orphx",                bpm:134,key:"11A",energy:8,style:["techno","industrial techno"],      pop:12, label:"Sonic Groove"},
+  {id:98,  title:"System",              artist:"Surgeon",              bpm:131,key:"10B",energy:7,style:["techno","industrial"],             pop:22, label:"Counterbalance"},
+  {id:99,  title:"Klaxon",              artist:"Slam",                 bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],      pop:30, label:"Soma Records"},
+  {id:100, title:"Positive Education",  artist:"Slam",                 bpm:128,key:"9A", energy:7,style:["techno","dark"],                   pop:35, label:"Soma Records"},
+  {id:101, title:"Pitch Black",         artist:"Speedy J",             bpm:130,key:"10A",energy:7,style:["techno","industrial techno"],      pop:28, label:"Tresor Records"},
+  {id:102, title:"G Spot",              artist:"Speedy J",             bpm:127,key:"8B", energy:7,style:["techno","acid"],                   pop:25, label:"Tresor Records"},
+  {id:103, title:"Mindkiller",          artist:"Oscar Mulero",         bpm:133,key:"12A",energy:8,style:["techno","dark"],                   pop:18, label:"Warm Up Recordings"},
+  {id:104, title:"Black Sun",           artist:"Oscar Mulero",         bpm:131,key:"11B",energy:8,style:["industrial techno","dark"],        pop:16, label:"Warm Up Recordings"},
+
+  // --- HYPNOTIC / RAVE ADICIONAL ---
+  {id:105, title:"Khohen",              artist:"Kobosil",              bpm:130,key:"10A",energy:7,style:["techno","hypnotic"],               pop:28, label:"RH-05"},
+  {id:106, title:"M_REC",              artist:"Kobosil",              bpm:128,key:"9B", energy:7,style:["techno","dark"],                   pop:25, label:"RH-05"},
+  {id:107, title:"Strobe",             artist:"Deadmau5",             bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"], pop:62, label:"mau5trap"},
+  {id:108, title:"Some Chords",        artist:"Deadmau5",             bpm:126,key:"8A", energy:5,style:["melodic techno","deep techno"],    pop:58, label:"mau5trap"},
+  {id:109, title:"Fragment",           artist:"Blawan",               bpm:136,key:"1B", energy:9,style:["hard techno","industrial techno"], pop:26, label:"Ternesc"},
+  {id:110, title:"Spectral",           artist:"Phase Fatale",         bpm:130,key:"10B",energy:7,style:["dark techno","hypnotic"],          pop:28, label:"Afterlife"},
+  {id:111, title:"Onyx",               artist:"Alignment",            bpm:132,key:"12A",energy:8,style:["melodic techno","dark"],           pop:26, label:"Afterlife"},
+  {id:112, title:"Nexus",              artist:"Innellea",             bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"], pop:28, label:"Innellea"},
+  {id:113, title:"Beyond Reason",      artist:"SPFDJ",                bpm:150,key:"3A", energy:9,style:["hard techno","industrial techno"], pop:38, label:"Ilian Tape"},
+  {id:114, title:"Netzwerk",           artist:"SPFDJ",                bpm:148,key:"2B", energy:9,style:["hard techno","techno"],            pop:35, label:"Ilian Tape"},
+  {id:115, title:"Bevel",              artist:"Skee Mask",            bpm:130,key:"10A",energy:6,style:["deep techno","ambient techno"],    pop:30, label:"Ilian Tape"},
+  {id:116, title:"Dial 3",             artist:"Skee Mask",            bpm:128,key:"9B", energy:6,style:["techno","deep techno"],            pop:28, label:"Ilian Tape"},
+  {id:117, title:"Shackles",           artist:"I Hate Models",        bpm:142,key:"3B", energy:9,style:["hard techno","industrial techno"], pop:45, label:"Arts"},
+  {id:118, title:"Away From Earth",    artist:"I Hate Models",        bpm:138,key:"1A", energy:8,style:["techno","industrial techno"],      pop:40, label:"Arts"},
+  {id:119, title:"Hafen",              artist:"HardFist",             bpm:144,key:"4A", energy:9,style:["hard techno","industrial techno"], pop:22, label:"Perc Trax"},
+
+  // --- DEEP HOUSE / MELODIC ADICIONAL ---
+  {id:120, title:"Sweat",              artist:"Move D",               bpm:122,key:"7B", energy:5,style:["deep house","chicago"],            pop:18, label:"Running Back"},
+  {id:121, title:"Sunshine",           artist:"Move D",               bpm:120,key:"6A", energy:5,style:["deep house","melodic house"],      pop:20, label:"Running Back"},
+  {id:122, title:"Cascades",           artist:"dOP",                  bpm:124,key:"8B", energy:5,style:["deep house","minimal"],            pop:22, label:"Innervisions"},
+  {id:123, title:"Unison",             artist:"Dixon",                bpm:126,key:"9A", energy:6,style:["deep house","melodic house"],      pop:38, label:"Innervisions"},
+  {id:124, title:"Phantasy",           artist:"Âme",                  bpm:128,key:"9B", energy:6,style:["melodic house","deep house"],      pop:42, label:"Innervisions"},
+  {id:125, title:"Rej",                artist:"Âme",                  bpm:126,key:"8A", energy:6,style:["deep house","melodic house"],      pop:40, label:"Innervisions"},
+  {id:126, title:"Faded",              artist:"Tensnake",             bpm:124,key:"8B", energy:6,style:["deep house","melodic house"],      pop:35, label:"Watergate Records"},
+  {id:127, title:"What You Gonna Do",  artist:"Tiger & Woods",        bpm:120,key:"6B", energy:5,style:["deep house","chicago"],            pop:20, label:"Edizioni Mondo"},
+  {id:128, title:"Tresillo",           artist:"Tiger & Woods",        bpm:118,key:"5A", energy:5,style:["deep house","minimal"],            pop:18, label:"Edizioni Mondo"},
+  {id:129, title:"It's Yours",         artist:"JT Donaldson",         bpm:122,key:"7A", energy:6,style:["deep house","chicago"],            pop:16, label:"Gooiland Electro"},
+  {id:130, title:"Raw Cuts",           artist:"Hunee",                bpm:124,key:"8A", energy:5,style:["deep house","chicago"],            pop:24, label:"Running Back"},
+  {id:131, title:"Hunch Music",        artist:"Hunee",                bpm:122,key:"7B", energy:5,style:["deep house","melodic house"],      pop:22, label:"Running Back"},
+  {id:132, title:"Devotion",           artist:"Peggy Gou",            bpm:126,key:"8B", energy:6,style:["deep house","melodic house"],      pop:52, label:"Gudu Records"},
+  {id:133, title:"Han Jan",            artist:"Peggy Gou",            bpm:124,key:"8A", energy:6,style:["melodic house","deep house"],      pop:48, label:"Gudu Records"},
+  {id:134, title:"Rebound",            artist:"Mall Grab",            bpm:128,key:"9A", energy:7,style:["dark house","bass"],               pop:30, label:"Steel City Dance Discs"},
+  {id:135, title:"Galaxy Thumpin",     artist:"Mall Grab",            bpm:130,key:"10B",energy:7,style:["dark house","deep house"],         pop:28, label:"Steel City Dance Discs"},
+  {id:136, title:"Rinse & Repeat",     artist:"Richy Ahmed",          bpm:126,key:"8A", energy:6,style:["deep house","dark house"],         pop:22, label:"Hot Creations"},
+];
+
+// Índice de estilos para matching rápido
+const STYLE_FAMILY = {
+  "hard techno":      ["techno","industrial techno","hard techno"],
+  "industrial techno":["techno","industrial techno","hard techno","acid"],
+  "dark techno":      ["techno","dark","deep techno","hypnotic"],
+  "deep techno":      ["deep techno","hypnotic","minimal","ambient techno","dub techno"],
+  "melodic techno":   ["melodic techno","deep techno","ambient techno","melodic house"],
+  "ambient techno":   ["ambient techno","deep techno","melodic techno","hypnotic"],
+  "detroit techno":   ["techno","detroit techno","classic","acid"],
+  "acid":             ["acid","electro","techno","industrial techno"],
+  "electro":          ["electro","acid","techno"],
+  "dark house":       ["dark house","deep house","dub house","bass"],
+  "deep house":       ["deep house","dark house","melodic house","chicago","dub house"],
+  "melodic house":    ["melodic house","deep house","melodic techno"],
+  "dubstep":          ["dubstep","dark house","bass","ambient"],
+  "drum and bass":    ["drum and bass","dark"],
+  "chicago":          ["chicago","deep house","ghetto house"],
+  "ghetto house":     ["ghetto house","chicago","deep house"],
+};
+
+const TECHNO_STYLES = ["all","techno","deep techno","dark","industrial techno","hard techno","acid","electro","dub techno","hypnotic","ambient techno","melodic techno","detroit techno"];
+const HOUSE_STYLES  = ["dark house","deep house","melodic house","dub house","chicago","ghetto house","dubstep","bass"];
+
+// Plataforma principal por sello
+const LABEL_STORE = {
+  "Drumcode":             "beatport",
+  "KNTXT":                "beatport",
+  "Exhale":               "beatport",
+  "Ostgut Ton":           "beatport",
+  "Counterbalance":       "beatport",
+  "MDR":                  "beatport",
+  "Perc Trax":            "beatport",
+  "Figure":               "beatport",
+  "Houndstooth":          "beatport",
+  "Spazio Disponibile":   "beatport",
+  "Mote-Evolver":         "beatport",
+  "Afterlife":            "beatport",
+  "Semantica Records":    "beatport",
+  "Eaux":                 "beatport",
+  "Muscletone":           "beatport",
+  "Filth on Acid":        "beatport",
+  "Droid Recordings":     "beatport",
+  "Sandwell District":    "beatport",
+  "Token Records":        "beatport",
+  "Tresor Records":       "beatport",
+  "Clone Records":        "beatport",
+  "трип":                 "beatport",
+  "Innellea":             "beatport",
+  "Ghostly International":"beatport",
+  "Transmat":             "beatport",
+  "Hessle Audio":         "beatport",
+  "TJ Hertz / Objekt":   "beatport",
+  "Modern Love":          "beatport",
+  "Werkdiscs":            "beatport",
+  "Ninja Tune":           "beatport",
+  "Pessimist Productions":"beatport",
+  "Skull Disco":          "bandcamp",
+  "Alleviated Records":   "bandcamp",
+  "Dance Mania":          "bandcamp",
+  "Hyperdub":             "discogs",
+  "Ternesc":              "beatport",
+  "Infrastructure":       "beatport",
+  "Northern Electronics": "bandcamp",
+  "Sonic Groove":         "beatport",
+  "Soma Records":         "beatport",
+  "Warm Up Recordings":   "beatport",
+  "RH-05":                "beatport",
+  "mau5trap":             "beatport",
+  "Ilian Tape":           "beatport",
+  "Arts":                 "beatport",
+  "Running Back":         "beatport",
+  "Innervisions":         "beatport",
+  "Watergate Records":    "beatport",
+  "Edizioni Mondo":       "bandcamp",
+  "Gooiland Electro":     "bandcamp",
+  "Gudu Records":         "beatport",
+  "Steel City Dance Discs":"beatport",
+  "Hot Creations":        "beatport",
+  "Noise Manifesto":      "bandcamp",
+  "Truncate":             "beatport",
+};
+
+// ── BEATPORT AFFILIATE ─────────────────────────────────────────────────────
+// Registrate en: https://www.beatport.com/affil/apply
+// Reemplazá YOUR_ID con tu ID de afiliado una vez aprobado
+const BP_AFFIL = ""; // ej: "setlab2025"
+function bpUrl(q) {
+  const base = `https://www.beatport.com/search?q=${q}`;
+  return BP_AFFIL ? `${base}&affil=${BP_AFFIL}` : base;
+}
+
+const STORE_DEF = {
+  beatport: { icon:"B",  color:"#01ff95", hint:"Beatport",  getUrl: q=>bpUrl(q) },
+  bandcamp: { icon:"◈",  color:"#1da0c3", hint:"Bandcamp",  getUrl: q=>`https://bandcamp.com/search?q=${q}` },
+  discogs:  { icon:"◎",  color:"#aaa",    hint:"Discogs",   getUrl: q=>`https://www.discogs.com/search/?q=${q}&type=release` },
+};
+
+function getStoreButtons(track) {
+  const q = encodeURIComponent(`${track.artist} ${track.title}`);
+  const storeKey = LABEL_STORE[track.label];
+  if (storeKey && STORE_DEF[storeKey]) {
+    const s = STORE_DEF[storeKey];
+    return [{ icon: s.icon, color: s.color, hint: s.hint, url: s.getUrl(q) }];
+  }
+  // Fallback: mostrar los tres si el sello no está mapeado
+  return [
+    { icon:"B",  color:"#01ff95", hint:"Beatport",  url:`https://www.beatport.com/search?q=${q}` },
+    { icon:"◈",  color:"#1da0c3", hint:"Bandcamp",  url:`https://bandcamp.com/search?q=${q}` },
+    { icon:"◎",  color:"#aaa",    hint:"Discogs",   url:`https://www.discogs.com/search/?q=${q}&type=release` },
+  ];
+}
+
+function getLinks(track) {
+  const q = encodeURIComponent(`${track.artist} ${track.title}`);
+  return [
+    { name:"YouTube",    icon:"▶", color:"#ff4444", url:`https://www.youtube.com/results?search_query=${q}`,   hint:"Vista previa gratuita" },
+    { name:"Beatport",   icon:"B", color:"#01ff95", url:bpUrl(q),                                              hint:"Compra / descarga WAV" },
+    { name:"Bandcamp",   icon:"◈", color:"#1da0c3", url:`https://bandcamp.com/search?q=${q}`,                  hint:"Compra directa al artista" },
+    { name:"SoundCloud", icon:"☁", color:"#ff5500", url:`https://soundcloud.com/search?q=${q}`,                hint:"Escucha gratuita / sets" },
+    { name:"Discogs",    icon:"◎", color:"#888",    url:`https://www.discogs.com/search/?q=${q}&type=release`, hint:"Info del release / vinilo" },
+  ];
+}
+
+function getLabelLinks(label) {
+  const q = encodeURIComponent(label);
+  return [
+    { name:"Beatport",  icon:"B", color:"#01ff95", url:`https://www.beatport.com/search/labels?q=${q}`,                     hint:"Catálogo completo del sello" },
+    { name:"Discogs",   icon:"◎", color:"#888",    url:`https://www.discogs.com/search/?q=${q}&type=label`,                 hint:"Todos los releases + vinilo" },
+    { name:"Bandcamp",  icon:"◈", color:"#1da0c3", url:`https://bandcamp.com/search?q=${q}&item_type=b`,                    hint:"Descargas directas del sello" },
+    { name:"SoundCloud",icon:"☁", color:"#ff5500", url:`https://soundcloud.com/search/sets?q=${q}`,                         hint:"Sets y previews del sello" },
+  ];
+}
+
+function camelotScore(a, b) {
+  const nA=parseInt(a), nB=parseInt(b), lA=a.slice(-1), lB=b.slice(-1);
+  if(nA===nB&&lA===lB) return 100; // mismo — perfecto
+  if(nA===nB) return 75;           // relativo mayor/menor
+  const d=Math.min(Math.abs(nA-nB),12-Math.abs(nA-nB));
+  if(d===1&&lA===lB) return 90;   // adyacente mismo modo
+  if(d===1&&lA!==lB) return 50;   // adyacente cruzado
+  if(d===2&&lA===lB) return 30;   // salto de 2 mismo modo
+  if(d===2&&lA!==lB) return 15;   // salto de 2 cruzado
+  if(d===3&&lA===lB) return 10;   // salto de 3 — arriesgado
+  if(d===3&&lA!==lB) return 5;
+  return 2;                        // > 3 — muy arriesgado pero no cero (no bloquear autobuild)
+}
+// styleCompatScore: calcula compatibilidad de estilos usando STYLE_FAMILY
+function styleCompatScore(stylesA, stylesB) {
+  // Match directo
+  for (const s of stylesA) {
+    if (stylesB.includes(s)) return 45;
+  }
+  // Match por familia de estilos
+  for (const s of stylesA) {
+    const familyA = STYLE_FAMILY[s] || [s];
+    for (const t of stylesB) {
+      const familyB = STYLE_FAMILY[t] || [t];
+      if (familyA.some(f => familyB.includes(f))) return 30;
+    }
+  }
+  return 10;
+}
+
+// scoreMatch: solo bloquea si BPM completamente incompatible (>16 BPM de diferencia)
+function scoreMatch(seed, t) {
+  const d = Math.abs(seed.bpm - t.bpm);
+  const bpmScore = d===0?100:d<=2?95:d<=4?85:d<=7?65:d<=12?35:d<=15?10:0;
+  const keyScore = camelotScore(seed.key, t.key); // nunca 0
+  const eDiff = t.energy - seed.energy;
+  const energyScore = eDiff===0?90:eDiff===1?100:eDiff===-1?80:eDiff===2?70:eDiff===-2?60:eDiff===3?50:eDiff===-3?30:10;
+  const styleScore = styleCompatScore(seed.style, t.style);
+  if(bpmScore===0) return {total:0,bpmScore,keyScore,energyScore,styleScore};
+  const popBonus = t.pop > seed.pop + 5 ? 8 : 0;
+  const total = bpmScore + keyScore + energyScore + styleScore + popBonus;
+  return {total,bpmScore,keyScore,energyScore,styleScore};
+}
+function keyCompat(a, b) {
+  const s=camelotScore(a,b);
+  if(s===100) return {label:"PERFECTO", color:T.green, desc:"Misma clave — transición inaudible"};
+  if(s>=90)   return {label:"ARMÓNICO", color:T.lime,  desc:"Adyacente mismo modo — fluye"};
+  if(s>=75)   return {label:"MODAL",    color:T.yellow,desc:"Relativo mayor/menor"};
+  if(s>=50)   return {label:"TENSIÓN",  color:T.orange,desc:"Adyacente cruzado — atrevido"};
+  if(s>=15)   return {label:"SALTO",    color:"#f97316",desc:"Salto de 2–3 — requiere habilidad"};
+  return             {label:"CHOQUE",   color:T.red,   desc:"Evitar o usar con intención"};
+}
+function isHouseTrack(track) {
+  return track.style.some(s=>["dark house","deep house","dub house","chicago","ghetto house","bass","dub"].includes(s));
+}
+
+function KeyPill({ k, highlight }) {
+  return (
+    <span style={{fontFamily:T.mono,fontSize:10,fontWeight:500,background:highlight?"#1a1206":"#0f0f0f",border:`1px solid ${highlight?T.goldDim:"#1c1c1c"}`,padding:"2px 8px",borderRadius:3,color:highlight?T.gold:"#484440",letterSpacing:1.5,flexShrink:0,transition:"all 0.2s"}}>{k}</span>
+  );
+}
+
+function EBar({ energy, showLabel }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <div style={{display:"flex",gap:2}}>
+        {[...Array(10)].map((_,i)=>(
+          <div key={i} style={{width:3,height:i<energy?4+i*0.3:3,borderRadius:1,background:i<energy?E_COLORS[energy]:"#161614",transition:"all 0.3s",alignSelf:"flex-end"}}/>
+        ))}
+      </div>
+      {showLabel&&<span style={{fontFamily:T.mono,fontSize:8,color:T.textDim,letterSpacing:0.5}}>e{energy}</span>}
+    </div>
+  );
+}
+
+function ScoreBreakdown({ bpmScore, keyScore, energyScore, styleScore }) {
+  const max=398;
+  const segs=[
+    {label:"BPM",val:bpmScore,color:"#0891b2"},
+    {label:"KEY",val:keyScore,color:T.lime},
+    {label:"NRG",val:energyScore,color:T.orange},
+    {label:"STL",val:styleScore,color:T.gold},
+  ];
+  const total=bpmScore+keyScore+energyScore+styleScore;
+  return (
+    <div>
+      <div style={{display:"flex",height:2,borderRadius:2,overflow:"hidden",gap:1,marginBottom:5}}>
+        {segs.map(s=><div key={s.label} style={{width:`${(s.val/max)*100}%`,background:s.color,transition:"width 0.5s"}}/>)}
+        <div style={{flex:1,background:"#0e0e0e"}}/>
+      </div>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        {segs.map(s=>(
+          <div key={s.label} style={{display:"flex",gap:3,alignItems:"center"}}>
+            <div style={{width:4,height:4,borderRadius:1,background:s.color,opacity:s.val>0?1:0.2}}/>
+            <span style={{fontFamily:T.mono,fontSize:7.5,color:s.val>0?"#3a3836":"#1e1c1a",letterSpacing:0.5}}>{s.label} {s.val}</span>
+          </div>
+        ))}
+        <span style={{fontFamily:T.mono,fontSize:9,color:total>240?T.green:total>140?T.yellow:"#3a3836",marginLeft:"auto",fontWeight:600}}>{total}</span>
+      </div>
+    </div>
+  );
+}
+
+function CompatConnector({ from, to }) {
+  const c=keyCompat(from.key,to.key);
+  const d=Math.abs(from.bpm-to.bpm);
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:6,padding:"2px 4px 2px 30px"}}>
+      <div style={{width:1,height:14,background:`${c.color}22`}}/>
+      <span style={{fontFamily:T.sans,fontSize:7,fontWeight:700,color:c.color,letterSpacing:1.2}}>{c.label}</span>
+      <span style={{color:"#141412"}}>·</span>
+      <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim}}>{from.key}→{to.key}</span>
+      <span style={{color:"#141412"}}>·</span>
+      <span style={{fontFamily:T.mono,fontSize:7.5,color:d>6?T.orange:T.textDim}}>Δ{d} BPM</span>
+    </div>
+  );
+}
+
+function StyleChip({ s, active, onClick, accent }) {
+  return (
+    <button onClick={onClick} style={{flexShrink:0,background:active?accent:"transparent",color:active?"#000":"#333",border:`1px solid ${active?accent:"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:active?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{s}</button>
+  );
+}
+
+
+
+function FindModal({ track, onClose }) {
+  const links = getLinks(track);
+  const labelLinks = getLabelLinks(track.label);
+  const [tab, setTab] = React.useState("track");
+  return (
+    <div onClick={onClose} style={{position:"absolute",inset:0,zIndex:100,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"flex-end",backdropFilter:"blur(6px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",background:"#080706",border:"1px solid #1c1a18",borderTop:"1px solid #252220",borderRadius:"22px 22px 0 0",padding:"0 0 36px"}}>
+        <style>{`@keyframes sheetUp{from{transform:translateY(44px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+        <div style={{display:"flex",justifyContent:"center",padding:"14px 0 10px"}}>
+          <div style={{width:32,height:3,borderRadius:2,background:"#201e1b"}}/>
+        </div>
+        <div style={{padding:"4px 20px 14px",borderBottom:"1px solid #141210"}}>
+          <div style={{fontFamily:T.mono,fontSize:7,color:T.textDim,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>encontrar track</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:2}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:T.sans,fontSize:17,fontWeight:700,color:T.text,letterSpacing:-0.3}}>{track.title}</div>
+              <div style={{fontFamily:T.sans,fontSize:11,fontWeight:400,color:T.textMid,marginTop:2}}>{track.artist}</div>
+            </div>
+            <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <PreviewButton track={track} accent={T.gold}/>
+              <span style={{fontFamily:T.mono,fontSize:6.5,color:T.textGhost,letterSpacing:0.5}}>30s</span>
+            </div>
+          </div>
+          {track.label&&(
+            <button onClick={()=>setTab("label")} style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,background:tab==="label"?"#1a1206":"#0e0b06",border:`1px solid ${tab==="label"?T.goldDim:"#2a2210"}`,borderRadius:8,padding:"5px 11px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+              <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.gold} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.gold} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.gold}/></svg>
+              <span style={{fontFamily:T.mono,fontSize:8.5,color:T.gold,letterSpacing:0.5}}>{track.label}</span>
+              {tab==="label"&&<span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,letterSpacing:1}}>▸ viendo sello</span>}
+            </button>
+          )}
+        </div>
+
+        {/* Tab switcher */}
+        <div style={{display:"flex",margin:"10px 16px 0",background:"#0c0a08",border:"1px solid #181614",borderRadius:10,overflow:"hidden"}}>
+          {[["track","🎵 Este track"],["label","🏷 Explorar sello"]].map(([id,lbl])=>(
+            <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:tab===id?"#1a1206":"transparent",border:"none",padding:"8px 0",cursor:"pointer",fontFamily:T.sans,fontWeight:700,fontSize:9.5,color:tab===id?T.gold:"#2a2826",letterSpacing:0.5,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{lbl}</button>
+          ))}
+        </div>
+
+        {tab==="track"&&(
+          <div>
+            <div style={{padding:"10px 16px 0"}}>
+              {(()=>{
+                const storeKey = LABEL_STORE[track.label];
+                const q = encodeURIComponent(`${track.artist} ${track.title}`);
+                // Primary store from label map
+                const primary = storeKey && STORE_DEF[storeKey] ? [{
+                  name: STORE_DEF[storeKey].hint,
+                  icon: STORE_DEF[storeKey].icon,
+                  color: STORE_DEF[storeKey].color,
+                  url: STORE_DEF[storeKey].getUrl(q),
+                  hint: storeKey==="beatport"?"Compra / descarga WAV":storeKey==="bandcamp"?"Descarga directa al artista":"Info del release / vinilo",
+                  primary: true,
+                }] : [];
+                // Always add SoundCloud + Discogs as secondary (skip if already primary)
+                const secondary = [
+                  storeKey!=="discogs" && { name:"Discogs", icon:"◎", color:"#aaa", url:`https://www.discogs.com/search/?q=${q}&type=release`, hint:"Info del release / vinilo" },
+                  { name:"SoundCloud", icon:"☁", color:"#ff5500", url:`https://soundcloud.com/search?q=${q}`, hint:"Escucha gratuita / sets" },
+                  storeKey!=="beatport" && { name:"Beatport", icon:"B", color:"#01ff95", url:`https://www.beatport.com/search?q=${q}`, hint:"Compra / descarga WAV" },
+                  storeKey!=="bandcamp" && { name:"Bandcamp", icon:"◈", color:"#1da0c3", url:`https://bandcamp.com/search?q=${q}`, hint:"Compra directa al artista" },
+                ].filter(Boolean);
+                const all = [...primary, ...secondary];
+                return all.map((link,i)=>(
+                  <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",marginBottom:4,background: link.primary?"#0e0c06":"#0c0a09",border:`1px solid ${link.primary?STORE_DEF[storeKey].color+"33":"#181614"}`,borderRadius:12,textDecoration:"none"}}>
+                    <div style={{width:34,height:34,borderRadius:10,background:`${link.color}0e`,border:`1px solid ${link.color}${link.primary?"44":"20"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontFamily:T.mono,fontSize:13,color:link.color,fontWeight:700}}>{link.icon}</span>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{fontFamily:T.sans,fontSize:12,fontWeight:600,color:T.text}}>{link.name}</div>
+                        {link.primary&&<span style={{fontFamily:T.mono,fontSize:6.5,color:STORE_DEF[storeKey].color,background:`${STORE_DEF[storeKey].color}15`,border:`1px solid ${STORE_DEF[storeKey].color}30`,padding:"1px 5px",borderRadius:4,letterSpacing:1}}>PRINCIPAL</span>}
+                      </div>
+                      <div style={{fontFamily:T.sans,fontSize:9,color:T.textMid,marginTop:1,fontWeight:400}}>{link.hint}</div>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={link.primary?STORE_DEF[storeKey].color+"66":"#2a2826"} strokeWidth="2" strokeLinecap="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+                  </a>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
+        {tab==="label"&&track.label&&(
+          <div>
+            <div style={{margin:"12px 16px 0",background:"#0e0b06",border:"1px solid #2a2210",borderRadius:14,padding:"14px 16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <div style={{width:40,height:40,borderRadius:12,background:"#1a1206",border:`1px solid ${T.goldDim}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.gold} strokeWidth="1.5"/><circle cx="10" cy="10" r="3.5" stroke={T.gold} strokeWidth="1.2"/><circle cx="10" cy="10" r="1.2" fill={T.gold}/></svg>
+                </div>
+                <div>
+                  <div style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>sello discográfico</div>
+                  <div style={{fontFamily:T.sans,fontSize:15,fontWeight:800,color:T.gold,letterSpacing:-0.3}}>{track.label}</div>
+                </div>
+              </div>
+              <div style={{fontFamily:T.sans,fontSize:9,color:T.textDim,lineHeight:1.7}}>
+                Explorá el catálogo completo del sello para encontrar más tracks underground y descargar en tu tienda preferida.
+              </div>
+            </div>
+            <div style={{padding:"10px 16px 0"}}>
+              <div style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost,letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>buscar sello en</div>
+              {labelLinks.map(link=>(
+                <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",marginBottom:4,background:"#0c0a09",border:"1px solid #1e1c18",borderRadius:12,textDecoration:"none"}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:`${link.color}0e`,border:`1px solid ${link.color}20`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <span style={{fontFamily:T.mono,fontSize:13,color:link.color,fontWeight:700}}>{link.icon}</span>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:T.sans,fontSize:12,fontWeight:600,color:T.text}}>{link.name}</div>
+                    <div style={{fontFamily:T.sans,fontSize:9,color:T.textMid,marginTop:1,fontWeight:400}}>{link.hint}</div>
+                  </div>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2a2826" strokeWidth="2" strokeLinecap="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{textAlign:"center",marginTop:10}}>
+          <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>tocá afuera para cerrar</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PREESCUCHA GLOBAL ──────────────────────────────────────────────────────
+let _previewAudio = null;
+let _previewSetState = null;
+
+async function searchItunesPreview(track) {
+  // Genera múltiples variantes de búsqueda, de más específica a más amplia
+  const firstArtist = track.artist.split(/[&,+]/)[0].trim();
+  const shortTitle  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim(); // sin paréntesis
+  const titleWords  = shortTitle.split(' ').slice(0, 4).join(' ');           // primeras 4 palabras
+  const queries = [
+    `${firstArtist} ${shortTitle}`,          // artista principal + título limpio
+    `${firstArtist} ${titleWords}`,           // artista principal + primeras palabras
+    `${track.artist} ${titleWords}`,          // artista completo + primeras palabras
+    shortTitle,                               // solo título limpio
+    `${firstArtist} ${track.title.split(' ')[0]}`, // artista + primera palabra del título
+  ];
+  for (const q of queries) {
+    try {
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=10&entity=song`);
+      const data = await res.json();
+      const hit = data.results.find(r => r.previewUrl);
+      if (hit) return hit.previewUrl;
+    } catch { /* seguir con la siguiente */ }
+  }
+  return null;
+}
+
+function PreviewButton({ track, accent }) {
+  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf
+
+  function stopCurrent() {
+    if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
+    if (_previewSetState) { _previewSetState("idle"); _previewSetState = null; }
+  }
+
+  async function handleClick(e) {
+    e.stopPropagation();
+    if (state === "playing" || state === "loading") {
+      stopCurrent();
+      setState("idle");
+      return;
+    }
+    stopCurrent();
+    setState("loading");
+    try {
+      const previewUrl = await searchItunesPreview(track);
+      if (!previewUrl) { setState("nf"); setTimeout(()=>setState("idle"),2500); return; }
+      const audio = new Audio(previewUrl);
+      _previewAudio = audio;
+      _previewSetState = setState;
+      audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+      audio.addEventListener("error", () => { setState("error"); setTimeout(()=>setState("idle"),2000); _previewAudio=null; _previewSetState=null; });
+      audio.play();
+      setState("playing");
+    } catch {
+      setState("error");
+      setTimeout(()=>setState("idle"),2000);
+    }
+  }
+
+  const map = {
+    idle:    { icon:"▶", color:"#3a9e6a", bg:"#0e0e0c", border:"#1e1c1a", title:"Preescucha 30s" },
+    loading: { icon:"…", color:"#706860", bg:"#0e0e0c", border:"#1e1c1a", title:"Buscando…"       },
+    playing: { icon:"■", color:accent,    bg:`${accent}12`, border:`${accent}44`, title:"Detener"  },
+    error:   { icon:"✕", color:T.red,     bg:"#0e0e0c", border:"#1e1c1a", title:"Sin preview"     },
+    nf:      { icon:"∅", color:T.textDim, bg:"#0e0e0c", border:"#1e1c1a", title:"No encontrado"   },
+  };
+  const s = map[state] || map.idle;
+  return (
+    <button onClick={handleClick} title={s.title} style={{
+      background:s.bg, border:`1px solid ${s.border}`, color:s.color,
+      fontSize:state==="loading"?9:11, width:26, height:26, borderRadius:7,
+      cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+      transition:"all 0.2s", WebkitTapHighlightColor:"transparent",
+      fontWeight:700, fontFamily:T.mono, flexShrink:0,
+    }}>{s.icon}</button>
+  );
+}
+
+function TrackCard({ track, onSelect, onAdd, onFind, isSelected, inSet, scoreData, showScore, compact }) {
+  const [pressed, setPressed] = useState(false);
+  const house = isHouseTrack(track);
+  const accent = house ? HOUSE_ACCENT : T.gold;
+  const q = encodeURIComponent(`${track.artist} ${track.title}`);
+
+  return (
+    <div style={{background:isSelected?(house?"#090c12":"#0e0b06"):T.surface,border:`1px solid ${isSelected?(house?"#1e304055":"#3a2e1035"):T.border}`,borderRadius:12,overflow:"hidden",transition:"border-color 0.2s",position:"relative"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,transparent,${accent}44,transparent)`,opacity:isSelected?1:0.25}}/>
+      <div onPointerDown={()=>setPressed(true)} onPointerUp={()=>setPressed(false)} onPointerLeave={()=>setPressed(false)} onClick={onSelect} style={{padding:compact?"10px 12px":"12px 14px",cursor:onSelect?"pointer":"default",transform:pressed?"scale(0.983)":"scale(1)",transition:"transform 0.1s ease",WebkitTapHighlightColor:"transparent"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0}}>
+              <div style={{fontFamily:T.sans,fontSize:13,fontWeight:700,color:isSelected?accent:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:-0.3}}>{track.title}</div>
+              {house&&<span style={{fontFamily:T.mono,fontSize:6.5,color:HOUSE_ACCENT,background:"#0a1422",border:`1px solid ${HOUSE_ACCENT}25`,padding:"1px 5px",borderRadius:3,letterSpacing:1,textTransform:"uppercase",flexShrink:0}}>house</span>}
+            </div>
+            <div style={{fontFamily:T.sans,fontSize:10,fontWeight:400,color:T.textMid,marginTop:2.5}}>{track.artist}</div>
+            {track.label&&(
+              <div style={{display:"flex",alignItems:"center",gap:4,marginTop:5}}>
+                <svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={house?HOUSE_ACCENT:T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={house?HOUSE_ACCENT:T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={house?HOUSE_ACCENT:T.goldDim}/></svg>
+                <span style={{fontFamily:T.mono,fontSize:7.5,color:house?"#2a4a6a":T.goldDim,letterSpacing:0.4,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>{track.label}</span>
+              </div>
+            )}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
+            <div style={{display:"flex",gap:5,alignItems:"center"}}>
+              <KeyPill k={track.key} highlight={isSelected}/>
+              <span style={{fontFamily:T.mono,fontSize:10,color:T.textDim,letterSpacing:0.5}}>{track.bpm}</span>
+            </div>
+            <EBar energy={track.energy} showLabel/>
+          </div>
+        </div>
+        {showScore&&scoreData&&<div style={{marginTop:9}}><ScoreBreakdown {...scoreData}/></div>}
+        {!compact&&(
+          <div style={{marginTop:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+              {track.style.slice(0,2).map(s=>(
+                <span key={s} style={{fontFamily:T.sans,fontWeight:500,fontSize:7.5,color:"#a8a4a0",background:"#0c0b09",border:"1px solid #161412",padding:"2px 7px",borderRadius:20,letterSpacing:0.5,textTransform:"uppercase"}}>{s}</span>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <PreviewButton track={track} accent={accent}/>
+              {getStoreButtons(track).map(({icon,color,hint,url})=>(
+                <a key={hint} href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={hint} style={{background:"#0e0e0c",border:`1px solid ${color}33`,color:color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700,transition:"border-color 0.15s"}}>{icon}</a>
+              ))}
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>pop {track.pop}</span>
+              {onAdd&&(
+                <button onClick={e=>{e.stopPropagation();onAdd(track);}} style={{background:inSet?"#071a07":"#0e0e0c",border:`1px solid ${inSet?"#22c55e28":"#1e1c1a"}`,color:inSet?T.green:"#383430",fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}}>{inSet?"✓":"+"}</button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EnergyFlowChart({ tracks }) {
+  if(tracks.length<2) return null;
+  const W=330,H=60,pad=12;
+  const xStep=(W-pad*2)/(tracks.length-1);
+  const toY=e=>pad+(H-pad*2)*(1-(e-1)/9);
+  const pts=tracks.map((t,i)=>({x:pad+i*xStep,y:toY(t.energy),t}));
+  let d=`M ${pts[0].x} ${pts[0].y}`;
+  for(let i=1;i<pts.length;i++) d+=` C ${pts[i-1].x+xStep*0.5} ${pts[i-1].y},${pts[i].x-xStep*0.5} ${pts[i].y},${pts[i].x} ${pts[i].y}`;
+  return (
+    <div style={{padding:"10px 12px 4px"}}>
+      <div style={{fontFamily:T.sans,fontWeight:700,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",marginBottom:6}}>flujo de energía</div>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <defs><linearGradient id="eG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={T.gold} stopOpacity="0.12"/><stop offset="100%" stopColor={T.gold} stopOpacity="0"/></linearGradient></defs>
+        {[1,3,5,7,9].map(e=><line key={e} x1={pad} x2={W-pad} y1={toY(e)} y2={toY(e)} stroke="#141210" strokeWidth="1" strokeDasharray="2,4"/>)}
+        <path d={d+` L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`} fill="url(#eG)"/>
+        <path d={d} fill="none" stroke={T.gold} strokeWidth="1.5" strokeLinecap="round"/>
+        {pts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="2.5" fill={E_COLORS[p.t.energy]} stroke="#060504" strokeWidth="1.5"/>)}
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",padding:`0 ${pad}px`}}>
+        {tracks.map((_,i)=><span key={i} style={{fontFamily:T.mono,fontSize:6.5,color:T.textGhost}}>{i+1}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon, headline, sub }) {
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16,padding:"0 44px"}}>
+      <div style={{opacity:0.2}}>{icon}</div>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontFamily:T.sans,fontWeight:700,fontSize:13,color:T.textMid,letterSpacing:-0.2,marginBottom:7}}>{headline}</div>
+        <div style={{fontFamily:T.sans,fontSize:10,fontWeight:400,color:T.textDim,lineHeight:2.2}}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styleFilter, setStyleFilter, search, setSearch, onFind, djTracks=[] }) {
+  const [labelFilter, setLabelFilter] = React.useState(null);
+  const allTracks = React.useMemo(()=>[...TRACKS,...djTracks],[djTracks]);
+  const allLabels = React.useMemo(()=>[...new Set(allTracks.map(t=>t.label).filter(Boolean))].sort(),[allTracks]);
+  const list=useMemo(()=>allTracks.filter(t=>{
+    if(!t.isEmergent && t.pop>maxPop) return false; // emergentes siempre pasan
+    if(styleFilter!=="all"&&!t.style.includes(styleFilter)) return false;
+    if(labelFilter&&t.label!==labelFilter) return false;
+    if(search){const q=search.toLowerCase();return t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q)||(t.label||"").toLowerCase().includes(q);}
+    return true;
+  }),[styleFilter,maxPop,search,labelFilter,allTracks]);
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      <div style={{padding:"8px 16px 0",flexShrink:0}}>
+        <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textDim,lineHeight:1.6,fontWeight:400}}>
+          Tocá un track para marcarlo como <span style={{color:T.gold,fontWeight:700}}>semilla</span> → BUILD sugerirá los próximos
+        </div>
+      </div>
+      <div style={{padding:"8px 14px 0",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,background:"#070605",border:"1px solid #181614",borderRadius:10,padding:"8px 12px"}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2a2826" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="buscar track o artista…" style={{flex:1,background:"none",border:"none",outline:"none",fontSize:11.5,color:T.text,fontFamily:T.sans,fontWeight:400}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#a8a4a0",cursor:"pointer",fontSize:13,padding:0}}>✕</button>}
+        </div>
+      </div>
+      <div style={{padding:"10px 14px 0",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}>
+          <span style={{fontFamily:T.sans,fontSize:9,color:T.textDim,fontWeight:500}}>popularidad máxima <span style={{color:"#a0a09a"}}>— anti-mainstream</span></span>
+          <span style={{fontFamily:T.mono,fontSize:10,color:T.gold,fontWeight:600}}>≤ {maxPop}</span>
+        </div>
+        <input type="range" min={5} max={80} value={maxPop} onChange={e=>setMaxPop(+e.target.value)} style={{width:"100%",accentColor:T.gold,cursor:"pointer"}}/>
+      </div>
+      <div style={{padding:"8px 14px 0",flexShrink:0}}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingBottom:4}}>
+          {TECHNO_STYLES.map(s=><StyleChip key={s} s={s} active={styleFilter===s} onClick={()=>setStyleFilter(s)} accent={T.gold}/>)}
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingBottom:2,marginTop:5,alignItems:"center"}}>
+          <span style={{fontFamily:T.mono,fontSize:7,color:"#b8b0a8",letterSpacing:1.5,textTransform:"uppercase",flexShrink:0,paddingRight:2}}>house</span>
+          {HOUSE_STYLES.map(s=><StyleChip key={s} s={s} active={styleFilter===s} onClick={()=>setStyleFilter(s)} accent={HOUSE_ACCENT}/>)}
+        </div>
+      </div>
+      <div style={{padding:"6px 14px 0",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+          <svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.goldDim}/></svg>
+          <span style={{fontFamily:T.mono,fontSize:7,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase"}}>sello</span>
+          {labelFilter&&<button onClick={()=>setLabelFilter(null)} style={{background:"#1a1206",border:`1px solid ${T.goldDim}`,color:T.gold,fontFamily:T.mono,fontSize:7,padding:"2px 7px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>✕ {labelFilter}</button>}
+        </div>
+        <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+          {allLabels.map(l=>(
+            <button key={l} onClick={()=>setLabelFilter(labelFilter===l?null:l)} style={{flexShrink:0,background:labelFilter===l?"#1a1206":"transparent",color:labelFilter===l?T.gold:"#2a2826",border:`1px solid ${labelFilter===l?T.goldDim:"#1a1814"}`,fontSize:7,padding:"3px 9px",borderRadius:20,cursor:"pointer",letterSpacing:0.5,textTransform:"none",fontFamily:T.mono,fontWeight:labelFilter===l?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{list.length} tracks{labelFilter?` · ${labelFilter}`:""}</span>
+        {seed&&<span style={{fontFamily:T.mono,fontSize:8.5,color:T.goldDim}}>semilla: {seed.title}</span>}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {list.map(t=>(
+            <TrackCard key={t.id} track={t} isSelected={seed?.id===t.id} onSelect={()=>setSeed(seed?.id===t.id?null:t)} onAdd={addToSet} onFind={onFind} inSet={mySet.some(s=>s.id===t.id)}/>
+          ))}
+          {list.length===0&&<div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Todos los estilos únicos del catálogo
+const ALL_BUILD_STYLES = [...new Set(Object.values(TRACKS.reduce((acc,t)=>{t.style.forEach(s=>{acc[s]=s});return acc},{})))].sort();
+
+// Chequeo si un estilo entra en el filtro seleccionado (directo o por familia)
+function matchesStyleFilter(track, styleFilter) {
+  if(styleFilter==="all") return true;
+  if(track.style.includes(styleFilter)) return true;
+  // Buscar en todas las familias que contengan el filtro elegido
+  for(const [fam, members] of Object.entries(STYLE_FAMILY)) {
+    if(members.includes(styleFilter) && track.style.some(s=>members.includes(s))) return true;
+    if(fam===styleFilter && track.style.some(s=>members.includes(s))) return true;
+  }
+  return false;
+}
+
+// Auto-build greedy: construye la secuencia completa desde el seed
+// Usa umbral adaptativo: si no hay candidatos con score alto, baja el umbral
+function autoBuild(seed, styleFilter, maxPop, maxTracks=8, allTracks=TRACKS) {
+  const pool = allTracks.filter(t =>
+    t.id !== seed.id &&
+    (t.isEmergent || t.pop <= maxPop) &&
+    matchesStyleFilter(t, styleFilter)
+  );
+
+  const sequence = [seed];
+  const used = new Set([seed.id]);
+
+  for(let step = 0; step < maxTracks - 1; step++) {
+    const last = sequence[sequence.length - 1];
+    const setStyles = sequence.flatMap(x => x.style);
+
+    const scored = pool
+      .filter(t => !used.has(t.id))
+      .map(t => {
+        const sc = scoreMatch(last, t);
+
+        // Penaliza drift total de BPM respecto al seed
+        const bpmDrift = Math.abs(t.bpm - seed.bpm);
+        const driftPenalty = bpmDrift > 18 ? -60 : bpmDrift > 12 ? -25 : bpmDrift > 8 ? -10 : 0;
+
+        // Bonus cohesión: el estilo ya apareció en el set
+        const cohesionBonus = t.style.filter(s => setStyles.includes(s)).length * 12;
+
+        // Bonus narrativa: leve preferencia a subir energía en primeros pasos, bajar al final
+        const progress = step / (maxTracks - 2);
+        const eDiff = t.energy - last.energy;
+        const narrativeBonus = progress < 0.5 ? (eDiff === 1 ? 15 : eDiff === 0 ? 5 : -5)
+                                               : (eDiff === -1 ? 10 : eDiff === 0 ? 5 : -5);
+
+        return {
+          ...t,
+          scoreData: sc,
+          rawTotal: sc.total,
+          adjustedTotal: sc.total + driftPenalty + cohesionBonus + narrativeBonus
+        };
+      })
+      .filter(t => t.rawTotal > 0)  // solo descartar si BPM o key son 0
+      .sort((a, b) => b.adjustedTotal - a.adjustedTotal);
+
+    if(scored.length === 0) break;
+
+    // Umbral adaptativo: intenta >120 primero, luego baja si no hay
+    const best = scored.find(t => t.adjustedTotal >= 120)
+               || scored.find(t => t.adjustedTotal >= 80)
+               || scored[0];
+
+    sequence.push(best);
+    used.add(best.id);
+  }
+
+  return sequence.slice(1); // sin la semilla
+}
+
+// ── ARCO DE ENERGÍA: define cómo evoluciona la energía a lo largo del set
+// Devuelve el target de energía ideal para cada posición (0..1) del set
+const ENERGY_ARCS = {
+  buildup: {
+    label: "Build Up",
+    desc: "Empieza suave, termina en peak",
+    icon: "↗",
+    color: T.orange,
+    fn: (p) => 3 + Math.round(p * 6),           // 3→9
+  },
+  peak: {
+    label: "Peak Hour",
+    desc: "Directo al máximo, sin escala",
+    icon: "▲",
+    color: "#ef4444",
+    fn: (p) => 8 + Math.round(p),               // 8→9
+  },
+  chill: {
+    label: "Chill / Sunset",
+    desc: "Energía baja y constante",
+    icon: "〜",
+    color: "#0891b2",
+    fn: (p) => 3 + Math.round(Math.sin(p * Math.PI * 0.5)),  // 3→4
+  },
+  wave: {
+    label: "Ola / Journey",
+    desc: "Sube, baja, sube otra vez",
+    icon: "∿",
+    color: "#a855f7",
+    fn: (p) => 5 + Math.round(Math.sin(p * Math.PI * 1.5) * 3), // 5→wave
+  },
+  rollercoaster: {
+    label: "Rollercoaster",
+    desc: "Picos y valles dramáticos",
+    icon: "⌇",
+    color: T.gold,
+    fn: (p, i) => i % 2 === 0 ? 8 : 4,         // alternado
+  },
+  dropdown: {
+    label: "Drop Down",
+    desc: "Abre fuerte, cierra suave",
+    icon: "↘",
+    color: "#65a30d",
+    fn: (p) => 9 - Math.round(p * 5),           // 9→4
+  },
+};
+
+// Auto-build con control de arco de energía, variación aleatoria y fusión de estilos
+function autoBuildAdvanced(opts) {
+  var styles = opts.styles;
+  var arcKey = opts.arc;
+  var length = opts.length;
+  var maxPop = opts.maxPop;
+  var variation = opts.variation;
+
+  var pool = TRACKS.filter(function(t) {
+    if (t.pop > maxPop) return false;
+    for (var si = 0; si < styles.length; si++) {
+      if (matchesStyleFilter(t, styles[si])) return true;
+    }
+    return false;
+  });
+  if (pool.length === 0) return { seed: null, tracks: [] };
+
+  var arcFn = (ENERGY_ARCS[arcKey] && ENERGY_ARCS[arcKey].fn) ? ENERGY_ARCS[arcKey].fn : ENERGY_ARCS.buildup.fn;
+  var seedETarget = arcFn(0, 0);
+
+  var seedPool = pool.slice().sort(function(a, b) {
+    var aDiff = Math.abs(a.energy - seedETarget);
+    var bDiff = Math.abs(b.energy - seedETarget);
+    var nz = variation * 2.5;
+    return (aDiff + Math.random() * nz) - (bDiff + Math.random() * nz);
+  });
+
+  var chosenSeed = seedPool[0];
+  var sequence = [chosenSeed];
+  var usedIds = {};
+  usedIds[chosenSeed.id] = true;
+
+  var denom = length > 1 ? length - 1 : 1;
+
+  for (var step = 0; step < length - 1; step++) {
+    var progress = (step + 1) / denom;
+    var targetE = arcFn(progress, step + 1);
+    var last = sequence[sequence.length - 1];
+
+    var usedStylesArr = [];
+    for (var si2 = 0; si2 < sequence.length; si2++) {
+      for (var si3 = 0; si3 < sequence[si2].style.length; si3++) {
+        usedStylesArr.push(sequence[si2].style[si3]);
+      }
+    }
+
+    var recentArtists = [];
+    for (var ri = Math.max(0, sequence.length - 3); ri < sequence.length; ri++) {
+      recentArtists.push(sequence[ri].artist);
+    }
+
+    var candidates = [];
+    for (var ci = 0; ci < pool.length; ci++) {
+      var t = pool[ci];
+      if (usedIds[t.id]) continue;
+
+      var bpmDiff = Math.abs(t.bpm - last.bpm);
+      var bpmScore = bpmDiff===0?100:bpmDiff<=2?95:bpmDiff<=4?85:bpmDiff<=7?65:bpmDiff<=12?35:bpmDiff<=16?15:5;
+      var keyScore = camelotScore(last.key, t.key);
+      var eDiff = Math.abs(t.energy - targetE);
+      var arcBonus = eDiff===0?40:eDiff===1?20:eDiff===2?0:-20*(eDiff-2);
+
+      var cohesion = 0;
+      for (var csi = 0; csi < t.style.length; csi++) {
+        if (usedStylesArr.indexOf(t.style[csi]) >= 0) cohesion += 10;
+      }
+
+      var totalDrift = Math.abs(t.bpm - chosenSeed.bpm);
+      var driftPenalty = totalDrift > 18 ? -50 : totalDrift > 12 ? -20 : totalDrift > 8 ? -8 : 0;
+      var randNoise = (Math.random() - 0.5) * variation * 40;
+      var artistPenalty = recentArtists.indexOf(t.artist) >= 0 ? -35 : 0;
+      var score = bpmScore + keyScore + arcBonus + cohesion + driftPenalty + randNoise + artistPenalty;
+
+      candidates.push({ track: t, score: score });
+    }
+
+    if (candidates.length === 0) break;
+    candidates.sort(function(a, b) { return b.score - a.score; });
+    var best = candidates[0].track;
+    sequence.push(best);
+    usedIds[best.id] = true;
+  }
+
+  return { seed: chosenSeed, tracks: sequence.slice(1) };
+}
+
+// Estilos con labels bonitos para el modal
+const STYLE_BUILD_OPTIONS = [
+  { group: "TECHNO", styles: [
+    { id:"techno",            label:"Techno",         desc:"Berlin, oscuro, industrial" },
+    { id:"deep techno",       label:"Deep Techno",    desc:"Hipnótico, introspectivo" },
+    { id:"hard techno",       label:"Hard Techno",    desc:"Rápido, intenso, crudo" },
+    { id:"industrial techno", label:"Industrial",     desc:"Máquinas, oscuridad total" },
+    { id:"melodic techno",    label:"Melodic Techno", desc:"Afterlife, atmospheric" },
+    { id:"ambient techno",    label:"Ambient Techno", desc:"Texturas, minimal, flotante" },
+    { id:"acid",              label:"Acid / Electro", desc:"303, ácido, underground" },
+    { id:"detroit techno",    label:"Detroit",        desc:"Clásicos, alma, raíces" },
+  ]},
+  { group: "HOUSE", styles: [
+    { id:"deep house",    label:"Deep House",    desc:"Orgánico, soul, groove" },
+    { id:"dark house",    label:"Dark House",    desc:"Dub, bass, sombras" },
+    { id:"melodic house", label:"Melodic House", desc:"Bicep, emocional, viaje" },
+    { id:"chicago",       label:"Chicago House", desc:"Jack, clásico, piano" },
+    { id:"ghetto house",  label:"Ghetto House",  desc:"Crudo, percusivo, baile" },
+  ]},
+  { group: "OTROS", styles: [
+    { id:"dubstep",       label:"Dubstep",       desc:"Burial, oscuro, post-UK" },
+    { id:"drum and bass", label:"Drum & Bass",   desc:"Neurofunk, oscuro, rápido" },
+  ]},
+];
+
+const HOUSE_STYLE_IDS = new Set(["deep house","dark house","melodic house","chicago","ghetto house","dub house"]);
+
+// Mini energy arc visualizer (sparkline SVG)
+function ArcSparkline({ arcKey, width=120, height=24 }) {
+  const arc = ENERGY_ARCS[arcKey];
+  if (!arc) return null;
+  const pts = 10;
+  const vals = Array.from({length:pts},(_,i) => arc.fn(i/(pts-1), i));
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const points = vals.map((v,i) => {
+    const x = 4 + (i/(pts-1))*(width-8);
+    const y = (height-4) - ((v-mn)/range)*(height-8);
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg width={width} height={height} style={{display:"block"}}>
+      <polyline points={points} fill="none" stroke={arc.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
+      {vals.map((v,i)=>{
+        const x = 4 + (i/(pts-1))*(width-8);
+        const y = (height-4) - ((v-mn)/range)*(height-8);
+        return <circle key={i} cx={x} cy={y} r="1.5" fill={arc.color} opacity="0.5"/>;
+      })}
+    </svg>
+  );
+}
+
+function AutoBuildModal({ onClose, onBuild, maxPop }) {
+  const [selectedStyles, setSelectedStyles] = React.useState([]);
+  const [arc, setArc] = React.useState("buildup");
+  const [length, setLength] = React.useState(12);
+  const [variation, setVariation] = React.useState(0.3); // 0=determinista, 1=muy aleatorio
+  const [preview, setPreview] = React.useState(null);
+  const [step, setStep] = React.useState(0); // 0=estilos, 1=parámetros
+
+  const compute = (styles, arcKey, len, vari) => {
+    if (styles.length === 0) { setPreview(null); return; }
+    const result = autoBuildAdvanced({ styles, arc: arcKey, length: len, maxPop, variation: vari });
+    setPreview(result);
+  };
+  const toggleStyle = (styleId) => {
+    const next = selectedStyles.includes(styleId) ? selectedStyles.filter(s=>s!==styleId) : [...selectedStyles, styleId];
+    setSelectedStyles(next);
+    compute(next, arc, length, variation);
+  };
+  const handleArc = (key) => { setArc(key); compute(selectedStyles, key, length, variation); };
+  const handleLength = (n) => { setLength(n); compute(selectedStyles, arc, n, variation); };
+  const handleVariation = (v) => { setVariation(v); compute(selectedStyles, arc, length, v); };
+  const handleBuild = () => {
+    if (!preview?.seed || preview.tracks.length === 0) return;
+    onBuild(preview.seed, preview.tracks);
+    onClose();
+  };
+  const handleReshuffle = () => { compute(selectedStyles, arc, length, variation); };
+
+  const canProceed = selectedStyles.length > 0;
+  const canBuild = preview?.seed && preview?.tracks?.length > 0;
+
+  return (
+    <div style={{
+      position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:999,
+      display:"flex",alignItems:"flex-end",justifyContent:"center"
+    }} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{
+        width:"100%",maxWidth:430,maxHeight:"92vh",display:"flex",flexDirection:"column",
+        borderRadius:"18px 18px 0 0",overflow:"hidden",
+        background:"#080705",border:"1px solid #1a1816",borderBottom:"none",
+        boxShadow:"0 -20px 60px #000c"
+      }}>
+
+        {/* ── HEADER ── */}
+        <div style={{background:"#0a0906",borderBottom:"1px solid #141210",padding:"14px 18px 12px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontFamily:T.sans,fontWeight:800,fontSize:14,color:T.gold,letterSpacing:-0.3}}>✦ Auto Build</div>
+            <div style={{fontFamily:T.mono,fontSize:7.5,color:"#aca49a",letterSpacing:1,marginTop:2}}>
+              {selectedStyles.length===0?"elegí estilo · configurá el arco · generá":
+               selectedStyles.length===1?`${selectedStyles[0]} · ${ENERGY_ARCS[arc].label}`:
+               `${selectedStyles.length} estilos fusionados · ${ENERGY_ARCS[arc].label}`}
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"1px solid #1c1a18",color:"#b0aca8",width:26,height:26,borderRadius:7,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.sans,fontWeight:700}}>✕</button>
+        </div>
+
+        {/* ── TABS ── */}
+        <div style={{display:"flex",background:"#060504",borderBottom:"1px solid #0e0c0a",flexShrink:0}}>
+          {[["estilos","0"],["energía + variación","1"]].map(([lbl,s])=>(
+            <button key={s} onClick={()=>setStep(+s)} style={{
+              flex:1,padding:"9px 0",border:"none",cursor:"pointer",
+              background:step===+s?"#0e0c09":"transparent",
+              fontFamily:T.sans,fontWeight:700,fontSize:8.5,letterSpacing:0.5,
+              color:step===+s?T.gold:"#282624",
+              borderBottom:step===+s?`1.5px solid ${T.gold}`:"1.5px solid transparent",
+              WebkitTapHighlightColor:"transparent",transition:"all 0.12s"
+            }}>{lbl}{s==="0"&&selectedStyles.length>0?` (${selectedStyles.length})`:""}</button>
+          ))}
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",scrollbarWidth:"none"}}>
+
+          {/* ══ TAB 0: ESTILOS ══ */}
+          {step===0 && (
+            <div style={{padding:"10px 14px 100px"}}>
+
+              {/* Indicador multi-fusión */}
+              {selectedStyles.length > 1 && (
+                <div style={{background:"#0d0a05",border:`1px solid ${T.goldDim}`,borderRadius:10,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:10,color:T.gold}}>⊕</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.gold}}>Fusión de estilos</div>
+                    <div style={{fontFamily:T.mono,fontSize:7,color:"#aca49a",marginTop:1}}>{selectedStyles.join(" + ")}</div>
+                  </div>
+                  <button onClick={()=>setSelectedStyles([])} style={{background:"none",border:"none",color:"#5a3a1a",fontSize:10,cursor:"pointer",fontFamily:T.sans,fontWeight:700}}>✕</button>
+                </div>
+              )}
+
+              {STYLE_BUILD_OPTIONS.map(group => (
+                <div key={group.group} style={{marginBottom:12}}>
+                  <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>{group.group}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                    {group.styles.map(s => {
+                      const active = selectedStyles.includes(s.id);
+                      const isHs = HOUSE_STYLE_IDS.has(s.id);
+                      const ac = isHs ? HOUSE_ACCENT : T.gold;
+                      const count = TRACKS.filter(t=>t.pop<=maxPop&&matchesStyleFilter(t,s.id)).length;
+                      return (
+                        <button key={s.id} onClick={()=>toggleStyle(s.id)}
+                          style={{
+                            background:active?`${ac}14`:"#0a0906",
+                            border:`1px solid ${active?ac:"#141210"}`,
+                            borderRadius:10,padding:"9px 13px",cursor:"pointer",
+                            display:"flex",justifyContent:"space-between",alignItems:"center",
+                            WebkitTapHighlightColor:"transparent",transition:"all 0.1s",textAlign:"left"
+                          }}
+                        >
+                          <div>
+                            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:active?ac:T.textMid,letterSpacing:-0.2}}>{s.label}</div>
+                            <div style={{fontFamily:T.mono,fontSize:7,color:active?"#4a4540":"#1e1c1a",marginTop:2}}>{s.desc}</div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                            <span style={{fontFamily:T.mono,fontSize:7,color:active?ac:"#1e1c1a"}}>{count} tracks</span>
+                            <div style={{
+                              width:16,height:16,borderRadius:4,border:`1.5px solid ${active?ac:"#1e1c1a"}`,
+                              background:active?ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",
+                              fontSize:9,color:"#000",fontWeight:900,flexShrink:0
+                            }}>{active?"✓":""}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ══ TAB 1: ENERGÍA + VARIACIÓN ══ */}
+          {step===1 && (
+            <div style={{padding:"12px 14px 100px"}}>
+
+              {/* Duración */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>DURACIÓN</span>
+                  <span style={{fontFamily:T.mono,fontSize:9.5,color:T.gold}}>{length} tracks <span style={{color:"#a8a4a0",fontSize:7.5}}>≈ {Math.floor(length*7/60)}h{(length*7)%60>0?` ${(length*7)%60}m`:""}</span></span>
+                </div>
+                <div style={{display:"flex",gap:4}}>
+                  {[8,12,16,20,25,30].map(n=>(
+                    <button key={n} onClick={()=>handleLength(n)}
+                      style={{flex:1,padding:"8px 0",borderRadius:8,cursor:"pointer",border:"none",
+                        fontFamily:T.sans,fontWeight:700,fontSize:11,
+                        background:length===n?"#1a1508":T.surface,color:length===n?T.gold:"#282624",
+                        outline:length===n?`1px solid ${T.goldDim}`:"1px solid #141210",WebkitTapHighlightColor:"transparent"
+                      }}
+                    >{n}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Arco de energía */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <span style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>ARCO DE ENERGÍA</span>
+                  <span style={{fontFamily:T.mono,fontSize:8,color:ENERGY_ARCS[arc].color}}>{ENERGY_ARCS[arc].icon} {ENERGY_ARCS[arc].label}</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                  {Object.entries(ENERGY_ARCS).map(([key,a])=>{
+                    const active = arc===key;
+                    return (
+                      <button key={key} onClick={()=>handleArc(key)}
+                        style={{
+                          background:active?`${a.color}10`:"#0a0906",
+                          border:`1px solid ${active?a.color:"#141210"}`,
+                          borderRadius:10,padding:"9px 13px",cursor:"pointer",
+                          display:"flex",justifyContent:"space-between",alignItems:"center",
+                          WebkitTapHighlightColor:"transparent",transition:"all 0.1s"
+                        }}
+                      >
+                        <div style={{textAlign:"left"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7}}>
+                            <span style={{fontFamily:T.mono,fontSize:13,color:active?a.color:"#a8a4a0"}}>{a.icon}</span>
+                            <span style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:active?a.color:T.textMid}}>{a.label}</span>
+                          </div>
+                          <div style={{fontFamily:T.mono,fontSize:7,color:active?"#4a4540":"#1e1c1a",marginTop:2,paddingLeft:22}}>{a.desc}</div>
+                        </div>
+                        <ArcSparkline arcKey={key} width={80} height={22}/>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Variación */}
+              <div style={{background:"#0a0906",border:"1px solid #141210",borderRadius:10,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div>
+                    <div style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>VARIACIÓN</div>
+                    <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",marginTop:2}}>cuánto cambia el set cada vez</div>
+                  </div>
+                  <span style={{fontFamily:T.mono,fontSize:9,color:T.gold}}>
+                    {variation<0.2?"exacto":variation<0.5?"leve":variation<0.75?"medio":"alto"}
+                  </span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:28,flexShrink:0}}>fijo</span>
+                  <input type="range" min={0} max={1} step={0.05} value={variation}
+                    onChange={e=>handleVariation(+e.target.value)}
+                    style={{flex:1,accentColor:T.gold,cursor:"pointer"}}
+                  />
+                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:28,flexShrink:0,textAlign:"right"}}>🎲</span>
+                </div>
+                <div style={{marginTop:8,display:"flex",justifyContent:"space-between"}}>
+                  {["Siempre igual","Algo diferente","Bastante distinto","Total sorpresa"].map((lbl,i)=>(
+                    <span key={i} style={{fontFamily:T.mono,fontSize:6,color:"#9a9490",textAlign:"center",flex:1}}>{lbl}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PREVIEW ── (siempre visible al fondo) */}
+          {preview?.seed && (
+            <div style={{margin:"0 14px 8px",background:"#0a0906",border:"1px solid #1a1814",borderRadius:12,padding:"10px 13px",flexShrink:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div style={{fontFamily:T.mono,fontSize:7,color:"#aca49a",letterSpacing:1.5,textTransform:"uppercase"}}>preview</div>
+                <button onClick={handleReshuffle} style={{background:"none",border:"1px solid #1c1a18",color:"#aca49a",fontFamily:T.mono,fontSize:7,padding:"2px 8px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>⟳ otro set</button>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                <span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,width:12,textAlign:"center",flexShrink:0}}>S</span>
+                <span style={{fontFamily:T.sans,fontWeight:700,fontSize:10,color:T.gold,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{preview.seed.title}</span>
+                <span style={{fontFamily:T.mono,fontSize:7.5,color:"#a8a4a0",flexShrink:0}}>{preview.seed.bpm}</span>
+              </div>
+              {preview.tracks.slice(0,5).map((t,i)=>{
+                const eColor = E_COLORS[t.energy] || "#333";
+                return (
+                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                    <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost,width:12,textAlign:"center",flexShrink:0}}>{i+1}</span>
+                    <span style={{fontFamily:T.sans,fontSize:9,color:T.textMid,flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</span>
+                    <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",flexShrink:0}}>{t.bpm}</span>
+                    <div style={{width:32,height:4,background:"#141210",borderRadius:2,flexShrink:0}}>
+                      <div style={{width:`${t.energy*10}%`,height:"100%",background:eColor,borderRadius:2}}/>
+                    </div>
+                    <span style={{fontFamily:T.mono,fontSize:7,color:eColor,width:8,flexShrink:0}}>{t.energy}</span>
+                  </div>
+                );
+              })}
+              {preview.tracks.length > 5 && (
+                <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",paddingLeft:18,marginTop:2}}>+ {preview.tracks.length-5} tracks más</div>
+              )}
+              {preview.tracks.length === 0 && (
+                <div style={{fontFamily:T.sans,fontSize:9,color:"#a8a4a0",paddingLeft:18}}>Sin tracks disponibles con estos filtros.</div>
+              )}
+            </div>
+          )}
+
+          {!preview && selectedStyles.length===0 && (
+            <div style={{textAlign:"center",padding:"20px 24px 8px"}}>
+              <div style={{fontFamily:T.sans,fontSize:10,color:"#9a9490",lineHeight:1.8}}>Seleccioná al menos un estilo<br/>para generar el set</div>
+            </div>
+          )}
+        </div>
+
+        {/* ── CTA ── */}
+        <div style={{background:"rgba(8,7,5,0.97)",borderTop:"1px solid #141210",padding:"10px 14px",flexShrink:0}}>
+          <div style={{display:"flex",gap:6}}>
+            {canProceed && (
+              <button onClick={handleReshuffle}
+                style={{
+                  padding:"11px 14px",borderRadius:10,border:"1px solid #1c1a18",cursor:"pointer",
+                  background:"#0a0906",fontFamily:T.sans,fontWeight:700,fontSize:11,
+                  color:"#b0aca8",WebkitTapHighlightColor:"transparent"
+                }}
+              >⟳</button>
+            )}
+            <button
+              onClick={canBuild ? handleBuild : canProceed ? handleReshuffle : ()=>setStep(0)}
+              style={{
+                flex:1,padding:"12px 0",borderRadius:10,border:"none",cursor:"pointer",
+                background: canBuild ? `linear-gradient(135deg,#1e1608,#0d0b05)` : canProceed ? "#0d0c08" : "#0a0906",
+                outline: canBuild ? `1px solid ${T.goldDim}` : canProceed ? `1px solid ${T.goldDim}55` : "1px solid #141210",
+                fontFamily:T.sans,fontWeight:800,fontSize:11.5,letterSpacing:0.3,
+                color: canBuild ? T.gold : canProceed ? T.goldDim : "#282624",
+                transition:"all 0.18s",WebkitTapHighlightColor:"transparent"
+              }}
+            >
+              {!canProceed ? "↑ seleccioná un estilo primero" :
+               !canBuild ? "⟳ generar set" :
+               `✦ ARMAR SET · ${(preview.tracks.length+1)} tracks`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BuildScreen({ seed, setSeed, mySet, addToSet, setMySet, maxPop, onFind, djTracks=[] }) {
+  const [tab, setTab]               = useState("auto");   // "auto" | "manual"
+  const [styleFilter, setStyleFilter] = useState("all");
+  const [showInfo, setShowInfo]     = useState(false);
+  const [showAutoBuildModal, setShowAutoBuildModal] = useState(false);
+
+  const allTracks = React.useMemo(()=>[...TRACKS,...djTracks],[djTracks]);
+
+  const handleAutoBuild = (newSeed, newTracks) => {
+    setSeed(newSeed);
+    setMySet(newTracks);
+  };
+
+  const availableStyles = React.useMemo(()=>{
+    return ["all", ...[...new Set(allTracks.flatMap(t=>t.style))].sort()];
+  },[allTracks]);
+
+  // AUTO-BUILD: siempre calculado, sin guard por tab
+  const autoTracks = useMemo(()=>{
+    if(!seed) return [];
+    return autoBuild(seed, styleFilter, maxPop, 30, allTracks);
+  },[seed, styleFilter, maxPop, allTracks]);
+
+  // MANUAL: candidatos rankeados
+  const recs = useMemo(()=>{
+    if(!seed) return [];
+    return allTracks
+      .filter(t => t.id!==seed.id && (t.isEmergent||t.pop<=maxPop) && matchesStyleFilter(t,styleFilter))
+      .map(t => ({...t, scoreData:scoreMatch(seed,t)}))
+      .filter(t => t.scoreData.total > 0)
+      .sort((a,b) => b.scoreData.total - a.scoreData.total)
+      .slice(0,20);
+  },[seed, maxPop, styleFilter, allTracks]);
+
+  const handleAddAll = () => {
+    const toAdd = autoTracks.filter(t => !mySet.some(s=>s.id===t.id));
+    if(toAdd.length > 0) setMySet(prev => [...prev, ...toAdd]);
+  };
+
+  if(!seed) return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      {showAutoBuildModal && <AutoBuildModal onClose={()=>setShowAutoBuildModal(false)} onBuild={handleAutoBuild} maxPop={maxPop}/>}
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 28px",gap:24}}>
+        <div style={{textAlign:"center"}}>
+          <LogoMark size={56}/>
+          <div style={{fontFamily:T.sans,fontWeight:800,fontSize:15,color:"#a8a4a0",marginTop:16,letterSpacing:-0.3}}>construí tu set</div>
+          <div style={{fontFamily:T.sans,fontSize:9.5,color:"#9a9490",lineHeight:1.9,marginTop:6,whiteSpace:"pre-line"}}>{"Elegí un estilo y dejá que Auto Build\narme toda la secuencia por vos.\nO seleccioná una semilla en Library."}</div>
+        </div>
+        <button
+          onClick={()=>setShowAutoBuildModal(true)}
+          style={{
+            width:"100%",maxWidth:280,padding:"15px 24px",borderRadius:14,
+            border:`1px solid ${T.goldDim}`,cursor:"pointer",
+            background:"linear-gradient(135deg, #1a1408, #0d0a05)",
+            fontFamily:T.sans,fontWeight:800,fontSize:13,
+            color:T.gold,letterSpacing:0.3,
+            boxShadow:`0 0 30px #c9a84c0a`,
+            WebkitTapHighlightColor:"transparent",transition:"all 0.2s"
+          }}
+        >✦ AUTO BUILD POR ESTILO</button>
+        <div style={{display:"flex",alignItems:"center",gap:10,width:"100%",maxWidth:280}}>
+          <div style={{flex:1,height:1,background:"#141210"}}/>
+          <span style={{fontFamily:T.mono,fontSize:7,color:"#9a9490",letterSpacing:1.5}}>O</span>
+          <div style={{flex:1,height:1,background:"#141210"}}/>
+        </div>
+        <div style={{fontFamily:T.sans,fontSize:9,color:"#a8a4a0",textAlign:"center",lineHeight:1.7}}>
+          Seleccioná un track en <span style={{color:"#aca49a"}}>LIBRARY</span> como semilla<br/>y usalo como punto de partida manual.
+        </div>
+      </div>
+    </div>
+  );
+
+  const house  = isHouseTrack(seed);
+  const accent = house ? HOUSE_ACCENT : T.gold;
+  const seedBg = house ? "#080d14" : "#0c0a06";
+  const seedBorder = house ? "#1e3040" : "#2a2210";
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      {showAutoBuildModal && <AutoBuildModal onClose={()=>setShowAutoBuildModal(false)} onBuild={handleAutoBuild} maxPop={maxPop}/>}
+
+      {/* ── SEED CARD ── */}
+      <div style={{margin:"8px 12px 0",background:seedBg,border:`1px solid ${seedBorder}`,borderRadius:14,padding:"12px 15px",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontFamily:T.mono,fontSize:7,color:accent,letterSpacing:2,textTransform:"uppercase",opacity:0.6}}>semilla</span>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <button onClick={()=>setShowAutoBuildModal(true)} style={{background:"#1a1408",border:`1px solid ${T.goldDim}`,color:T.gold,fontSize:7.5,padding:"3px 9px",borderRadius:5,cursor:"pointer",fontFamily:T.sans,fontWeight:700,letterSpacing:0.3,WebkitTapHighlightColor:"transparent"}}>✦ auto build</button>
+            <button onClick={()=>setSeed(null)} style={{background:"none",border:`1px solid ${seedBorder}`,color:"#5a4a1a",fontSize:10,width:20,height:20,borderRadius:5,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.sans}}>✕</button>
+          </div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:T.sans,fontSize:15,fontWeight:700,color:accent,letterSpacing:-0.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{seed.title}</div>
+            <div style={{fontFamily:T.sans,fontSize:9.5,color:house?"#2a5070":"#6a5828",marginTop:2}}>{seed.artist}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+            <div style={{display:"flex",gap:5,alignItems:"center"}}>
+              <KeyPill k={seed.key} highlight/>
+              <span style={{fontFamily:T.mono,fontSize:9,color:T.textMid}}>{seed.bpm}</span>
+            </div>
+            <EBar energy={seed.energy} showLabel/>
+          </div>
+        </div>
+      </div>
+
+      {/* ── TAB: AUTO / MANUAL ── */}
+      <div style={{margin:"6px 12px 0",display:"flex",background:"#060504",border:"1px solid #141210",borderRadius:10,overflow:"hidden",flexShrink:0}}>
+        {[["auto","✦ Auto-Build"],["manual","Manual"]].map(([id,lbl])=>(
+          <button
+            key={id}
+            onClick={()=>setTab(id)}
+            style={{
+              flex:1, border:"none", padding:"9px 0", cursor:"pointer",
+              background: tab===id ? (id==="auto"?"#12100a":"#0e0e0e") : "transparent",
+              fontFamily:T.sans, fontWeight:700, fontSize:9.5, letterSpacing:0.5,
+              color: tab===id ? (id==="auto"?T.gold:"#888") : "#282624",
+              borderRight: id==="auto" ? "1px solid #141210" : "none",
+              transition:"all 0.15s", WebkitTapHighlightColor:"transparent"
+            }}
+          >{lbl}</button>
+        ))}
+      </div>
+
+      {/* ── FILTRO DE ESTILO ── */}
+      <div style={{padding:"6px 12px 0",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+          <span style={{fontFamily:T.mono,fontSize:6.5,color:"#a8a4a0",letterSpacing:1.5,textTransform:"uppercase"}}>estilo</span>
+          {styleFilter!=="all" && (
+            <button onClick={()=>setStyleFilter("all")} style={{background:"#1a1206",border:`1px solid ${T.goldDim}`,color:T.gold,fontFamily:T.mono,fontSize:6.5,padding:"1px 6px",borderRadius:4,cursor:"pointer"}}>✕</button>
+          )}
+        </div>
+        <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:3,scrollbarWidth:"none"}}>
+          {availableStyles.map(s=>{
+            const isHouseStyle = ["dark house","deep house","melodic house","dub house","chicago","ghetto house","dubstep","bass"].includes(s);
+            const ac = isHouseStyle ? HOUSE_ACCENT : T.gold;
+            const active = styleFilter===s;
+            return (
+              <button
+                key={s}
+                onClick={()=>setStyleFilter(s)}
+                style={{
+                  flexShrink:0, fontSize:7, padding:"3px 9px", borderRadius:20, cursor:"pointer",
+                  letterSpacing:0.8, textTransform:"uppercase", fontFamily:T.sans, fontWeight:active?700:400,
+                  background: active?`${ac}20`:"transparent",
+                  color: active ? ac : "#282624",
+                  border: `1px solid ${active?ac:"#1c1a18"}`,
+                  transition:"all 0.12s", WebkitTapHighlightColor:"transparent", whiteSpace:"nowrap"
+                }}
+              >{s==="all"?"todos":s}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ════════════════ AUTO-BUILD ════════════════ */}
+      {tab==="auto" && (
+        <div style={{flex:1,overflowY:"auto",padding:"6px 10px 100px",scrollbarWidth:"none"}}>
+          {autoTracks.length===0 ? (
+            <div style={{textAlign:"center",padding:"50px 24px"}}>
+              <div style={{fontFamily:T.sans,fontSize:22,marginBottom:10,opacity:0.15}}>◎</div>
+              <div style={{fontFamily:T.sans,fontSize:11,fontWeight:600,color:"#a8a4a0",marginBottom:6}}>Sin secuencia posible</div>
+              <div style={{fontFamily:T.sans,fontSize:9,color:"#9a9490",lineHeight:1.9}}>
+                {styleFilter!=="all" ? `El estilo "${styleFilter}" no tiene tracks compatibles con esta semilla.` : "Subí el límite de popularidad en Library."}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 2px 6px"}}>
+                <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>{autoTracks.length} tracks · secuencia armada</span>
+                <button
+                  onClick={handleAddAll}
+                  style={{
+                    background:"#071507",border:`1px solid ${T.green}40`,color:T.green,
+                    fontFamily:T.sans,fontWeight:700,fontSize:8.5,padding:"5px 13px",
+                    borderRadius:8,cursor:"pointer",letterSpacing:0.5,WebkitTapHighlightColor:"transparent"
+                  }}
+                >+ agregar todo al set</button>
+              </div>
+
+              {/* Arco de energía */}
+              <div style={{background:"#070605",border:"1px solid #141210",borderRadius:10,marginBottom:8,padding:"8px 8px 2px"}}>
+                <span style={{fontFamily:T.mono,fontSize:6.5,color:"#a8a4a0",letterSpacing:1.5,textTransform:"uppercase",paddingLeft:4}}>arco de energía</span>
+                <EnergyFlowChart tracks={[seed,...autoTracks]}/>
+              </div>
+
+              {/* Secuencia */}
+              <div style={{display:"flex",flexDirection:"column",gap:0}}>
+
+                {/* Semilla (dimmed) */}
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:1}}>
+                  <span style={{fontFamily:T.mono,fontSize:6.5,color:T.goldDim,width:18,textAlign:"center",flexShrink:0}}>S</span>
+                  <div style={{flex:1,background:"#0d0b07",border:`1px solid #221a08`,borderRadius:10,padding:"8px 12px",opacity:0.65}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:T.gold}}>{seed.title}</div>
+                        <div style={{fontFamily:T.sans,fontSize:8,color:"#4a3a14",marginTop:1}}>{seed.artist}</div>
+                      </div>
+                      <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                        <KeyPill k={seed.key} highlight/>
+                        <span style={{fontFamily:T.mono,fontSize:8,color:T.textDim}}>{seed.bpm}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracks generados */}
+                {autoTracks.map((track,i)=>{
+                  const prev   = i===0 ? seed : autoTracks[i-1];
+                  const compat = keyCompat(prev.key, track.key);
+                  const dBpm   = track.bpm - prev.bpm;
+                  const inSet  = mySet.some(s=>s.id===track.id);
+                  return (
+                    <div key={track.id}>
+                      {/* Conector */}
+                      <div style={{display:"flex",alignItems:"center",gap:5,padding:"1px 4px 1px 24px"}}>
+                        <div style={{width:1,height:14,background:`${compat.color}25`,flexShrink:0}}/>
+                        <span style={{fontFamily:T.sans,fontSize:6.5,fontWeight:700,color:compat.color,letterSpacing:1}}>{compat.label}</span>
+                        <span style={{fontFamily:T.mono,fontSize:6.5,color:"#a8a4a0"}}>{prev.key}→{track.key}</span>
+                        <span style={{fontFamily:T.mono,fontSize:6.5,color:Math.abs(dBpm)>6?T.orange:"#282624"}}>{dBpm>0?"+":""}{dBpm}bpm</span>
+                      </div>
+                      {/* Card */}
+                      <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:1}}>
+                        <span style={{fontFamily:T.mono,fontSize:6.5,color:T.textGhost,width:18,textAlign:"center",flexShrink:0}}>{i+1}</span>
+                        <div style={{flex:1,background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,padding:"9px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:-0.2}}>{track.title}</div>
+                              <div style={{fontFamily:T.sans,fontSize:8.5,color:T.textDim,marginTop:1.5}}>{track.artist}</div>
+                              {track.label&&(
+                                <div style={{display:"flex",alignItems:"center",gap:3,marginTop:4}}>
+                                  <svg width="7" height="7" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.goldDim}/></svg>
+                                  <span style={{fontFamily:T.mono,fontSize:6.5,color:T.goldDim,letterSpacing:0.3}}>{track.label}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+                              <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                                <KeyPill k={track.key}/>
+                                <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textDim}}>{track.bpm}</span>
+                              </div>
+                              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                                <EBar energy={track.energy} showLabel/>
+                                <button
+                                  onClick={()=>addToSet(track)}
+                                  style={{
+                                    background:inSet?"#071a07":"#0e0e0c",
+                                    border:`1px solid ${inSet?"#22c55e40":"#1e1c1a"}`,
+                                    color:inSet?T.green:"#383430",
+                                    fontSize:inSet?10:14,width:26,height:26,borderRadius:7,
+                                    cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                                    transition:"all 0.15s",WebkitTapHighlightColor:"transparent",
+                                    fontWeight:600,fontFamily:T.sans
+                                  }}
+                                >{inSet?"✓":"+"}</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════ MANUAL ════════════════ */}
+      {tab==="manual" && (
+        <>
+          <div style={{padding:"5px 14px 0",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>{recs.length} candidatos{styleFilter!=="all"?` · ${styleFilter}`:""}</span>
+            <button onClick={()=>setShowInfo(v=>!v)} style={{background:"none",border:`1px solid ${showInfo?"#242220":"#161412"}`,fontFamily:T.sans,fontSize:8,fontWeight:500,color:showInfo?"#484440":T.textGhost,padding:"3px 9px",borderRadius:6,cursor:"pointer"}}>
+              {showInfo?"ocultar":"¿cómo se puntúa?"}
+            </button>
+          </div>
+          {showInfo&&(
+            <div style={{margin:"5px 12px 0",background:"#080706",border:"1px solid #161412",borderRadius:12,padding:"10px 13px",flexShrink:0}}>
+              {[
+                {c:"#0891b2",lbl:"BPM",desc:"Δ0→100  Δ≤4→85  Δ≤7→65  Δ>15→0"},
+                {c:T.lime,  lbl:"KEY",desc:"Camelot: igual→100  +1 modo→90  relativo→75"},
+                {c:T.orange,lbl:"NRG",desc:"+1 nivel→100 (narrativa)  igual→90  -1→80"},
+                {c:T.gold,  lbl:"STL",desc:"Match directo×45 · familia de estilos→30"},
+              ].map(r=>(
+                <div key={r.lbl} style={{display:"flex",gap:8,alignItems:"center",marginBottom:5}}>
+                  <div style={{width:4,height:4,borderRadius:1,background:r.c,flexShrink:0}}/>
+                  <span style={{fontFamily:T.sans,fontWeight:700,fontSize:8,color:"#484440",width:26}}>{r.lbl}</span>
+                  <span style={{fontFamily:T.mono,fontSize:7,color:T.textDim}}>{r.desc}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{flex:1,overflowY:"auto",padding:"6px 10px 100px",scrollbarWidth:"none"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {recs.length===0 ? (
+                <div style={{textAlign:"center",padding:"40px 20px",fontFamily:T.sans,fontSize:11,color:"#a8a4a0",lineHeight:2}}>
+                  Sin candidatos{styleFilter!=="all"?` para "${styleFilter}"`:""}.<br/>Cambiá el estilo o subí el límite de popularidad.
+                </div>
+              ) : recs.map(t=>{
+                const c = keyCompat(seed.key,t.key);
+                return (
+                  <div key={t.id}>
+                    <TrackCard track={t} scoreData={t.scoreData} showScore onAdd={addToSet} inSet={mySet.some(s=>s.id===t.id)} onSelect={()=>{}} onFind={onFind}/>
+                    <div style={{display:"flex",gap:8,padding:"3px 6px 0",alignItems:"center"}}>
+                      <span style={{fontFamily:T.sans,fontSize:7.5,fontWeight:700,color:c.color,letterSpacing:0.8}}>{c.label}</span>
+                      <span style={{color:"#141210"}}>·</span>
+                      <span style={{fontFamily:T.sans,fontSize:7.5,color:T.textDim}}>{c.desc}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SetScreen({ mySet, setMySet, onFind }) {
+  const moveUp=i=>{if(i===0)return;const a=[...mySet];[a[i-1],a[i]]=[a[i],a[i-1]];setMySet(a);};
+  const moveDown=i=>{if(i===mySet.length-1)return;const a=[...mySet];[a[i],a[i+1]]=[a[i+1],a[i]];setMySet(a);};
+  const remove=id=>setMySet(p=>p.filter(t=>t.id!==id));
+  if(mySet.length===0) return <EmptyState icon={<LogoMark size={56}/>} headline="tu set está vacío" sub={"Explorá LIBRARY para descubrir tracks\ny usá BUILD para encontrar el siguiente\ntrack compatible. Agregá con '+'."}/>; 
+  const avgBpm=Math.round(mySet.reduce((a,t)=>a+t.bpm,0)/mySet.length);
+  const avgE=(mySet.reduce((a,t)=>a+t.energy,0)/mySet.length).toFixed(1);
+  const dur=mySet.length*7;
+  let harmSum=0;
+  for(let i=1;i<mySet.length;i++) harmSum+=camelotScore(mySet[i-1].key,mySet[i].key);
+  const harm=mySet.length>1?Math.round(harmSum/(mySet.length-1)):100;
+  const harmColor=harm>=80?T.green:harm>=60?T.yellow:T.orange;
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      <div style={{margin:"8px 12px 0",display:"flex",background:"#080706",border:"1px solid #141210",borderRadius:14,overflow:"hidden",flexShrink:0}}>
+        {[[mySet.length,"TRACKS"],[`${Math.floor(dur/60)}h${dur%60>0?` ${dur%60}m`:""}`, "DUR"],[avgBpm,"BPM"],[avgE,"NRG"]].map(([v,l],i,arr)=>(
+          <div key={l} style={{flex:1,padding:"11px 0",textAlign:"center",borderRight:i<arr.length-1?"1px solid #100e0c":"none"}}>
+            <div style={{fontFamily:T.sans,fontWeight:800,fontSize:i===0?18:15,color:T.text,letterSpacing:-0.3}}>{v}</div>
+            <div style={{fontFamily:T.mono,fontSize:6.5,color:T.textGhost,letterSpacing:1.5,marginTop:3,textTransform:"uppercase"}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{margin:"5px 12px 0",background:"#080706",border:"1px solid #141210",borderRadius:10,padding:"9px 15px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontFamily:T.sans,fontWeight:700,fontSize:7.5,color:T.textGhost,letterSpacing:1.2,textTransform:"uppercase",marginBottom:5}}>cohesión armónica</div>
+          <div style={{height:2,width:150,background:"#141210",borderRadius:2}}>
+            <div style={{height:"100%",width:`${harm}%`,background:harmColor,borderRadius:2,transition:"width 0.5s"}}/>
+          </div>
+        </div>
+        <span style={{fontFamily:T.sans,fontWeight:800,fontSize:20,color:harmColor,letterSpacing:-1}}>{harm}%</span>
+      </div>
+      {mySet.length>=2&&(
+        <div style={{margin:"4px 12px 0",background:"#080706",border:"1px solid #141210",borderRadius:10,flexShrink:0}}>
+          <EnergyFlowChart tracks={mySet}/>
+        </div>
+      )}
+      <div style={{padding:"6px 16px 2px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>orden del set</span>
+        <button onClick={()=>setMySet([])} style={{background:"none",border:"none",fontFamily:T.sans,fontWeight:500,color:"#3a1a1a",fontSize:9,cursor:"pointer"}}>limpiar todo</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:0}}>
+          {mySet.map((track,i)=>{
+            const prev=mySet[i-1];
+            return (
+              <div key={track.id}>
+                {prev&&<CompatConnector from={prev} to={track}/>}
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                  <div style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost,width:20,textAlign:"center",flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1,minWidth:0,background:T.surface,border:`1px solid ${T.border}`,borderRadius:11,padding:"10px 12px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:-0.2}}>{track.title}</div>
+                        <div style={{fontFamily:T.sans,fontWeight:400,fontSize:9,color:T.textDim,marginTop:2}}>{track.artist}</div>
+                        {track.label&&<div style={{display:"flex",alignItems:"center",gap:3,marginTop:3}}><svg width="7" height="7" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.goldDim}/></svg><span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,letterSpacing:0.3}}>{track.label}</span></div>}
+                      </div>
+                      <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
+                        <KeyPill k={track.key}/>
+                        <span style={{fontFamily:T.mono,fontSize:9,color:T.textDim}}>{track.bpm}</span>
+                      </div>
+                    </div>
+                    <div style={{marginTop:6}}><EBar energy={track.energy} showLabel/></div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:3,flexShrink:0}}>
+                    {[["↑",()=>moveUp(i),"#3a3836"],["↓",()=>moveDown(i),"#3a3836"],["✕",()=>remove(track.id),"#501818"]].map(([lbl,fn,col])=>(
+                      <button key={lbl} onClick={fn} style={{background:T.surface,border:`1px solid ${T.border}`,color:col,width:24,height:24,borderRadius:6,cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",fontWeight:700,fontFamily:T.sans}}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TabIcon=({id,active})=>{
+  const c=active?(id==="djs"?DJ_ACCENT:T.gold):"#302e2c";
+  if(id==="library") return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="4" height="16" rx="1"/><rect x="9" y="4" width="4" height="16" rx="1"/>
+      <path d="M15 4l4 16"/><path d="M15 9l4 0"/>
+    </svg>
+  );
+  if(id==="build") return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+  );
+  if(id==="djs") return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/>
+    </svg>
+  );
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round">
+      <path d="M9 6h10M9 12h10M9 18h10M5 6v.01M5 12v.01M5 18v.01"/>
+    </svg>
+  );
+};
+
+// ── DJS EMERGENTES — STORAGE ──────────────────────────────────────────────
+const DJ_KEY = "setlab_dj_tracks_v1";
+function loadDjTracks() {
+  try { return JSON.parse(localStorage.getItem(DJ_KEY) || "[]"); } catch { return []; }
+}
+function saveDjTracks(tracks) {
+  try { localStorage.setItem(DJ_KEY, JSON.stringify(tracks)); } catch {}
+}
+function newDjId() { return "dj_" + Date.now() + "_" + Math.random().toString(36).slice(2,7); }
+
+const CAMELOT_KEYS = ["1A","2A","3A","4A","5A","6A","7A","8A","9A","10A","11A","12A","1B","2B","3B","4B","5B","6B","7B","8B","9B","10B","11B","12B"];
+const ALL_STYLES = ["techno","dark","hard techno","industrial techno","deep techno","hypnotic","melodic techno","ambient techno","dub techno","minimal","electro","acid","deep house","dark house","melodic house","chicago","ghetto house","dubstep","drum and bass","tribal","industrial"];
+
+const DJ_ACCENT = "#a855f7"; // violet para DJs emergentes
+
+// ── FORMULARIO DE NUEVO TRACK ─────────────────────────────────────────────
+function DjTrackForm({ onSave, onCancel, initial }) {
+  const [form, setForm] = React.useState(initial || {
+    title:"", artist:"", bpm:130, key:"10A", energy:7,
+    style:[], label:"", soundcloudUrl:"", instagramUrl:""
+  });
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const toggleStyle = s => set("style", form.style.includes(s) ? form.style.filter(x=>x!==s) : [...form.style, s].slice(0,4));
+  const valid = form.title.trim() && form.artist.trim() && form.style.length > 0;
+
+  return (
+    <div style={{position:"absolute",inset:0,zIndex:200,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"flex-end",backdropFilter:"blur(8px)"}}>
+      <div style={{width:"100%",background:"#080706",border:"1px solid #1c1a18",borderTop:"1px solid #2a2826",borderRadius:"22px 22px 0 0",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+        {/* Header */}
+        <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #141210",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:10}}><div style={{width:32,height:3,borderRadius:2,background:"#201e1b"}}/></div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontFamily:T.mono,fontSize:7,color:DJ_ACCENT,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>djs emergentes</div>
+              <div style={{fontFamily:T.sans,fontSize:16,fontWeight:800,color:T.text}}>{initial?"Editar track":"Agregar track"}</div>
+            </div>
+            <button onClick={onCancel} style={{background:"none",border:"none",color:T.textDim,fontSize:18,cursor:"pointer",padding:4}}>✕</button>
+          </div>
+        </div>
+        {/* Form */}
+        <div style={{flex:1,overflowY:"auto",padding:"14px 20px 20px"}}>
+          {/* Artist */}
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Artista *</label>
+            <input value={form.artist} onChange={e=>set("artist",e.target.value)} placeholder="Nombre del DJ / Artista" style={{width:"100%",background:"#0c0a09",border:`1px solid ${form.artist?DJ_ACCENT+"44":"#1e1c1a"}`,borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+          </div>
+          {/* Title */}
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Título del track *</label>
+            <input value={form.title} onChange={e=>set("title",e.target.value)} placeholder="Nombre del track" style={{width:"100%",background:"#0c0a09",border:`1px solid ${form.title?DJ_ACCENT+"44":"#1e1c1a"}`,borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+          </div>
+          {/* BPM + Key row */}
+          <div style={{display:"flex",gap:10,marginBottom:12}}>
+            <div style={{flex:1}}>
+              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>BPM</label>
+              <input type="number" value={form.bpm} min={80} max={180} onChange={e=>set("bpm",Math.min(180,Math.max(80,+e.target.value)))} style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:14,color:T.text,outline:"none"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Clave (Camelot)</label>
+              <select value={form.key} onChange={e=>set("key",e.target.value)} style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:13,color:T.text,outline:"none",cursor:"pointer"}}>
+                {CAMELOT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Energy */}
+          <div style={{marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase"}}>Energía</label>
+              <span style={{fontFamily:T.mono,fontSize:12,color:DJ_ACCENT,fontWeight:600}}>e{form.energy}</span>
+            </div>
+            <input type="range" min={1} max={10} value={form.energy} onChange={e=>set("energy",+e.target.value)} style={{width:"100%",accentColor:DJ_ACCENT,cursor:"pointer"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
+              <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost}}>ambient</span>
+              <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost}}>peak</span>
+            </div>
+          </div>
+          {/* Style */}
+          <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7}}>Estilo * (máx. 4)</label>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+              {ALL_STYLES.map(s=>{
+                const on=form.style.includes(s);
+                return <button key={s} onClick={()=>toggleStyle(s)} style={{background:on?`${DJ_ACCENT}20`:"transparent",color:on?DJ_ACCENT:"#3a3836",border:`1px solid ${on?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:on?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{s}</button>
+              })}
+            </div>
+          </div>
+          {/* Label */}
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Sello (opcional)</label>
+            <input value={form.label} onChange={e=>set("label",e.target.value)} placeholder="Nombre del sello / Independiente" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+          </div>
+          {/* SoundCloud */}
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>☁ SoundCloud URL (opcional)</label>
+            <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/…" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:11,color:T.textMid,outline:"none"}}/>
+          </div>
+          {/* Instagram */}
+          <div style={{marginBottom:20}}>
+            <label style={{fontFamily:T.mono,fontSize:7.5,color:"#e1306c",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>◈ Instagram (opcional)</label>
+            <input value={form.instagramUrl} onChange={e=>set("instagramUrl",e.target.value)} placeholder="https://instagram.com/…" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:11,color:T.textMid,outline:"none"}}/>
+          </div>
+          {/* Save button */}
+          <button onClick={()=>valid&&onSave(form)} style={{width:"100%",background:valid?`${DJ_ACCENT}18`:"#0c0a09",border:`1px solid ${valid?DJ_ACCENT+"55":"#1e1c1a"}`,color:valid?DJ_ACCENT:T.textGhost,padding:"14px",borderRadius:12,cursor:valid?"pointer":"default",fontFamily:T.sans,fontWeight:800,fontSize:13,letterSpacing:0.5,transition:"all 0.2s",WebkitTapHighlightColor:"transparent"}}>
+            {valid?"✓ Guardar track":"Completá los campos obligatorios (*)"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── DJ TRACK CARD (versión compacta con badge EMERGENTE) ──────────────────
+function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
+  const [pressed, setPressed] = React.useState(false);
+  const [showDel, setShowDel] = React.useState(false);
+  const links = [];
+  if (track.soundcloudUrl) links.push({ icon:"☁", color:"#ff5500", url:track.soundcloudUrl, hint:"SoundCloud" });
+  if (track.instagramUrl)  links.push({ icon:"◈", color:"#e1306c", url:track.instagramUrl,  hint:"Instagram"  });
+  const q = encodeURIComponent(`${track.artist} ${track.title}`);
+  links.push({ icon:"B", color:"#01ff95", url:bpUrl(q), hint:"Beatport" });
+
+  return (
+    <div style={{background:"#070509",border:`1px solid ${DJ_ACCENT}22`,borderRadius:12,overflow:"hidden",position:"relative"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,transparent,${DJ_ACCENT}55,transparent)`}}/>
+      <div onPointerDown={()=>setPressed(true)} onPointerUp={()=>setPressed(false)} onPointerLeave={()=>setPressed(false)}
+           style={{padding:"12px 14px",transform:pressed?"scale(0.983)":"scale(1)",transition:"transform 0.1s ease",WebkitTapHighlightColor:"transparent"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+              <div style={{fontFamily:T.sans,fontSize:13,fontWeight:700,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:-0.3}}>{track.title}</div>
+              <span style={{fontFamily:T.mono,fontSize:6,color:DJ_ACCENT,background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}30`,padding:"1px 6px",borderRadius:3,letterSpacing:1.5,textTransform:"uppercase",flexShrink:0}}>emergente</span>
+            </div>
+            <div style={{fontFamily:T.sans,fontSize:10,fontWeight:400,color:DJ_ACCENT,marginTop:2,opacity:0.85}}>{track.artist}</div>
+            {track.label&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:4}}>
+              <svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={DJ_ACCENT} strokeWidth="1.5" opacity=".5"/><circle cx="10" cy="10" r="3" stroke={DJ_ACCENT} strokeWidth="1.2" opacity=".5"/><circle cx="10" cy="10" r="1" fill={DJ_ACCENT} opacity=".5"/></svg>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:DJ_ACCENT,opacity:0.5,letterSpacing:0.4}}>{track.label}</span>
+            </div>}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
+            <div style={{display:"flex",gap:5,alignItems:"center"}}>
+              <KeyPill k={track.key}/>
+              <span style={{fontFamily:T.mono,fontSize:10,color:T.textDim,letterSpacing:0.5}}>{track.bpm}</span>
+            </div>
+            <EBar energy={track.energy} showLabel/>
+          </div>
+        </div>
+        {/* Estilos + acciones */}
+        <div style={{marginTop:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {track.style.slice(0,2).map(s=>(
+              <span key={s} style={{fontFamily:T.sans,fontWeight:500,fontSize:7.5,color:DJ_ACCENT,background:`${DJ_ACCENT}0a`,border:`1px solid ${DJ_ACCENT}20`,padding:"2px 7px",borderRadius:20,letterSpacing:0.5,textTransform:"uppercase",opacity:0.8}}>{s}</span>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:5,alignItems:"center"}}>
+            <PreviewButton track={track} accent={DJ_ACCENT}/>
+            {links.map(l=>(
+              <a key={l.hint} href={l.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={l.hint}
+                 style={{background:"#0e0e0c",border:`1px solid ${l.color}33`,color:l.color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700}}>{l.icon}</a>
+            ))}
+            <button onClick={e=>{e.stopPropagation();onEdit(track);}} title="Editar" style={{background:"#0e0e0c",border:"1px solid #1e1c1a",color:"#484440",fontSize:11,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.mono,WebkitTapHighlightColor:"transparent"}}>✎</button>
+            <button onClick={e=>{e.stopPropagation();onAdd(track);}} style={{background:inSet?"#071a07":"#0e0e0c",border:`1px solid ${inSet?"#22c55e28":"#1e1c1a"}`,color:inSet?T.green:"#383430",fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}}>{inSet?"✓":"+"}</button>
+          </div>
+        </div>
+        {/* Delete confirm */}
+        {showDel&&(
+          <div style={{marginTop:8,padding:"8px 10px",background:"#1a0606",border:"1px solid #3a1010",borderRadius:8,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontFamily:T.sans,fontSize:9,color:"#d08080",flex:1}}>¿Eliminar este track?</span>
+            <button onClick={e=>{e.stopPropagation();onDelete(track.id);}} style={{background:"#3a0808",border:"1px solid #5a1010",color:T.red,fontFamily:T.sans,fontSize:9,padding:"3px 10px",borderRadius:6,cursor:"pointer",fontWeight:700}}>Sí</button>
+            <button onClick={e=>{e.stopPropagation();setShowDel(false);}} style={{background:"#1a1614",border:"1px solid #2a2422",color:T.textDim,fontFamily:T.sans,fontSize:9,padding:"3px 10px",borderRadius:6,cursor:"pointer"}}>No</button>
+          </div>
+        )}
+        {!showDel&&(
+          <button onClick={e=>{e.stopPropagation();setShowDel(true);}} style={{marginTop:6,background:"none",border:"none",color:"#2a1414",fontFamily:T.mono,fontSize:7.5,cursor:"pointer",letterSpacing:0.5,padding:0}}>eliminar track</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── PANTALLA DJS EMERGENTES ───────────────────────────────────────────────
+function DJsScreen({ djTracks, setDjTracks, mySet, addToSet }) {
+  const [search, setSearch] = React.useState("");
+  const [showForm, setShowForm] = React.useState(false);
+  const [editTrack, setEditTrack] = React.useState(null);
+  const [artistFilter, setArtistFilter] = React.useState(null);
+
+  const artists = React.useMemo(()=>[...new Set(djTracks.map(t=>t.artist))].sort(),[djTracks]);
+
+  const filtered = React.useMemo(()=>djTracks.filter(t=>{
+    if(artistFilter && t.artist !== artistFilter) return false;
+    if(search){const q=search.toLowerCase();return t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q);}
+    return true;
+  }),[djTracks,search,artistFilter]);
+
+  function saveTrack(form) {
+    if (editTrack) {
+      const updated = djTracks.map(t=>t.id===editTrack.id?{...t,...form}:t);
+      setDjTracks(updated); saveDjTracks(updated);
+    } else {
+      const track = {...form, id:newDjId(), pop:5, isEmergent:true, addedAt:Date.now()};
+      const updated = [track, ...djTracks];
+      setDjTracks(updated); saveDjTracks(updated);
+    }
+    setShowForm(false); setEditTrack(null);
+  }
+
+  function deleteTrack(id) {
+    const updated = djTracks.filter(t=>t.id!==id);
+    setDjTracks(updated); saveDjTracks(updated);
+  }
+
+  function startEdit(track) { setEditTrack(track); setShowForm(true); }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%",position:"relative"}}>
+      {/* Header info */}
+      <div style={{padding:"10px 16px 0",flexShrink:0}}>
+        <div style={{background:`${DJ_ACCENT}08`,border:`1px solid ${DJ_ACCENT}20`,borderRadius:12,padding:"10px 14px",marginBottom:8}}>
+          <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textMid,lineHeight:1.7}}>
+            Agregá tracks de <span style={{color:DJ_ACCENT,fontWeight:700}}>DJs emergentes</span> para cruzarlos con el catálogo y construir sets más frescos. Se guardan en tu dispositivo.
+          </div>
+        </div>
+      </div>
+      {/* Search + Add button */}
+      <div style={{padding:"0 14px 0",flexShrink:0,display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{flex:1,display:"flex",alignItems:"center",gap:8,background:"#070605",border:"1px solid #181614",borderRadius:10,padding:"8px 12px"}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2a2826" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="buscar artista o track…" style={{flex:1,background:"none",border:"none",outline:"none",fontSize:11.5,color:T.text,fontFamily:T.sans}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#a8a4a0",cursor:"pointer",fontSize:13,padding:0}}>✕</button>}
+        </div>
+        <button onClick={()=>{setEditTrack(null);setShowForm(true);}} style={{background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}44`,color:DJ_ACCENT,width:38,height:38,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,flexShrink:0,WebkitTapHighlightColor:"transparent",fontFamily:T.sans}}>+</button>
+      </div>
+      {/* Artist filter chips */}
+      {artists.length > 0 && (
+        <div style={{padding:"8px 14px 0",flexShrink:0}}>
+          <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+            <button onClick={()=>setArtistFilter(null)} style={{flexShrink:0,background:!artistFilter?`${DJ_ACCENT}20`:"transparent",color:!artistFilter?DJ_ACCENT:"#333",border:`1px solid ${!artistFilter?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:!artistFilter?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>todos</button>
+            {artists.map(a=>(
+              <button key={a} onClick={()=>setArtistFilter(artistFilter===a?null:a)} style={{flexShrink:0,background:artistFilter===a?`${DJ_ACCENT}20`:"transparent",color:artistFilter===a?DJ_ACCENT:"#333",border:`1px solid ${artistFilter===a?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,fontFamily:T.sans,fontWeight:artistFilter===a?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Count */}
+      <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{filtered.length} tracks emergentes</span>
+        {djTracks.length>0&&<span style={{fontFamily:T.mono,fontSize:8.5,color:DJ_ACCENT,opacity:0.6}}>{djTracks.length} en total</span>}
+      </div>
+      {/* List */}
+      <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+        {filtered.length===0 && djTracks.length===0 && (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16,padding:"0 44px",textAlign:"center"}}>
+            <div style={{fontSize:36,opacity:0.15}}>🎧</div>
+            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:13,color:T.textMid}}>Aún no hay DJs emergentes</div>
+            <div style={{fontFamily:T.sans,fontSize:10,color:T.textDim,lineHeight:2}}>Tocá el <span style={{color:DJ_ACCENT,fontWeight:700}}>+</span> para agregar el primer track</div>
+          </div>
+        )}
+        {filtered.length===0 && djTracks.length>0 && (
+          <div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>
+        )}
+        <div style={{display:"flex",flexDirection:"column",gap:6,paddingTop:4}}>
+          {filtered.map(t=>(
+            <DjTrackCard key={t.id} track={t} onAdd={addToSet} inSet={mySet.some(s=>s.id===t.id)} onEdit={startEdit} onDelete={deleteTrack} mySet={mySet}/>
+          ))}
+        </div>
+      </div>
+      {/* Form modal */}
+      {showForm&&<DjTrackForm onSave={saveTrack} onCancel={()=>{setShowForm(false);setEditTrack(null);}} initial={editTrack}/>}
+    </div>
+  );
+}
+
+function App() {
+  const [tab,setTab]=useState("library");
+  const [seed,setSeed]=useState(null);
+  const [mySet,setMySet]=useState([]);
+  const [style,setStyle]=useState("all");
+  const [maxPop,setMaxPop]=useState(65);
+  const [search,setSearch]=useState("");
+  const [findTrack,setFindTrack]=useState(null);
+  const [djTracks,setDjTracks]=useState(()=>loadDjTracks());
+
+  const addToSet=t=>{if(!mySet.some(s=>s.id===t.id))setMySet(p=>[...p,t]);};
+  const handleSeed=t=>{setSeed(t);if(t)setTab("build");};
+  const tabs=[
+    {id:"library",label:"Library",badge:null},
+    {id:"build",  label:"Build",  badge:null},
+    {id:"set",    label:"Set",    badge:mySet.length||null},
+    {id:"djs",    label:"DJs",    badge:djTracks.length||null},
+  ];
+  return (
+    <div style={{minHeight:"100vh",background:"#030302",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{width:"100%",maxWidth:430,minHeight:"100vh",background:"#050403",display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+        <div style={{height:env_safe_area_top(),flexShrink:0}}/>
+        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",padding:"0 20px",justifyContent:"space-between",borderBottom:"1px solid #0e0c0a"}}>
+          <LogoFull/>
+          <div style={{height:1,width:40,background:`linear-gradient(90deg, transparent, #c9a84c33)`}}/>
+        </div>
+        <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          {tab==="library"&&<LibraryScreen seed={seed} setSeed={handleSeed} mySet={mySet} addToSet={addToSet} maxPop={maxPop} setMaxPop={setMaxPop} styleFilter={style} setStyleFilter={setStyle} search={search} setSearch={setSearch} onFind={setFindTrack} djTracks={djTracks}/>}
+          {tab==="build"&&<BuildScreen seed={seed} setSeed={t=>{setSeed(t);if(!t)setTab("library");}} mySet={mySet} addToSet={addToSet} setMySet={setMySet} maxPop={maxPop} onFind={setFindTrack} djTracks={djTracks}/>}
+          {tab==="set"&&<SetScreen mySet={mySet} setMySet={setMySet} onFind={setFindTrack}/>}
+          {tab==="djs"&&<DJsScreen djTracks={djTracks} setDjTracks={setDjTracks} mySet={mySet} addToSet={addToSet}/>}
+        </div>
+        <div style={{flexShrink:0,background:"rgba(4,3,2,0.97)",borderTop:"1px solid #0e0c0a",display:"flex",paddingBottom:"env(safe-area-inset-bottom, 8px)"}}>
+          {tabs.map(({id,label,badge})=>{
+            const active=tab===id;
+            const badgeColor=id==="djs"?DJ_ACCENT:T.gold;
+            return (
+              <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,cursor:"pointer",position:"relative",WebkitTapHighlightColor:"transparent",padding:"10px 0"}}>
+                {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:1.5,background:id==="djs"?DJ_ACCENT:T.gold,borderRadius:"0 0 2px 2px"}}/>}
+                <TabIcon id={id} active={active}/>
+                <span style={{fontFamily:T.sans,fontWeight:active?700:500,fontSize:7.5,color:active?(id==="djs"?DJ_ACCENT:T.gold):"#2a2826",letterSpacing:1.2,textTransform:"uppercase"}}>{label}</span>
+                {badge&&<div style={{position:"absolute",top:5,right:"calc(50% - 20px)",background:badgeColor,color:"#000",fontFamily:T.sans,fontWeight:800,fontSize:7,width:14,height:14,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{badge}</div>}
+              </button>
+            );
+          })}
+        </div>
+        {findTrack&&<FindModal track={findTrack} onClose={()=>setFindTrack(null)}/>}
+      </div>
+    </div>
+  );
+}
+
+function env_safe_area_top() { return 44; }
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<script>
+// ── PWA: MANIFEST INLINE ──────────────────────────────────────────────────
+(function(){
+  const manifest = {
+    name: "SetLab — DJ Set Planner",
+    short_name: "SetLab",
+    description: "Planeá tus sets de DJ con compatibilidad armónica y energía",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#030302",
+    theme_color: "#030302",
+    orientation: "portrait",
+    icons: [
+      { src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23030302'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c9a84c' stroke-width='12'/%3E%3Ccircle cx='256' cy='256' r='140' fill='none' stroke='%23c9a84c' stroke-width='6' opacity='.4'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%23c9a84c' opacity='.25'/%3E%3Ccircle cx='256' cy='256' r='28' fill='%23c9a84c'/%3E%3C/svg%3E", sizes:"512x512", type:"image/svg+xml", purpose:"any maskable" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+  document.getElementById("pwa-manifest").href = URL.createObjectURL(blob);
+})();
+
+// ── PWA: SERVICE WORKER ───────────────────────────────────────────────────
+if('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'setlab-v1';
+const ASSETS = ['./', './index.html'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
+});
+`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).then(()=>{
+    console.log('[SetLab] PWA lista — instalable desde el navegador');
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>
