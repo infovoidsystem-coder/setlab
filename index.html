@@ -15,10 +15,14 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23030302'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c9a84c' stroke-width='8'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%23c9a84c' opacity='.3'/%3E%3C/svg%3E"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:#030302;font-family:'Syne',sans-serif}
+  html,body{height:100%;background:#030302;font-family:'Syne',sans-serif;transition:background 0.3s}
   ::-webkit-scrollbar{display:none}
   input[type=range]{-webkit-appearance:none;height:1.5px;border-radius:1px;background:#161412;outline:none}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#c9a84c;cursor:pointer;box-shadow:0 0 0 3px #c9a84c18}
+  body.light input[type=range]{background:#d8d4ce}
+  body.light input[type=range]::-webkit-slider-thumb{background:#9a7030;box-shadow:0 0 0 3px #9a703022}
+  select option{background:#1a1814;color:#e8e2d9}
+  body.light select option{background:#ffffff;color:#1c1a17}
 </style>
 </head>
 <body>
@@ -27,17 +31,44 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script type="text/babel">
-const { useState, useMemo, useRef, useEffect } = React;
+const { useState, useMemo, useRef, useEffect, useContext, createContext } = React;
 
-const T = {
+// ── TEMA GLOBAL (mutable para cambio sin refactor) ────────────────────────
+const DARK_T = {
   gold: "#c9a84c", goldDim: "#7a6230", goldGlow: "#c9a84c22",
   surface: "#080808", border: "#141414",
+  bg: "#030302", bgAlt: "#050403",
   text: "#e8e2d9", textMid: "#a09890", textDim: "#706860", textGhost: "#504844",
   green: "#22c55e", lime: "#84cc16", yellow: "#eab308",
   orange: "#f97316", red: "#ef4444",
-  sans: "'Syne', sans-serif",
-  mono: "'DM Mono', monospace",
+  sans: "'Syne', sans-serif", mono: "'DM Mono', monospace",
+  isDark: true,
 };
+const LIGHT_T = {
+  gold: "#9a7030", goldDim: "#c4962a", goldGlow: "#9a703018",
+  surface: "#ffffff", border: "#e4dfd8",
+  bg: "#f2efe9", bgAlt: "#f8f6f2",
+  text: "#1c1a17", textMid: "#6a6460", textDim: "#9a9490", textGhost: "#c0bbb4",
+  green: "#16a34a", lime: "#65a30d", yellow: "#ca8a04",
+  orange: "#c2410c", red: "#dc2626",
+  sans: "'Syne', sans-serif", mono: "'DM Mono', monospace",
+  isDark: false,
+};
+
+const T = { ...DARK_T };
+function applyTheme(name) {
+  const src = name === "light" ? LIGHT_T : DARK_T;
+  Object.assign(T, src);
+  document.body.style.background = T.bg;
+  document.body.className = name === "light" ? "light" : "";
+  try { localStorage.setItem("setlab_theme", name); } catch {}
+}
+
+// Font scale context
+const ScaleCtx = createContext(1);
+function useScale() { return useContext(ScaleCtx); }
+function fs(base, scale) { return Math.round(base * scale); }
+
 const E_COLORS = ["","#2d3748","#1e40af","#2563eb","#0284c7","#059669","#65a30d","#ca8a04","#ea580c","#dc2626","#9f1239"];
 const HOUSE_ACCENT = "#4a90d9";
 
@@ -2217,6 +2248,44 @@ function DJsScreen({ djTracks, setDjTracks, mySet, addToSet }) {
   );
 }
 
+// ── BARRA DE CONFIGURACIÓN (tema + tamaño) ────────────────────────────────
+function SettingsBar({ theme, setThemeFn, scale, setScaleFn, compact }) {
+  const scales = [
+    { key:1,    label:"A",  title:"Normal"  },
+    { key:1.18, label:"A+", title:"Grande"  },
+    { key:1.38, label:"A++",title:"Muy grande"},
+  ];
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:compact?6:10}}>
+      {/* Font scale */}
+      <div style={{display:"flex",gap:3,alignItems:"center",background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,padding:"3px 5px"}}>
+        {scales.map(s=>(
+          <button key={s.key} onClick={()=>setScaleFn(s.key)} title={s.title} style={{
+            background:scale===s.key?`${T.gold}20`:"transparent",
+            border:`1px solid ${scale===s.key?T.gold+"55":"transparent"}`,
+            color:scale===s.key?T.gold:T.textDim,
+            fontFamily:T.sans, fontWeight:scale===s.key?800:500,
+            fontSize:scale===s.key?10:8, padding:"3px 7px", borderRadius:6,
+            cursor:"pointer", WebkitTapHighlightColor:"transparent",
+            transition:"all 0.15s", letterSpacing:0.3,
+          }}>{s.label}</button>
+        ))}
+      </div>
+      {/* Theme toggle */}
+      <button onClick={()=>setThemeFn(theme==="dark"?"light":"dark")} title={theme==="dark"?"Modo claro":"Modo oscuro"} style={{
+        background:T.surface, border:`1px solid ${T.border}`,
+        color:T.textMid, width:32, height:32, borderRadius:8,
+        cursor:"pointer", display:"flex", alignItems:"center",
+        justifyContent:"center", fontSize:15,
+        WebkitTapHighlightColor:"transparent", transition:"all 0.2s",
+        flexShrink:0,
+      }}>
+        {theme==="dark" ? "☀️" : "🌙"}
+      </button>
+    </div>
+  );
+}
+
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(()=>window.innerWidth >= 900);
   React.useEffect(()=>{
@@ -2237,6 +2306,28 @@ function App() {
   const [findTrack,setFindTrack]=useState(null);
   const [djTracks,setDjTracks]=useState(()=>loadDjTracks());
   const isDesktop = useIsDesktop();
+
+  // ── TEMA Y ESCALA ─────────────────────────────────────────────────────────
+  const [theme, setThemeState] = useState(()=>{
+    try { return localStorage.getItem("setlab_theme")||"dark"; } catch { return "dark"; }
+  });
+  const [scale, setScaleState] = useState(()=>{
+    try { return parseFloat(localStorage.getItem("setlab_scale")||"1"); } catch { return 1; }
+  });
+  const [, forceRender] = useState(0);
+
+  function setThemeFn(name) {
+    applyTheme(name);
+    setThemeState(name);
+    forceRender(n=>n+1);
+  }
+  function setScaleFn(s) {
+    setScaleState(s);
+    try { localStorage.setItem("setlab_scale", String(s)); } catch {}
+  }
+
+  // Aplicar tema guardado al inicio
+  React.useEffect(()=>{ applyTheme(theme); },[]);
 
   const addToSet=t=>{if(!mySet.some(s=>s.id===t.id))setMySet(p=>[...p,t]);};
   const handleSeed=t=>{setSeed(t);if(t)setTab("build");};
@@ -2259,40 +2350,40 @@ function App() {
 
   // ── DESKTOP LAYOUT ────────────────────────────────────────────────────────
   if (isDesktop) return (
-    <div style={{minHeight:"100vh",background:"#020201",display:"flex",flexDirection:"column"}}>
-      {/* Top bar */}
-      <div style={{height:56,background:"#050403",borderBottom:"1px solid #0e0c0a",display:"flex",alignItems:"center",padding:"0 32px",gap:32,flexShrink:0,position:"sticky",top:0,zIndex:50}}>
+    <ScaleCtx.Provider value={scale}>
+    <div style={{minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",zoom:scale}}>
+      {/* Top bar FIJO */}
+      <div style={{height:56,background:T.bgAlt,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 32px",gap:24,flexShrink:0,position:"sticky",top:0,zIndex:50,backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}>
         <LogoFull/>
-        <div style={{width:1,height:24,background:"#1a1814"}}/>
+        <div style={{width:1,height:24,background:T.border}}/>
         {/* Desktop nav tabs */}
         <div style={{display:"flex",gap:4,flex:1}}>
           {tabs.map(({id,label,badge})=>{
             const active=tab===id;
             const accent=id==="djs"?DJ_ACCENT:T.gold;
             return (
-              <button key={id} onClick={()=>setTab(id)} style={{position:"relative",background:active?`${accent}10`:"transparent",border:`1px solid ${active?accent+"33":"transparent"}`,borderRadius:8,padding:"6px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,WebkitTapHighlightColor:"transparent",transition:"all 0.15s"}}>
+              <button key={id} onClick={()=>setTab(id)} style={{position:"relative",background:active?`${accent}15`:"transparent",border:`1px solid ${active?accent+"33":"transparent"}`,borderRadius:8,padding:"6px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,WebkitTapHighlightColor:"transparent",transition:"all 0.15s"}}>
                 <TabIcon id={id} active={active}/>
-                <span style={{fontFamily:T.sans,fontWeight:active?700:500,fontSize:11,color:active?accent:"#3a3836",letterSpacing:0.8,textTransform:"uppercase"}}>{label}</span>
+                <span style={{fontFamily:T.sans,fontWeight:active?700:500,fontSize:11,color:active?accent:T.textDim,letterSpacing:0.8,textTransform:"uppercase"}}>{label}</span>
                 {badge&&<div style={{background:accent,color:"#000",fontFamily:T.sans,fontWeight:800,fontSize:8,minWidth:16,height:16,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px"}}>{badge}</div>}
               </button>
             );
           })}
         </div>
-        <div style={{fontFamily:T.mono,fontSize:9,color:T.textGhost,letterSpacing:1.5}}>DJ SET PLANNER</div>
+        <SettingsBar theme={theme} setThemeFn={setThemeFn} scale={scale} setScaleFn={setScaleFn} compact={false}/>
       </div>
 
-      {/* Main content — two column on wide screens */}
+      {/* Main content */}
       <div style={{flex:1,display:"flex",maxWidth:1400,width:"100%",margin:"0 auto",padding:"24px 24px 40px",gap:20,alignItems:"flex-start"}}>
-        {/* Left column — main screen */}
-        <div style={{flex:"0 0 520px",minWidth:0,background:"#050403",border:"1px solid #0e0c0a",borderRadius:20,overflow:"hidden",height:"calc(100vh - 56px - 48px)",display:"flex",flexDirection:"column",position:"sticky",top:80}}>
+        {/* Left column */}
+        <div style={{flex:"0 0 520px",minWidth:0,background:T.bgAlt,border:`1px solid ${T.border}`,borderRadius:20,overflow:"hidden",height:"calc(100vh - 56px - 48px)",display:"flex",flexDirection:"column",position:"sticky",top:80}}>
           <ActiveScreen {...screenProps[tab]}/>
         </div>
 
-        {/* Right column — set overview + info */}
+        {/* Right column */}
         <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:16}}>
 
-          {/* Set summary card */}
-          <div style={{background:"#050403",border:"1px solid #0e0c0a",borderRadius:20,padding:"20px 24px"}}>
+          <div style={{background:T.bgAlt,border:`1px solid ${T.border}`,borderRadius:20,padding:"20px 24px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
               <div>
                 <div style={{fontFamily:T.mono,fontSize:8,color:T.textGhost,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>set actual</div>
@@ -2321,9 +2412,8 @@ function App() {
             )}
           </div>
 
-          {/* Seed info */}
           {seed&&(
-            <div style={{background:"#050403",border:`1px solid ${T.gold}22`,borderRadius:20,padding:"20px 24px"}}>
+            <div style={{background:T.bgAlt,border:`1px solid ${T.gold}22`,borderRadius:20,padding:"20px 24px"}}>
               <div style={{fontFamily:T.mono,fontSize:8,color:T.goldDim,letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>semilla activa</div>
               <div style={{fontFamily:T.sans,fontSize:16,fontWeight:800,color:T.gold,letterSpacing:-0.3,marginBottom:4}}>{seed.title}</div>
               <div style={{fontFamily:T.sans,fontSize:11,color:T.textMid,marginBottom:12}}>{seed.artist}</div>
@@ -2335,9 +2425,8 @@ function App() {
             </div>
           )}
 
-          {/* DJs emergentes quick stats */}
           {djTracks.length>0&&(
-            <div style={{background:"#050403",border:`1px solid ${DJ_ACCENT}18`,borderRadius:20,padding:"20px 24px"}}>
+            <div style={{background:T.bgAlt,border:`1px solid ${DJ_ACCENT}18`,borderRadius:20,padding:"20px 24px"}}>
               <div style={{fontFamily:T.mono,fontSize:8,color:DJ_ACCENT,letterSpacing:2,textTransform:"uppercase",opacity:0.7,marginBottom:10}}>djs emergentes</div>
               <div style={{fontFamily:T.sans,fontSize:22,fontWeight:800,color:DJ_ACCENT,marginBottom:4}}>{djTracks.length}</div>
               <div style={{fontFamily:T.sans,fontSize:10,color:T.textDim,marginBottom:12}}>tracks en tu catálogo</div>
@@ -2345,57 +2434,81 @@ function App() {
             </div>
           )}
 
-          {/* Affiliate info box */}
-          <div style={{background:"#050403",border:"1px solid #0e0c0a",borderRadius:20,padding:"20px 24px"}}>
+          <div style={{background:T.bgAlt,border:`1px solid ${T.border}`,borderRadius:20,padding:"20px 24px"}}>
             <div style={{fontFamily:T.mono,fontSize:8,color:"#01ff9544",letterSpacing:2,textTransform:"uppercase",marginBottom:10}}>beatport affiliate</div>
             <div style={{fontFamily:T.sans,fontSize:11,color:T.textDim,lineHeight:1.8}}>
               Cada click en <span style={{color:"#01ff95",fontWeight:700}}>B</span> genera una comisión cuando el usuario compra. Configurá tu ID en el código para activarlo.
             </div>
-            <div style={{marginTop:12,fontFamily:T.mono,fontSize:9,color:T.textGhost,background:"#0a0908",border:"1px solid #141210",borderRadius:8,padding:"8px 12px"}}>
+            <div style={{marginTop:12,fontFamily:T.mono,fontSize:9,color:T.textGhost,background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 12px"}}>
               const BP_AFFIL = <span style={{color:"#01ff95"}}>"tu-id-aqui"</span>;
             </div>
           </div>
-
         </div>
       </div>
       {findTrack&&<FindModal track={findTrack} onClose={()=>setFindTrack(null)}/>}
       <InstallBanner/>
     </div>
+    </ScaleCtx.Provider>
   );
 
-  // ── MOBILE LAYOUT (original) ──────────────────────────────────────────────
+  // ── MOBILE LAYOUT — header y footer siempre visibles ──────────────────────
+  const HEADER_H = env_safe_area_top() + 52; // 44 safe area + 52 header
+  const NAV_H = 64;
   return (
-    <div style={{minHeight:"100vh",background:"#030302",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{width:"100%",maxWidth:430,minHeight:"100vh",background:"#050403",display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
-        <div style={{height:env_safe_area_top(),flexShrink:0}}/>
-        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",padding:"0 20px",justifyContent:"space-between",borderBottom:"1px solid #0e0c0a"}}>
+    <ScaleCtx.Provider value={scale}>
+    <div style={{height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}>
+
+      {/* HEADER FIJO — siempre visible */}
+      <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}>
+        <div style={{height:env_safe_area_top()}}/>
+        <div style={{height:52,display:"flex",alignItems:"center",padding:"0 14px 0 20px",justifyContent:"space-between",maxWidth:430,margin:"0 auto",width:"100%"}}>
           <LogoFull/>
-          <div style={{height:1,width:40,background:`linear-gradient(90deg, transparent, #c9a84c33)`}}/>
+          <SettingsBar theme={theme} setThemeFn={setThemeFn} scale={scale} setScaleFn={setScaleFn} compact={true}/>
         </div>
-        <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      </div>
+
+      {/* CONTENIDO SCROLLABLE — entre header y nav */}
+      <div style={{
+        position:"absolute", top:HEADER_H, bottom:NAV_H, left:0, right:0,
+        overflowY:"auto", overflowX:"hidden",
+        WebkitOverflowScrolling:"touch", scrollbarWidth:"none",
+      }}>
+        <div style={{zoom:scale, maxWidth:430, margin:"0 auto", minHeight:"100%", background:T.bgAlt, display:"flex", flexDirection:"column"}}>
           {tab==="library"&&<LibraryScreen seed={seed} setSeed={handleSeed} mySet={mySet} addToSet={addToSet} maxPop={maxPop} setMaxPop={setMaxPop} styleFilter={style} setStyleFilter={setStyle} search={search} setSearch={setSearch} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="build"&&<BuildScreen seed={seed} setSeed={t=>{setSeed(t);if(!t)setTab("library");}} mySet={mySet} addToSet={addToSet} setMySet={setMySet} maxPop={maxPop} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="set"&&<SetScreen mySet={mySet} setMySet={setMySet} onFind={setFindTrack}/>}
           {tab==="djs"&&<DJsScreen djTracks={djTracks} setDjTracks={setDjTracks} mySet={mySet} addToSet={addToSet}/>}
         </div>
-        <div style={{flexShrink:0,background:"rgba(4,3,2,0.97)",borderTop:"1px solid #0e0c0a",display:"flex",paddingBottom:"env(safe-area-inset-bottom, 8px)"}}>
+      </div>
+
+      {/* NAV INFERIOR FIJA — siempre visible */}
+      <div style={{
+        position:"fixed", bottom:0, left:0, right:0, zIndex:100,
+        background:T.isDark?"rgba(4,3,2,0.97)":T.bgAlt,
+        borderTop:`1px solid ${T.border}`,
+        display:"flex", paddingBottom:"env(safe-area-inset-bottom,8px)",
+        backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+      }}>
+        <div style={{display:"flex",width:"100%",maxWidth:430,margin:"0 auto"}}>
           {tabs.map(({id,label,badge})=>{
             const active=tab===id;
-            const badgeColor=id==="djs"?DJ_ACCENT:T.gold;
+            const accent=id==="djs"?DJ_ACCENT:T.gold;
             return (
               <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,cursor:"pointer",position:"relative",WebkitTapHighlightColor:"transparent",padding:"10px 0"}}>
-                {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:1.5,background:id==="djs"?DJ_ACCENT:T.gold,borderRadius:"0 0 2px 2px"}}/>}
+                {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:1.5,background:accent,borderRadius:"0 0 2px 2px"}}/>}
                 <TabIcon id={id} active={active}/>
-                <span style={{fontFamily:T.sans,fontWeight:active?700:500,fontSize:7.5,color:active?(id==="djs"?DJ_ACCENT:T.gold):"#2a2826",letterSpacing:1.2,textTransform:"uppercase"}}>{label}</span>
-                {badge&&<div style={{position:"absolute",top:5,right:"calc(50% - 20px)",background:badgeColor,color:"#000",fontFamily:T.sans,fontWeight:800,fontSize:7,width:14,height:14,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{badge}</div>}
+                <span style={{fontFamily:T.sans,fontWeight:active?700:500,fontSize:7.5,color:active?accent:T.textGhost,letterSpacing:1.2,textTransform:"uppercase"}}>{label}</span>
+                {badge&&<div style={{position:"absolute",top:5,right:"calc(50% - 20px)",background:accent,color:"#000",fontFamily:T.sans,fontWeight:800,fontSize:7,width:14,height:14,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{badge}</div>}
               </button>
             );
           })}
         </div>
-        {findTrack&&<FindModal track={findTrack} onClose={()=>setFindTrack(null)}/>}
-        <InstallBanner/>
       </div>
+
+      {findTrack&&<FindModal track={findTrack} onClose={()=>setFindTrack(null)}/>}
+      <InstallBanner/>
     </div>
+    </ScaleCtx.Provider>
   );
 }
 
