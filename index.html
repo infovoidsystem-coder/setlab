@@ -727,26 +727,75 @@ function FindModal({ track, onClose }) {
 let _previewAudio = null;
 let _previewSetState = null;
 
+// Normaliza texto para comparación: minúscula, sin tildes, sin puntuación
+function normStr(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")  // quita tildes
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+// Verifica que un resultado de iTunes coincida razonablemente con el track buscado
+function itunesMatchScore(result, track) {
+  const rArtist = normStr(result.artistName);
+  const rTitle  = normStr(result.trackName);
+  const tArtist = normStr(track.artist);
+  const tTitle  = normStr(track.title);
+
+  let score = 0;
+
+  // Coincidencia de artista
+  if (rArtist === tArtist) score += 50;
+  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 30;
+  else {
+    // Al menos la primera palabra del artista debe coincidir
+    const firstWordArtist = tArtist.split(" ")[0];
+    if (firstWordArtist.length > 2 && rArtist.includes(firstWordArtist)) score += 15;
+  }
+
+  // Coincidencia de título
+  if (rTitle === tTitle) score += 50;
+  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 30;
+  else {
+    // Al menos la primera palabra significativa del título debe coincidir
+    const titleWords = tTitle.split(" ").filter(w => w.length > 2);
+    const matchedWords = titleWords.filter(w => rTitle.includes(w));
+    score += Math.round((matchedWords.length / Math.max(titleWords.length, 1)) * 25);
+  }
+
+  return score; // necesitamos ≥50 para aceptar el resultado
+}
+
 async function searchItunesPreview(track) {
-  // Genera múltiples variantes de búsqueda, de más específica a más amplia
   const firstArtist = track.artist.split(/[&,+]/)[0].trim();
-  const shortTitle  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim(); // sin paréntesis
-  const titleWords  = shortTitle.split(' ').slice(0, 4).join(' ');           // primeras 4 palabras
+  const shortTitle  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+
   const queries = [
-    `${firstArtist} ${shortTitle}`,          // artista principal + título limpio
-    `${firstArtist} ${titleWords}`,           // artista principal + primeras palabras
-    `${track.artist} ${titleWords}`,          // artista completo + primeras palabras
-    shortTitle,                               // solo título limpio
-    `${firstArtist} ${track.title.split(' ')[0]}`, // artista + primera palabra del título
+    `${firstArtist} ${shortTitle}`,
+    `${track.artist} ${shortTitle}`,
+    `${firstArtist} ${track.title}`,
   ];
+
   for (const q of queries) {
     try {
-      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=10&entity=song`);
+      const res = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=15&entity=song`
+      );
       const data = await res.json();
-      const hit = data.results.find(r => r.previewUrl);
-      if (hit) return hit.previewUrl;
-    } catch { /* seguir con la siguiente */ }
+
+      // Filtrar solo resultados con previewUrl y ordenar por score de coincidencia
+      const candidates = data.results
+        .filter(r => r.previewUrl)
+        .map(r => ({ r, score: itunesMatchScore(r, track) }))
+        .filter(x => x.score >= 50)   // umbral mínimo: artista O título deben coincidir bien
+        .sort((a, b) => b.score - a.score);
+
+      if (candidates.length > 0) return candidates[0].r.previewUrl;
+    } catch { /* continuar */ }
   }
+
+  // No encontró nada que coincida realmente → retorna null en lugar de una canción al azar
   return null;
 }
 
@@ -755,21 +804,77 @@ function isDirectAudioUrl(url) {
   if (!url) return false;
   try {
     const u = new URL(url);
-    // Extensiones de audio conocidas
     if (/\.(mp3|ogg|wav|aac|m4a|flac|opus)(\?|$)/i.test(u.pathname)) return true;
-    // Algunos CDNs y proxies de audio
-    if (u.hostname.includes('dl.dropbox') || u.hostname.includes('drive.google') ||
-        u.hostname.includes('storage.googleapis') || u.hostname.includes('amazonaws')) return true;
+    if (u.hostname.includes('dl.dropbox') || u.hostname.includes('storage.googleapis') || u.hostname.includes('amazonaws')) return true;
     return false;
   } catch { return false; }
 }
 
+// Detecta si es una URL de página de SoundCloud
+function isSoundCloudUrl(url) {
+  if (!url) return false;
+  try { return new URL(url).hostname.includes('soundcloud.com'); } catch { return false; }
+}
+
+// Obtiene la URL de stream de SoundCloud usando su API oEmbed + proxy CORS
+// SoundCloud expone un endpoint oEmbed público que devuelve el HTML del embed,
+// del cual extraemos la URL de stream directo via el widget API.
+async function getSoundCloudStreamUrl(scPageUrl) {
+  // Proxies CORS gratuitos para hacer la petición desde el browser
+  const PROXIES = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`,
+  ];
+
+  // 1. Primero resolvemos el track ID via oEmbed (no necesita API key)
+  const oembedUrl = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(scPageUrl)}`;
+
+  for (const proxy of PROXIES) {
+    try {
+      const res = await fetch(proxy(oembedUrl), { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+
+      // El HTML del embed contiene el track ID en la URL del iframe
+      // Ejemplo: https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/12345
+      if (data.html) {
+        const match = data.html.match(/api\.soundcloud\.com\/tracks\/(\d+)/);
+        if (match) {
+          const trackId = match[1];
+          // Construimos la URL del widget embebido — el navegador puede reproducirla
+          // como iframe pero no como Audio(). En cambio, usamos el endpoint de stream
+          // público (funciona sin client_id para tracks con stream habilitado)
+          const streamUrl = `https://api.soundcloud.com/tracks/${trackId}/stream?client_id=iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX`;
+          return { trackId, streamUrl };
+        }
+      }
+    } catch { /* probar siguiente proxy */ }
+  }
+  return null;
+}
+
 function PreviewButton({ track, accent }) {
-  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf|sc
+  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf
 
   function stopCurrent() {
     if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
     if (_previewSetState) { _previewSetState("idle"); _previewSetState = null; }
+  }
+
+  async function playAudioUrl(url) {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio(url);
+      _previewAudio = audio;
+      _previewSetState = setState;
+      audio.addEventListener("canplay", () => {
+        audio.play().then(resolve).catch(reject);
+      }, { once: true });
+      audio.addEventListener("error", () => reject(new Error("audio error")), { once: true });
+      // Timeout por si el audio nunca carga
+      setTimeout(() => reject(new Error("timeout")), 8000);
+      audio.load();
+    });
   }
 
   async function handleClick(e) {
@@ -779,61 +884,69 @@ function PreviewButton({ track, accent }) {
       setState("idle");
       return;
     }
-
-    // Si el track tiene URL de audio directa (campo previewUrl), usarla primero
-    if (track.previewUrl && isDirectAudioUrl(track.previewUrl)) {
-      stopCurrent();
-      setState("loading");
-      try {
-        const audio = new Audio(track.previewUrl);
-        _previewAudio = audio;
-        _previewSetState = setState;
-        audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
-        audio.addEventListener("error", () => {
-          // Si falla la URL directa, intentar iTunes como fallback
-          _previewAudio=null; _previewSetState=null;
-          tryItunes();
-        });
-        await audio.play();
-        setState("playing");
-        return;
-      } catch {
-        // Intentar iTunes como fallback
-        tryItunes();
-        return;
-      }
-    }
-
-    // Si tiene soundcloudUrl pero no es audio directo → abrir en nueva pestaña (no reproducible inline)
-    // En ese caso igual intentar iTunes para la preescucha
     stopCurrent();
     setState("loading");
-    tryItunes();
 
-    async function tryItunes() {
+    // ── PRIORIDAD 1: SoundCloud URL ──────────────────────────────────────
+    if (isSoundCloudUrl(track.soundcloudUrl)) {
+      try {
+        const result = await getSoundCloudStreamUrl(track.soundcloudUrl);
+        if (result) {
+          try {
+            await playAudioUrl(result.streamUrl);
+            setState("playing");
+            _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+            return;
+          } catch {
+            // stream API falló (track privado o sin stream) → abrir en nueva pestaña
+            stopCurrent();
+          }
+        }
+      } catch { /* seguir */ }
+
+      // Si no se pudo reproducir inline → abrir la página de SC en nueva pestaña
+      stopCurrent();
+      window.open(track.soundcloudUrl, "_blank", "noopener");
+      setState("nf");
+      setTimeout(() => setState("idle"), 2000);
+      return;
+    }
+
+    // ── PRIORIDAD 2: URL de audio directo ────────────────────────────────
+    if (track.previewUrl && isDirectAudioUrl(track.previewUrl)) {
+      try {
+        await playAudioUrl(track.previewUrl);
+        setState("playing");
+        _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+        return;
+      } catch { stopCurrent(); }
+    }
+
+    // ── PRIORIDAD 3: iTunes (solo para tracks del catálogo principal) ────
+    if (!track.isEmergent) {
       try {
         const previewUrl = await searchItunesPreview(track);
-        if (!previewUrl) { setState("nf"); setTimeout(()=>setState("idle"),2500); return; }
-        const audio = new Audio(previewUrl);
-        _previewAudio = audio;
-        _previewSetState = setState;
-        audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
-        audio.addEventListener("error", () => { setState("error"); setTimeout(()=>setState("idle"),2000); _previewAudio=null; _previewSetState=null; });
-        audio.play();
-        setState("playing");
-      } catch {
-        setState("error");
-        setTimeout(()=>setState("idle"),2000);
-      }
+        if (previewUrl) {
+          await playAudioUrl(previewUrl);
+          setState("playing");
+          _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+          return;
+        }
+      } catch { stopCurrent(); }
     }
+
+    // No se encontró ninguna fuente
+    setState("nf");
+    setTimeout(() => setState("idle"), 3000);
   }
 
+  const isSC = isSoundCloudUrl(track.soundcloudUrl);
   const map = {
-    idle:    { icon:"▶", color:"#3a9e6a", bg:"#0e0e0c", border:"#1e1c1a", title:"Preescucha 30s" },
-    loading: { icon:"…", color:"#706860", bg:"#0e0e0c", border:"#1e1c1a", title:"Buscando…"       },
-    playing: { icon:"■", color:accent,    bg:`${accent}12`, border:`${accent}44`, title:"Detener"  },
-    error:   { icon:"✕", color:T.red,     bg:"#0e0e0c", border:"#1e1c1a", title:"Sin preview"     },
-    nf:      { icon:"∅", color:T.textDim, bg:"#0e0e0c", border:"#1e1c1a", title:"No encontrado"   },
+    idle:    { icon:"▶", color: isSC ? "#ff5500" : "#3a9e6a", bg:"#0e0e0c", border: isSC ? "#ff550022" : "#1e1c1a", title: isSC ? "Reproducir desde SoundCloud" : "Preescucha 30s" },
+    loading: { icon:"…", color:"#706860", bg:"#0e0e0c", border:"#1e1c1a", title:"Cargando…" },
+    playing: { icon:"■", color:accent,    bg:`${accent}12`, border:`${accent}44`, title:"Detener" },
+    error:   { icon:"✕", color:T.red,     bg:"#0e0e0c", border:"#1e1c1a", title:"Error al cargar" },
+    nf:      { icon:"↗", color:"#ff5500", bg:"#0e0e0c", border:"#ff550022", title:"Abriendo en SoundCloud…" },
   };
   const s = map[state] || map.idle;
   return (
@@ -2215,8 +2328,11 @@ function DjTrackForm({ onSave, onCancel, initial }) {
           </div>
 
           <div style={{marginBottom:14}}>
-            <label style={{fontFamily:T.mono,fontSize:8,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>☁ SoundCloud URL (opcional)</label>
-            <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/…" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
+            <label style={{fontFamily:T.mono,fontSize:8,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>☁ SoundCloud URL — preescucha</label>
+            <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/artista/track" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
+            <div style={{fontFamily:T.mono,fontSize:7.5,color:"#ff550088",marginTop:5,lineHeight:1.6}}>
+              Pegá la URL de la página del track en SoundCloud. El botón ▶ intentará reproducirlo inline; si el track es privado, lo abrirá en SoundCloud.
+            </div>
           </div>
 
           <div style={{marginBottom:24}}>
