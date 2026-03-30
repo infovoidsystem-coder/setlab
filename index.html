@@ -23,6 +23,44 @@
   body.light input[type=range]::-webkit-slider-thumb{background:#9a7030;box-shadow:0 0 0 3px #9a703022}
   select option{background:#1a1814;color:#e8e2d9}
   body.light select option{background:#ffffff;color:#1c1a17}
+
+  /* ── Inputs del formulario DJs ── */
+  .sl-input {
+    width:100%; border-radius:10px; padding:11px 13px;
+    font-family:'Syne',sans-serif; font-size:13px; outline:none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .sl-input:focus { box-shadow: 0 0 0 2px #a855f730; }
+  body:not(.light) .sl-input {
+    background:#1c1914; border:1px solid #2e2c28;
+    color:#e8e2d9;
+  }
+  body:not(.light) .sl-input::placeholder { color:#706860; }
+  body:not(.light) .sl-input:focus { border-color:#a855f766; background:#201d18; }
+  body.light .sl-input {
+    background:#f8f6f2; border:1px solid #d4cfc8;
+    color:#1c1a17;
+  }
+  body.light .sl-input::placeholder { color:#a0998f; }
+  body.light .sl-input:focus { border-color:#a855f766; background:#ffffff; }
+
+  .sl-select {
+    width:100%; border-radius:10px; padding:11px 13px;
+    font-family:'DM Mono',monospace; font-size:13px; outline:none; cursor:pointer;
+    transition: border-color 0.2s;
+    -webkit-appearance:none; appearance:none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23706860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  body:not(.light) .sl-select {
+    background-color:#1c1914; border:1px solid #2e2c28; color:#e8e2d9;
+  }
+  body:not(.light) .sl-select:focus { border-color:#a855f766; }
+  body.light .sl-select {
+    background-color:#f8f6f2; border:1px solid #d4cfc8; color:#1c1a17;
+  }
+  body.light .sl-select:focus { border-color:#a855f766; }
+  body.light .sl-select option { background:#ffffff; color:#1c1a17; }
 </style>
 </head>
 <body>
@@ -546,7 +584,16 @@ function CompatConnector({ from, to }) {
 
 function StyleChip({ s, active, onClick, accent }) {
   return (
-    <button onClick={onClick} style={{flexShrink:0,background:active?accent:"transparent",color:active?"#000":"#333",border:`1px solid ${active?accent:"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:active?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{s}</button>
+    <button onClick={onClick} style={{
+      flexShrink:0,
+      background: active ? accent : T.isDark ? "#1e1c18" : "#ece8e2",
+      color: active ? "#000" : T.isDark ? "#c8c4be" : "#5a5652",
+      border: `1px solid ${active ? accent : T.isDark ? "#2e2c28" : "#d4cfc8"}`,
+      fontSize:7.5, padding:"4px 10px", borderRadius:20, cursor:"pointer",
+      letterSpacing:1, textTransform:"uppercase", fontFamily:T.sans,
+      fontWeight: active ? 700 : 500,
+      transition:"all 0.15s", WebkitTapHighlightColor:"transparent"
+    }}>{s}</button>
   );
 }
 
@@ -587,7 +634,7 @@ function FindModal({ track, onClose }) {
         {/* Tab switcher */}
         <div style={{display:"flex",margin:"10px 16px 0",background:"#0c0a08",border:"1px solid #181614",borderRadius:10,overflow:"hidden"}}>
           {[["track","🎵 Este track"],["label","🏷 Explorar sello"]].map(([id,lbl])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:tab===id?"#1a1206":"transparent",border:"none",padding:"8px 0",cursor:"pointer",fontFamily:T.sans,fontWeight:700,fontSize:9.5,color:tab===id?T.gold:"#2a2826",letterSpacing:0.5,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{lbl}</button>
+            <button key={id} onClick={()=>setTab(id)} style={{flex:1,background:tab===id?`${T.gold}15`:"transparent",border:"none",padding:"8px 0",cursor:"pointer",fontFamily:T.sans,fontWeight:700,fontSize:9.5,color:tab===id?T.gold:T.textDim,letterSpacing:0.5,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{lbl}</button>
           ))}
         </div>
 
@@ -792,17 +839,17 @@ function TrackCard({ track, onSelect, onAdd, onFind, isSelected, inSet, scoreDat
           <div style={{marginTop:9,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
               {track.style.slice(0,2).map(s=>(
-                <span key={s} style={{fontFamily:T.sans,fontWeight:500,fontSize:7.5,color:"#a8a4a0",background:"#0c0b09",border:"1px solid #161412",padding:"2px 7px",borderRadius:20,letterSpacing:0.5,textTransform:"uppercase"}}>{s}</span>
+                <span key={s} style={{fontFamily:T.sans,fontWeight:600,fontSize:7.5,color:T.isDark?"#c8c4be":"#5a5652",background:T.isDark?"#1e1c18":"#ece8e2",border:`1px solid ${T.isDark?"#2e2c28":"#d4cfc8"}`,padding:"2px 8px",borderRadius:20,letterSpacing:0.5,textTransform:"uppercase"}}>{s}</span>
               ))}
             </div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
               <PreviewButton track={track} accent={accent}/>
               {getStoreButtons(track).map(({icon,color,hint,url})=>(
-                <a key={hint} href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={hint} style={{background:"#0e0e0c",border:`1px solid ${color}33`,color:color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700,transition:"border-color 0.15s"}}>{icon}</a>
+                <a key={hint} href={url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={hint} style={{background:T.surface,border:`1px solid ${color}44`,color:color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700,transition:"border-color 0.15s"}}>{icon}</a>
               ))}
               <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>pop {track.pop}</span>
               {onAdd&&(
-                <button onClick={e=>{e.stopPropagation();onAdd(track);}} style={{background:inSet?"#071a07":"#0e0e0c",border:`1px solid ${inSet?"#22c55e28":"#1e1c1a"}`,color:inSet?T.green:"#383430",fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}}>{inSet?"✓":"+"}</button>
+                <button onClick={e=>{e.stopPropagation();onAdd(track);}} style={{background:inSet?T.isDark?"#071a07":"#e8f5e9":T.surface,border:`1px solid ${inSet?"#22c55e44":T.border}`,color:inSet?T.green:T.textDim,fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}}>{inSet?"✓":"+"}</button>
               )}
             </div>
           </div>
@@ -894,11 +941,11 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
           <svg width="9" height="9" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.goldDim}/></svg>
           <span style={{fontFamily:T.mono,fontSize:7,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase"}}>sello</span>
-          {labelFilter&&<button onClick={()=>setLabelFilter(null)} style={{background:"#1a1206",border:`1px solid ${T.goldDim}`,color:T.gold,fontFamily:T.mono,fontSize:7,padding:"2px 7px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>✕ {labelFilter}</button>}
+          {labelFilter&&<button onClick={()=>setLabelFilter(null)} style={{background:`${T.gold}15`,border:`1px solid ${T.goldDim}`,color:T.gold,fontFamily:T.mono,fontSize:7,padding:"2px 7px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>✕ {labelFilter}</button>}
         </div>
         <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
           {allLabels.map(l=>(
-            <button key={l} onClick={()=>setLabelFilter(labelFilter===l?null:l)} style={{flexShrink:0,background:labelFilter===l?"#1a1206":"transparent",color:labelFilter===l?T.gold:"#2a2826",border:`1px solid ${labelFilter===l?T.goldDim:"#1a1814"}`,fontSize:7,padding:"3px 9px",borderRadius:20,cursor:"pointer",letterSpacing:0.5,textTransform:"none",fontFamily:T.mono,fontWeight:labelFilter===l?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>{l}</button>
+            <button key={l} onClick={()=>setLabelFilter(labelFilter===l?null:l)} style={{flexShrink:0,background:labelFilter===l?`${T.gold}15`:T.isDark?"#1e1c18":"#ece8e2",color:labelFilter===l?T.gold:T.isDark?"#c8c4be":"#5a5652",border:`1px solid ${labelFilter===l?T.goldDim:T.isDark?"#2e2c28":"#d4cfc8"}`,fontSize:7,padding:"3px 9px",borderRadius:20,cursor:"pointer",letterSpacing:0.5,textTransform:"none",fontFamily:T.mono,fontWeight:labelFilter===l?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>{l}</button>
           ))}
         </div>
       </div>
@@ -1276,19 +1323,19 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
                       return (
                         <button key={s.id} onClick={()=>toggleStyle(s.id)}
                           style={{
-                            background:active?`${ac}14`:"#0a0906",
-                            border:`1px solid ${active?ac:"#141210"}`,
+                            background:active?`${ac}14`:T.surface,
+                            border:`1px solid ${active?ac:T.border}`,
                             borderRadius:10,padding:"9px 13px",cursor:"pointer",
                             display:"flex",justifyContent:"space-between",alignItems:"center",
                             WebkitTapHighlightColor:"transparent",transition:"all 0.1s",textAlign:"left"
                           }}
                         >
                           <div>
-                            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:active?ac:T.textMid,letterSpacing:-0.2}}>{s.label}</div>
-                            <div style={{fontFamily:T.mono,fontSize:7,color:active?"#4a4540":"#1e1c1a",marginTop:2}}>{s.desc}</div>
+                            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:active?ac:T.text,letterSpacing:-0.2}}>{s.label}</div>
+                            <div style={{fontFamily:T.mono,fontSize:7,color:active?T.textDim:T.textGhost,marginTop:2}}>{s.desc}</div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                            <span style={{fontFamily:T.mono,fontSize:7,color:active?ac:"#1e1c1a"}}>{count} tracks</span>
+                            <span style={{fontFamily:T.mono,fontSize:7,color:active?ac:T.textGhost}}>{count} tracks</span>
                             <div style={{
                               width:16,height:16,borderRadius:4,border:`1.5px solid ${active?ac:"#1e1c1a"}`,
                               background:active?ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",
@@ -2001,85 +2048,140 @@ function DjTrackForm({ onSave, onCancel, initial }) {
   const toggleStyle = s => set("style", form.style.includes(s) ? form.style.filter(x=>x!==s) : [...form.style, s].slice(0,4));
   const valid = form.title.trim() && form.artist.trim() && form.style.length > 0;
 
+  const iStyle = {
+    width:"100%", borderRadius:10, padding:"12px 14px",
+    fontFamily:T.sans, fontSize:13, outline:"none",
+    background: T.isDark ? "#252018" : "#f8f6f2",
+    border: `1.5px solid ${T.isDark ? "#3e3a34" : "#d4cfc8"}`,
+    color: T.isDark ? "#f0ece4" : "#1c1a17",
+    transition:"border-color 0.2s, background 0.2s",
+    display:"block",
+  };
+  const iStyleActive = (active) => ({
+    ...iStyle,
+    border:`1.5px solid ${active ? DJ_ACCENT+"99" : iStyle.border}`,
+    background: active ? (T.isDark?"#2e2820":"#ffffff") : iStyle.background,
+  });
+
   return (
-    <div style={{position:"absolute",inset:0,zIndex:200,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"flex-end",backdropFilter:"blur(8px)"}}>
-      <div style={{width:"100%",background:"#080706",border:"1px solid #1c1a18",borderTop:"1px solid #2a2826",borderRadius:"22px 22px 0 0",maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        {/* Header */}
-        <div style={{padding:"14px 20px 10px",borderBottom:"1px solid #141210",flexShrink:0}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:10}}><div style={{width:32,height:3,borderRadius:2,background:"#201e1b"}}/></div>
+    <div style={{position:"absolute",inset:0,zIndex:200,background:"rgba(0,0,0,0.93)",display:"flex",alignItems:"flex-end",backdropFilter:"blur(8px)"}}>
+      <div style={{
+        width:"100%",
+        background: T.isDark ? "#18140f" : "#ffffff",
+        borderTop: `2px solid ${T.isDark?"#3e3a34":T.border}`,
+        borderRadius:"24px 24px 0 0",
+        maxHeight:"92vh", overflow:"hidden",
+        display:"flex", flexDirection:"column",
+        boxShadow: T.isDark?"0 -12px 60px rgba(0,0,0,0.9)":"0 -12px 60px rgba(0,0,0,0.12)",
+      }}>
+
+        {/* Handle + Header */}
+        <div style={{padding:"12px 20px 14px", borderBottom:`1px solid ${T.isDark?"#2e2a24":T.border}`, flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
+            <div style={{width:40,height:4,borderRadius:2,background:T.isDark?"#3e3a34":"#d4cfc8"}}/>
+          </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <div style={{fontFamily:T.mono,fontSize:7,color:DJ_ACCENT,letterSpacing:2,textTransform:"uppercase",marginBottom:3}}>djs emergentes</div>
-              <div style={{fontFamily:T.sans,fontSize:16,fontWeight:800,color:T.text}}>{initial?"Editar track":"Agregar track"}</div>
+              <div style={{fontFamily:T.mono,fontSize:8.5,color:DJ_ACCENT,letterSpacing:2,textTransform:"uppercase",marginBottom:6,fontWeight:600,opacity:0.9}}>DJs Emergentes</div>
+              <div style={{fontFamily:T.sans,fontSize:22,fontWeight:800,color:T.isDark?"#f5f0e8":"#1c1a17",letterSpacing:-0.5,lineHeight:1}}>{initial?"Editar track":"Agregar track"}</div>
             </div>
-            <button onClick={onCancel} style={{background:"none",border:"none",color:T.textDim,fontSize:18,cursor:"pointer",padding:4}}>✕</button>
+            <button onClick={onCancel} style={{
+              background:T.isDark?"#2e2a24":"#f0ede8",
+              border:`1px solid ${T.isDark?"#3e3a34":"#d4cfc8"}`,
+              color:T.isDark?"#d0ccc4":"#5a5652",
+              fontSize:15,cursor:"pointer",
+              width:36,height:36,borderRadius:10,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontWeight:700,lineHeight:1,
+            }}>✕</button>
           </div>
         </div>
-        {/* Form */}
-        <div style={{flex:1,overflowY:"auto",padding:"14px 20px 20px"}}>
-          {/* Artist */}
-          <div style={{marginBottom:12}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Artista *</label>
-            <input value={form.artist} onChange={e=>set("artist",e.target.value)} placeholder="Nombre del DJ / Artista" style={{width:"100%",background:"#0c0a09",border:`1px solid ${form.artist?DJ_ACCENT+"44":"#1e1c1a"}`,borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+
+        {/* Form body */}
+        <div style={{flex:1,overflowY:"auto",padding:"18px 20px 28px",scrollbarWidth:"none"}}>
+
+          <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>Artista *</label>
+            <input value={form.artist} onChange={e=>set("artist",e.target.value)} placeholder="Nombre del DJ / Artista" style={iStyleActive(form.artist.length>0)}/>
           </div>
-          {/* Title */}
-          <div style={{marginBottom:12}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Título del track *</label>
-            <input value={form.title} onChange={e=>set("title",e.target.value)} placeholder="Nombre del track" style={{width:"100%",background:"#0c0a09",border:`1px solid ${form.title?DJ_ACCENT+"44":"#1e1c1a"}`,borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+
+          <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>Título del track *</label>
+            <input value={form.title} onChange={e=>set("title",e.target.value)} placeholder="Nombre del track" style={iStyleActive(form.title.length>0)}/>
           </div>
-          {/* BPM + Key row */}
-          <div style={{display:"flex",gap:10,marginBottom:12}}>
+
+          <div style={{display:"flex",gap:10,marginBottom:14}}>
             <div style={{flex:1}}>
-              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>BPM</label>
-              <input type="number" value={form.bpm} min={80} max={180} onChange={e=>set("bpm",Math.min(180,Math.max(80,+e.target.value)))} style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:14,color:T.text,outline:"none"}}/>
+              <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>BPM</label>
+              <input type="number" value={form.bpm} min={80} max={180}
+                onChange={e=>set("bpm",Math.min(180,Math.max(80,+e.target.value)))}
+                style={{...iStyle,fontFamily:T.mono,fontSize:16,fontWeight:600}}/>
             </div>
             <div style={{flex:1}}>
-              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Clave (Camelot)</label>
-              <select value={form.key} onChange={e=>set("key",e.target.value)} style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:13,color:T.text,outline:"none",cursor:"pointer"}}>
+              <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>Clave (Camelot)</label>
+              <select value={form.key} onChange={e=>set("key",e.target.value)} style={{...iStyle,fontFamily:T.mono,cursor:"pointer"}}>
                 {CAMELOT_KEYS.map(k=><option key={k} value={k}>{k}</option>)}
               </select>
             </div>
           </div>
-          {/* Energy */}
-          <div style={{marginBottom:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase"}}>Energía</label>
-              <span style={{fontFamily:T.mono,fontSize:12,color:DJ_ACCENT,fontWeight:600}}>e{form.energy}</span>
+
+          <div style={{marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+              <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",fontWeight:600}}>Energía</label>
+              <span style={{fontFamily:T.mono,fontSize:14,color:DJ_ACCENT,fontWeight:700}}>e{form.energy}</span>
             </div>
             <input type="range" min={1} max={10} value={form.energy} onChange={e=>set("energy",+e.target.value)} style={{width:"100%",accentColor:DJ_ACCENT,cursor:"pointer"}}/>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
-              <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost}}>ambient</span>
-              <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost}}>peak</span>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>ambient</span>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>peak</span>
             </div>
           </div>
-          {/* Style */}
-          <div style={{marginBottom:14}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7}}>Estilo * (máx. 4)</label>
-            <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+
+          <div style={{marginBottom:16}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:9,fontWeight:600}}>Estilo * (máx. 4)</label>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
               {ALL_STYLES.map(s=>{
                 const on=form.style.includes(s);
-                return <button key={s} onClick={()=>toggleStyle(s)} style={{background:on?`${DJ_ACCENT}20`:"transparent",color:on?DJ_ACCENT:"#3a3836",border:`1px solid ${on?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:on?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>{s}</button>
+                return (
+                  <button key={s} onClick={()=>toggleStyle(s)} style={{
+                    background:on?`${DJ_ACCENT}22`:T.isDark?"#252018":"#ece8e2",
+                    color:on?DJ_ACCENT:T.isDark?"#d0ccc4":"#5a5652",
+                    border:`1.5px solid ${on?DJ_ACCENT+"77":T.isDark?"#3e3a34":"#d4cfc8"}`,
+                    fontSize:8.5, padding:"5px 12px", borderRadius:20, cursor:"pointer",
+                    letterSpacing:0.8, textTransform:"uppercase", fontFamily:T.sans,
+                    fontWeight:on?700:500, transition:"all 0.15s", WebkitTapHighlightColor:"transparent",
+                  }}>{s}</button>
+                );
               })}
             </div>
           </div>
-          {/* Label */}
-          <div style={{marginBottom:12}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:T.textDim,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>Sello (opcional)</label>
-            <input value={form.label} onChange={e=>set("label",e.target.value)} placeholder="Nombre del sello / Independiente" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.sans,fontSize:13,color:T.text,outline:"none"}}/>
+
+          <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:T.isDark?"#a09888":"#6a6460",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>Sello (opcional)</label>
+            <input value={form.label} onChange={e=>set("label",e.target.value)} placeholder="Nombre del sello / Independiente" style={iStyle}/>
           </div>
-          {/* SoundCloud */}
-          <div style={{marginBottom:12}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>☁ SoundCloud URL (opcional)</label>
-            <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/…" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:11,color:T.textMid,outline:"none"}}/>
+
+          <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>☁ SoundCloud URL (opcional)</label>
+            <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/…" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
           </div>
-          {/* Instagram */}
-          <div style={{marginBottom:20}}>
-            <label style={{fontFamily:T.mono,fontSize:7.5,color:"#e1306c",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:5}}>◈ Instagram (opcional)</label>
-            <input value={form.instagramUrl} onChange={e=>set("instagramUrl",e.target.value)} placeholder="https://instagram.com/…" style={{width:"100%",background:"#0c0a09",border:"1px solid #1e1c1a",borderRadius:10,padding:"10px 12px",fontFamily:T.mono,fontSize:11,color:T.textMid,outline:"none"}}/>
+
+          <div style={{marginBottom:24}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:"#e1306c",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>◈ Instagram (opcional)</label>
+            <input value={form.instagramUrl} onChange={e=>set("instagramUrl",e.target.value)} placeholder="https://instagram.com/…" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
           </div>
-          {/* Save button */}
-          <button onClick={()=>valid&&onSave(form)} style={{width:"100%",background:valid?`${DJ_ACCENT}18`:"#0c0a09",border:`1px solid ${valid?DJ_ACCENT+"55":"#1e1c1a"}`,color:valid?DJ_ACCENT:T.textGhost,padding:"14px",borderRadius:12,cursor:valid?"pointer":"default",fontFamily:T.sans,fontWeight:800,fontSize:13,letterSpacing:0.5,transition:"all 0.2s",WebkitTapHighlightColor:"transparent"}}>
-            {valid?"✓ Guardar track":"Completá los campos obligatorios (*)"}
+
+          <button onClick={()=>valid&&onSave(form)} style={{
+            width:"100%",
+            background:valid?`${DJ_ACCENT}22`:T.isDark?"#1e1a14":"#f0ede8",
+            border:`2px solid ${valid?DJ_ACCENT+"88":T.isDark?"#2e2a24":"#d4cfc8"}`,
+            color:valid?DJ_ACCENT:T.isDark?"#504844":"#9a9490",
+            padding:"16px", borderRadius:12,
+            cursor:valid?"pointer":"not-allowed",
+            fontFamily:T.sans, fontWeight:800, fontSize:14,
+            letterSpacing:0.3, transition:"all 0.2s", WebkitTapHighlightColor:"transparent",
+          }}>
+            {valid ? "✓  Guardar track" : "Completá los campos obligatorios (*)"}
           </button>
         </div>
       </div>
