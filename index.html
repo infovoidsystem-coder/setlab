@@ -750,8 +750,22 @@ async function searchItunesPreview(track) {
   return null;
 }
 
+// Detecta si una URL apunta a un archivo de audio reproducible directamente
+function isDirectAudioUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    // Extensiones de audio conocidas
+    if (/\.(mp3|ogg|wav|aac|m4a|flac|opus)(\?|$)/i.test(u.pathname)) return true;
+    // Algunos CDNs y proxies de audio
+    if (u.hostname.includes('dl.dropbox') || u.hostname.includes('drive.google') ||
+        u.hostname.includes('storage.googleapis') || u.hostname.includes('amazonaws')) return true;
+    return false;
+  } catch { return false; }
+}
+
 function PreviewButton({ track, accent }) {
-  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf
+  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf|sc
 
   function stopCurrent() {
     if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
@@ -765,21 +779,52 @@ function PreviewButton({ track, accent }) {
       setState("idle");
       return;
     }
+
+    // Si el track tiene URL de audio directa (campo previewUrl), usarla primero
+    if (track.previewUrl && isDirectAudioUrl(track.previewUrl)) {
+      stopCurrent();
+      setState("loading");
+      try {
+        const audio = new Audio(track.previewUrl);
+        _previewAudio = audio;
+        _previewSetState = setState;
+        audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+        audio.addEventListener("error", () => {
+          // Si falla la URL directa, intentar iTunes como fallback
+          _previewAudio=null; _previewSetState=null;
+          tryItunes();
+        });
+        await audio.play();
+        setState("playing");
+        return;
+      } catch {
+        // Intentar iTunes como fallback
+        tryItunes();
+        return;
+      }
+    }
+
+    // Si tiene soundcloudUrl pero no es audio directo → abrir en nueva pestaña (no reproducible inline)
+    // En ese caso igual intentar iTunes para la preescucha
     stopCurrent();
     setState("loading");
-    try {
-      const previewUrl = await searchItunesPreview(track);
-      if (!previewUrl) { setState("nf"); setTimeout(()=>setState("idle"),2500); return; }
-      const audio = new Audio(previewUrl);
-      _previewAudio = audio;
-      _previewSetState = setState;
-      audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
-      audio.addEventListener("error", () => { setState("error"); setTimeout(()=>setState("idle"),2000); _previewAudio=null; _previewSetState=null; });
-      audio.play();
-      setState("playing");
-    } catch {
-      setState("error");
-      setTimeout(()=>setState("idle"),2000);
+    tryItunes();
+
+    async function tryItunes() {
+      try {
+        const previewUrl = await searchItunesPreview(track);
+        if (!previewUrl) { setState("nf"); setTimeout(()=>setState("idle"),2500); return; }
+        const audio = new Audio(previewUrl);
+        _previewAudio = audio;
+        _previewSetState = setState;
+        audio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+        audio.addEventListener("error", () => { setState("error"); setTimeout(()=>setState("idle"),2000); _previewAudio=null; _previewSetState=null; });
+        audio.play();
+        setState("playing");
+      } catch {
+        setState("error");
+        setTimeout(()=>setState("idle"),2000);
+      }
     }
   }
 
@@ -2042,7 +2087,7 @@ function InstallBanner() {
 function DjTrackForm({ onSave, onCancel, initial }) {
   const [form, setForm] = React.useState(initial || {
     title:"", artist:"", bpm:130, key:"10A", energy:7,
-    style:[], label:"", soundcloudUrl:"", instagramUrl:""
+    style:[], label:"", previewUrl:"", soundcloudUrl:"", instagramUrl:""
   });
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const toggleStyle = s => set("style", form.style.includes(s) ? form.style.filter(x=>x!==s) : [...form.style, s].slice(0,4));
@@ -2162,6 +2207,14 @@ function DjTrackForm({ onSave, onCancel, initial }) {
           </div>
 
           <div style={{marginBottom:14}}>
+            <label style={{fontFamily:T.mono,fontSize:8,color:DJ_ACCENT,letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>▶ URL de audio directo (opcional)</label>
+            <input value={form.previewUrl} onChange={e=>set("previewUrl",e.target.value)} placeholder="https://… .mp3 / .ogg / .wav" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
+            <div style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost,marginTop:5,lineHeight:1.6}}>
+              Pegá una URL directa a un archivo de audio (.mp3, .ogg, etc.) para que el botón ▶ lo reproduzca al instante. Funciona con Dropbox (dl=1), Google Drive, o cualquier CDN de audio.
+            </div>
+          </div>
+
+          <div style={{marginBottom:14}}>
             <label style={{fontFamily:T.mono,fontSize:8,color:"#ff5500",letterSpacing:1.5,textTransform:"uppercase",display:"block",marginBottom:7,fontWeight:600}}>☁ SoundCloud URL (opcional)</label>
             <input value={form.soundcloudUrl} onChange={e=>set("soundcloudUrl",e.target.value)} placeholder="https://soundcloud.com/…" style={{...iStyle,fontFamily:T.mono,fontSize:11}}/>
           </div>
@@ -2198,6 +2251,7 @@ function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
   if (track.instagramUrl)  links.push({ icon:"◈", color:"#e1306c", url:track.instagramUrl,  hint:"Instagram"  });
   const q = encodeURIComponent(`${track.artist} ${track.title}`);
   links.push({ icon:"B", color:"#01ff95", url:bpUrl(q), hint:"Beatport" });
+  const hasDirectAudio = track.previewUrl && isDirectAudioUrl(track.previewUrl);
 
   return (
     <div style={{background:"#070509",border:`1px solid ${DJ_ACCENT}22`,borderRadius:12,overflow:"hidden",position:"relative"}}>
@@ -2233,6 +2287,9 @@ function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
           </div>
           <div style={{display:"flex",gap:5,alignItems:"center"}}>
             <PreviewButton track={track} accent={DJ_ACCENT}/>
+            {hasDirectAudio && (
+              <span title="Tiene audio directo — reproducción instantánea" style={{fontFamily:T.mono,fontSize:6.5,color:DJ_ACCENT,background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}30`,padding:"1px 5px",borderRadius:3,letterSpacing:1,flexShrink:0}}>AUDIO</span>
+            )}
             {links.map(l=>(
               <a key={l.hint} href={l.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={l.hint}
                  style={{background:"#0e0e0c",border:`1px solid ${l.color}33`,color:l.color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700}}>{l.icon}</a>
