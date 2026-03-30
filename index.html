@@ -2478,20 +2478,288 @@ function DjTrackCard({ track, onAdd, onRemove, inSet, onEdit, onDelete, mySet })
   );
 }
 
-// ── PANTALLA DJS EMERGENTES ───────────────────────────────────────────────
+// ── ARTISTA CARD (vista base de datos) ───────────────────────────────────
+function ArtistCard({ artist, tracks, onEditTrack, onDeleteTrack, onAddToSet, onRemoveFromSet, mySet, expanded, onToggle }) {
+  const inSet = tracks.filter(t=>mySet.some(s=>s.id===t.id)).length;
+  const styles = [...new Set(tracks.flatMap(t=>t.style))].slice(0,4);
+  const avgBpm = Math.round(tracks.reduce((a,t)=>a+t.bpm,0)/tracks.length);
+  const avgE = (tracks.reduce((a,t)=>a+t.energy,0)/tracks.length).toFixed(1);
+
+  return (
+    <div style={{background:"#060408",border:`1px solid ${DJ_ACCENT}22`,borderRadius:14,overflow:"hidden",marginBottom:6}}>
+      {/* Header artista */}
+      <button onClick={onToggle} style={{width:"100%",background:"none",border:"none",cursor:"pointer",padding:"12px 14px",WebkitTapHighlightColor:"transparent",textAlign:"left"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {/* Avatar inicial */}
+          <div style={{width:36,height:36,borderRadius:10,background:`${DJ_ACCENT}18`,border:`1px solid ${DJ_ACCENT}33`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <span style={{fontFamily:T.sans,fontWeight:800,fontSize:14,color:DJ_ACCENT}}>{artist[0].toUpperCase()}</span>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:13,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{artist}</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",marginTop:2}}>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>{tracks.length} track{tracks.length!==1?"s":""}</span>
+              <span style={{color:"#1e1c1a"}}>·</span>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>~{avgBpm} BPM</span>
+              <span style={{color:"#1e1c1a"}}>·</span>
+              <span style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost}}>e{avgE}</span>
+              {inSet>0&&<span style={{fontFamily:T.mono,fontSize:7,color:T.green,background:"#071a07",border:"1px solid #22c55e22",padding:"1px 5px",borderRadius:4}}>{inSet} en set</span>}
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={DJ_ACCENT} strokeWidth="2" strokeLinecap="round" style={{transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",opacity:0.5}}><path d="M6 9l6 6 6-6"/></svg>
+            <div style={{display:"flex",gap:2,flexWrap:"wrap",justifyContent:"flex-end",maxWidth:100}}>
+              {styles.slice(0,2).map(s=><span key={s} style={{fontFamily:T.mono,fontSize:6,color:DJ_ACCENT,opacity:0.5,background:`${DJ_ACCENT}0a`,border:`1px solid ${DJ_ACCENT}15`,padding:"1px 4px",borderRadius:3,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap"}}>{s}</span>)}
+            </div>
+          </div>
+        </div>
+      </button>
+      {/* Tracks del artista */}
+      {expanded&&(
+        <div style={{borderTop:`1px solid ${DJ_ACCENT}12`}}>
+          {tracks.map((t,i)=>(
+            <div key={t.id} style={{padding:"9px 14px",borderBottom:i<tracks.length-1?`1px solid ${DJ_ACCENT}0a`:"none",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:T.sans,fontWeight:600,fontSize:11.5,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>
+                <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
+                  <KeyPill k={t.key}/>
+                  <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>{t.bpm}</span>
+                  <EBar energy={t.energy} showLabel/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                <PreviewButton track={t} accent={DJ_ACCENT}/>
+                <button onClick={()=>onEditTrack(t)} title="Editar" style={{background:"#0e0e0c",border:"1px solid #2a2826",color:"#6a6460",fontSize:10,width:24,height:24,borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.mono,WebkitTapHighlightColor:"transparent"}}>✎</button>
+                <button onClick={()=>mySet.some(s=>s.id===t.id)?onRemoveFromSet(t.id):onAddToSet(t)} title={mySet.some(s=>s.id===t.id)?"Quitar del set":"Agregar al set"} style={{background:mySet.some(s=>s.id===t.id)?"#071a07":"#0e0e0c",border:`1px solid ${mySet.some(s=>s.id===t.id)?"#22c55e33":"#1e1c1a"}`,color:mySet.some(s=>s.id===t.id)?T.green:"#484440",fontSize:mySet.some(s=>s.id===t.id)?9:13,width:24,height:24,borderRadius:6,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.sans,fontWeight:600,WebkitTapHighlightColor:"transparent",transition:"all 0.15s"}}>{mySet.some(s=>s.id===t.id)?"✓":"+"}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DJ SET BUILDER — armado de set solo con tracks emergentes ─────────────
+function DjSetBuilder({ djTracks, mySet, addToSet, removeFromSet }) {
+  const [djSet, setDjSet] = React.useState([]); // set local de emergentes
+  const [seed, setSeed] = React.useState(null);
+  const [showSeedPicker, setShowSeedPicker] = React.useState(false);
+
+  // Guardar/cargar set local en localStorage
+  const DJ_SET_KEY = "setlab_dj_set_v1";
+  React.useEffect(()=>{
+    try { const s=JSON.parse(localStorage.getItem(DJ_SET_KEY)||"[]"); if(s.length) setDjSet(s); } catch {}
+  },[]);
+  function saveDjSet(s){ setDjSet(s); try{localStorage.setItem(DJ_SET_KEY,JSON.stringify(s));}catch{} }
+
+  const addToDjSet = t => { if(!djSet.some(s=>s.id===t.id)) saveDjSet([...djSet,t]); };
+  const removeFromDjSet = id => saveDjSet(djSet.filter(t=>t.id!==id));
+  const moveUp = i => { if(i===0)return; const a=[...djSet];[a[i-1],a[i]]=[a[i],a[i-1]];saveDjSet(a); };
+  const moveDown = i => { if(i===djSet.length-1)return; const a=[...djSet];[a[i],a[i+1]]=[a[i+1],a[i]];saveDjSet(a); };
+
+  // Auto-build: dado un seed (primer track), construir secuencia armónica
+  function autoBuild() {
+    if(!seed||djTracks.length<2) return;
+    const used = new Set([seed.id]);
+    const seq = [seed];
+    let last = seed;
+    for(let i=0;i<Math.min(djTracks.length-1,15);i++){
+      const candidates = djTracks
+        .filter(t=>!used.has(t.id))
+        .map(t=>({t, score:scoreMatch(last,t).total}))
+        .filter(x=>x.score>0)
+        .sort((a,b)=>b.score-a.score);
+      if(!candidates.length) break;
+      const next = candidates[0].t;
+      seq.push(next); used.add(next.id); last=next;
+    }
+    saveDjSet(seq);
+  }
+
+  // Stats del set
+  const avgBpm = djSet.length ? Math.round(djSet.reduce((a,t)=>a+t.bpm,0)/djSet.length) : 0;
+  const avgE = djSet.length ? (djSet.reduce((a,t)=>a+t.energy,0)/djSet.length).toFixed(1) : 0;
+  const dur = djSet.length*7;
+  let harmSum=0;
+  for(let i=1;i<djSet.length;i++) harmSum+=camelotScore(djSet[i-1].key,djSet[i].key);
+  const harm = djSet.length>1 ? Math.round(harmSum/(djSet.length-1)) : 100;
+  const harmColor = harm>=80?T.green:harm>=60?T.yellow:T.orange;
+
+  // Exportar al set global
+  function exportToMainSet(){
+    djSet.forEach(t=>addToSet(t));
+  }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      {/* Stats */}
+      {djSet.length>0&&(
+        <div style={{margin:"8px 12px 0",display:"flex",background:"#060408",border:`1px solid ${DJ_ACCENT}18`,borderRadius:12,overflow:"hidden",flexShrink:0}}>
+          {[[djSet.length,"TRACKS"],[`${Math.floor(dur/60)}h${dur%60>0?` ${dur%60}m`:""}`, "DUR"],[avgBpm,"BPM"],[avgE,"NRG"]].map(([v,l],i,arr)=>(
+            <div key={l} style={{flex:1,padding:"10px 0",textAlign:"center",borderRight:i<arr.length-1?`1px solid ${DJ_ACCENT}12`:"none"}}>
+              <div style={{fontFamily:T.sans,fontWeight:800,fontSize:i===0?16:13,color:DJ_ACCENT,letterSpacing:-0.3}}>{v}</div>
+              <div style={{fontFamily:T.mono,fontSize:6,color:T.textGhost,letterSpacing:1.5,marginTop:2,textTransform:"uppercase"}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {djSet.length>1&&(
+        <div style={{margin:"5px 12px 0",background:"#060408",border:`1px solid ${DJ_ACCENT}12`,borderRadius:10,padding:"8px 14px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:7,color:T.textGhost,letterSpacing:1.2,textTransform:"uppercase",marginBottom:4}}>cohesión armónica</div>
+            <div style={{height:2,width:120,background:"#141210",borderRadius:2}}>
+              <div style={{height:"100%",width:`${harm}%`,background:harmColor,borderRadius:2,transition:"width 0.5s"}}/>
+            </div>
+          </div>
+          <span style={{fontFamily:T.sans,fontWeight:800,fontSize:18,color:harmColor,letterSpacing:-1}}>{harm}%</span>
+        </div>
+      )}
+      {/* Toolbar */}
+      <div style={{padding:"8px 12px 4px",display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+        <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost,flex:1}}>{djSet.length} tracks en el set emergente</span>
+        {/* Auto-build */}
+        <button onClick={()=>setShowSeedPicker(true)} style={{background:`${DJ_ACCENT}12`,border:`1px solid ${DJ_ACCENT}33`,color:DJ_ACCENT,fontFamily:T.sans,fontWeight:700,fontSize:8,padding:"5px 10px",borderRadius:8,cursor:"pointer",letterSpacing:0.3,WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>⚡ Auto-build</button>
+        {djSet.length>0&&<button onClick={exportToMainSet} style={{background:"#071a07",border:"1px solid #22c55e33",color:T.green,fontFamily:T.sans,fontWeight:700,fontSize:8,padding:"5px 10px",borderRadius:8,cursor:"pointer",letterSpacing:0.3,WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>→ Exportar al Set</button>}
+        {djSet.length>0&&<button onClick={()=>saveDjSet([])} style={{background:"none",border:"none",fontFamily:T.sans,fontWeight:500,color:"#3a1a1a",fontSize:8,cursor:"pointer",padding:0,whiteSpace:"nowrap"}}>limpiar</button>}
+      </div>
+
+      {/* Seed picker modal */}
+      {showSeedPicker&&(
+        <div style={{position:"absolute",inset:0,zIndex:200,background:"rgba(0,0,0,0.93)",display:"flex",flexDirection:"column",backdropFilter:"blur(8px)",borderRadius:14}}>
+          <div style={{padding:"16px 16px 8px",display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${DJ_ACCENT}20`}}>
+            <span style={{fontFamily:T.sans,fontWeight:700,fontSize:13,color:DJ_ACCENT,flex:1}}>⚡ Elegí el track semilla</span>
+            <button onClick={()=>setShowSeedPicker(false)} style={{background:"none",border:"none",color:T.textDim,fontSize:16,cursor:"pointer",padding:0}}>✕</button>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"8px 12px 20px"}}>
+            {djTracks.length===0&&<div style={{textAlign:"center",padding:"40px 0",fontFamily:T.sans,fontSize:11,color:T.textDim}}>No hay tracks emergentes aún</div>}
+            {djTracks.map(t=>(
+              <button key={t.id} onClick={()=>{setSeed(t);setShowSeedPicker(false);setTimeout(()=>autoBuildWith(t),50);}} style={{width:"100%",background:"#0a0609",border:`1px solid ${DJ_ACCENT}18`,borderRadius:10,padding:"10px 12px",marginBottom:5,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent",transition:"border-color 0.15s"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>
+                    <div style={{fontFamily:T.sans,fontSize:9,color:DJ_ACCENT,marginTop:1}}>{t.artist}</div>
+                  </div>
+                  <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
+                    <KeyPill k={t.key}/>
+                    <span style={{fontFamily:T.mono,fontSize:8,color:T.textDim}}>{t.bpm}</span>
+                    <EBar energy={t.energy} showLabel/>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {djSet.length===0&&!showSeedPicker&&(
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:14,padding:"0 40px",textAlign:"center"}}>
+          <div style={{fontSize:32,opacity:0.1}}>🎛</div>
+          <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.textMid}}>Set emergente vacío</div>
+          <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textDim,lineHeight:2}}>
+            Usá <span style={{color:DJ_ACCENT,fontWeight:700}}>⚡ Auto-build</span> para armar una secuencia armónica automática, o agregá tracks desde la pestaña Tracks.
+          </div>
+          {djTracks.length>0&&<button onClick={()=>setShowSeedPicker(true)} style={{background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}44`,color:DJ_ACCENT,fontFamily:T.sans,fontWeight:700,fontSize:11,padding:"10px 22px",borderRadius:10,cursor:"pointer",letterSpacing:0.3,WebkitTapHighlightColor:"transparent"}}>⚡ Auto-build ahora</button>}
+          {djTracks.length===0&&<div style={{fontFamily:T.sans,fontSize:9,color:T.textGhost}}>Primero agregá tracks en la pestaña Tracks</div>}
+        </div>
+      )}
+
+      {/* Set list */}
+      {djSet.length>0&&(
+        <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>
+            {djSet.map((track,i)=>{
+              const prev=djSet[i-1];
+              const compat=prev?keyCompat(prev.key,track.key):null;
+              return (
+                <div key={track.id}>
+                  {compat&&(
+                    <div style={{display:"flex",alignItems:"center",gap:5,padding:"1px 4px 1px 28px"}}>
+                      <div style={{width:1,height:12,background:`${compat.color}25`,flexShrink:0}}/>
+                      <span style={{fontFamily:T.sans,fontSize:6,fontWeight:700,color:compat.color,letterSpacing:1}}>{compat.label}</span>
+                      <span style={{fontFamily:T.mono,fontSize:6,color:T.textGhost}}>{prev.key}→{track.key}</span>
+                      <span style={{fontFamily:T.mono,fontSize:6,color:Math.abs(track.bpm-prev.bpm)>6?T.orange:T.textGhost}}>Δ{Math.abs(track.bpm-prev.bpm)}bpm</span>
+                    </div>
+                  )}
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:1}}>
+                    <div style={{fontFamily:T.mono,fontSize:7.5,color:T.textGhost,width:18,textAlign:"center",flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1,minWidth:0,background:"#070509",border:`1px solid ${DJ_ACCENT}18`,borderRadius:10,padding:"9px 12px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11.5,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{track.title}</div>
+                          <div style={{fontFamily:T.sans,fontSize:9,color:DJ_ACCENT,marginTop:1,opacity:0.8}}>{track.artist}</div>
+                        </div>
+                        <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                          <KeyPill k={track.key}/>
+                          <span style={{fontFamily:T.mono,fontSize:8,color:T.textDim}}>{track.bpm}</span>
+                          <EBar energy={track.energy} showLabel/>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
+                      {[["↑",()=>moveUp(i),"#3a3836"],["↓",()=>moveDown(i),"#3a3836"],["✕",()=>removeFromDjSet(track.id),"#501818"]].map(([lbl,fn,col])=>(
+                        <button key={lbl} onClick={fn} style={{background:"#070509",border:`1px solid ${DJ_ACCENT}12`,color:col,width:22,height:22,borderRadius:5,cursor:"pointer",fontSize:9,display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",fontWeight:700,fontFamily:T.sans}}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Helper para auto-build con track específico (evita closure stale)
+  function autoBuildWith(seedTrack) {
+    if(!seedTrack||djTracks.length<1) return;
+    const used = new Set([seedTrack.id]);
+    const seq = [seedTrack];
+    let last = seedTrack;
+    for(let i=0;i<Math.min(djTracks.length-1,20);i++){
+      const candidates = djTracks
+        .filter(t=>!used.has(t.id))
+        .map(t=>({t, score:scoreMatch(last,t).total}))
+        .filter(x=>x.score>0)
+        .sort((a,b)=>b.score-a.score);
+      if(!candidates.length) break;
+      const next = candidates[0].t;
+      seq.push(next); used.add(next.id); last=next;
+    }
+    saveDjSet(seq);
+  }
+}
+
+// ── PANTALLA DJS EMERGENTES — con sub-tabs ────────────────────────────────
 function DJsScreen({ djTracks, setDjTracks, mySet, addToSet, removeFromSet }) {
+  const [subTab, setSubTab] = React.useState("tracks"); // tracks | artistas | set
   const [search, setSearch] = React.useState("");
   const [showForm, setShowForm] = React.useState(false);
   const [editTrack, setEditTrack] = React.useState(null);
-  const [artistFilter, setArtistFilter] = React.useState(null);
+  const [expandedArtist, setExpandedArtist] = React.useState(null);
 
-  const artists = React.useMemo(()=>[...new Set(djTracks.map(t=>t.artist))].sort(),[djTracks]);
+  // Agrupar por artista para la DB
+  const artistsMap = React.useMemo(()=>{
+    const map = {};
+    djTracks.forEach(t=>{
+      if(!map[t.artist]) map[t.artist]=[];
+      map[t.artist].push(t);
+    });
+    return map;
+  },[djTracks]);
+  const artistList = React.useMemo(()=>Object.keys(artistsMap).sort(),[artistsMap]);
 
   const filtered = React.useMemo(()=>djTracks.filter(t=>{
-    if(artistFilter && t.artist !== artistFilter) return false;
     if(search){const q=search.toLowerCase();return t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q);}
     return true;
-  }),[djTracks,search,artistFilter]);
+  }),[djTracks,search]);
+
+  const filteredArtists = React.useMemo(()=>artistList.filter(a=>{
+    if(!search) return true;
+    const q=search.toLowerCase();
+    return a.toLowerCase().includes(q)||artistsMap[a].some(t=>t.title.toLowerCase().includes(q));
+  }),[artistList,search,artistsMap]);
 
   function saveTrack(form) {
     if (editTrack) {
@@ -2512,59 +2780,110 @@ function DJsScreen({ djTracks, setDjTracks, mySet, addToSet, removeFromSet }) {
 
   function startEdit(track) { setEditTrack(track); setShowForm(true); }
 
+  const SUB_TABS = [
+    {id:"tracks", label:"Tracks"},
+    {id:"artistas", label:"Artistas"},
+    {id:"set", label:"Set Emergente"},
+  ];
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",position:"relative"}}>
-      {/* Header info */}
-      <div style={{padding:"10px 16px 0",flexShrink:0}}>
-        <div style={{background:`${DJ_ACCENT}08`,border:`1px solid ${DJ_ACCENT}20`,borderRadius:12,padding:"10px 14px",marginBottom:8}}>
-          <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textMid,lineHeight:1.7}}>
-            Agregá tracks de <span style={{color:DJ_ACCENT,fontWeight:700}}>DJs emergentes</span> para cruzarlos con el catálogo y construir sets más frescos. Se guardan en tu dispositivo.
-          </div>
-        </div>
-      </div>
-      {/* Search + Add button */}
-      <div style={{padding:"0 14px 0",flexShrink:0,display:"flex",gap:8,alignItems:"center"}}>
-        <div style={{flex:1,display:"flex",alignItems:"center",gap:8,background:"#070605",border:"1px solid #181614",borderRadius:10,padding:"8px 12px"}}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2a2826" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="buscar artista o track…" style={{flex:1,background:"none",border:"none",outline:"none",fontSize:11.5,color:T.text,fontFamily:T.sans}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#a8a4a0",cursor:"pointer",fontSize:13,padding:0}}>✕</button>}
-        </div>
-        <button onClick={()=>{setEditTrack(null);setShowForm(true);}} style={{background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}44`,color:DJ_ACCENT,width:38,height:38,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,flexShrink:0,WebkitTapHighlightColor:"transparent",fontFamily:T.sans}}>+</button>
-      </div>
-      {/* Artist filter chips */}
-      {artists.length > 0 && (
-        <div style={{padding:"8px 14px 0",flexShrink:0}}>
-          <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
-            <button onClick={()=>setArtistFilter(null)} style={{flexShrink:0,background:!artistFilter?`${DJ_ACCENT}20`:"transparent",color:!artistFilter?DJ_ACCENT:"#333",border:`1px solid ${!artistFilter?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",fontFamily:T.sans,fontWeight:!artistFilter?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent"}}>todos</button>
-            {artists.map(a=>(
-              <button key={a} onClick={()=>setArtistFilter(artistFilter===a?null:a)} style={{flexShrink:0,background:artistFilter===a?`${DJ_ACCENT}20`:"transparent",color:artistFilter===a?DJ_ACCENT:"#333",border:`1px solid ${artistFilter===a?DJ_ACCENT+"55":"#1e1c1a"}`,fontSize:7.5,padding:"4px 10px",borderRadius:20,cursor:"pointer",letterSpacing:1,fontFamily:T.sans,fontWeight:artistFilter===a?700:400,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Count */}
-      <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
-        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{filtered.length} tracks emergentes</span>
-        {djTracks.length>0&&<span style={{fontFamily:T.mono,fontSize:8.5,color:DJ_ACCENT,opacity:0.6}}>{djTracks.length} en total</span>}
-      </div>
-      {/* List */}
-      <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
-        {filtered.length===0 && djTracks.length===0 && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16,padding:"0 44px",textAlign:"center"}}>
-            <div style={{fontSize:36,opacity:0.15}}>🎧</div>
-            <div style={{fontFamily:T.sans,fontWeight:700,fontSize:13,color:T.textMid}}>Aún no hay DJs emergentes</div>
-            <div style={{fontFamily:T.sans,fontSize:10,color:T.textDim,lineHeight:2}}>Tocá el <span style={{color:DJ_ACCENT,fontWeight:700}}>+</span> para agregar el primer track</div>
-          </div>
-        )}
-        {filtered.length===0 && djTracks.length>0 && (
-          <div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>
-        )}
-        <div style={{display:"flex",flexDirection:"column",gap:6,paddingTop:4}}>
-          {filtered.map(t=>(
-            <DjTrackCard key={t.id} track={t} onAdd={addToSet} onRemove={removeFromSet} inSet={mySet.some(s=>s.id===t.id)} onEdit={startEdit} onDelete={deleteTrack} mySet={mySet}/>
+
+      {/* Sub-tabs */}
+      <div style={{padding:"10px 12px 0",flexShrink:0}}>
+        <div style={{display:"flex",background:"#060408",border:`1px solid ${DJ_ACCENT}18`,borderRadius:10,overflow:"hidden"}}>
+          {SUB_TABS.map(({id,label})=>(
+            <button key={id} onClick={()=>setSubTab(id)} style={{flex:1,background:subTab===id?`${DJ_ACCENT}18`:"transparent",border:"none",padding:"8px 0",cursor:"pointer",fontFamily:T.sans,fontWeight:subTab===id?700:400,fontSize:9,color:subTab===id?DJ_ACCENT:T.textGhost,letterSpacing:0.4,transition:"all 0.15s",WebkitTapHighlightColor:"transparent",position:"relative"}}>
+              {label}
+              {subTab===id&&<div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:16,height:1.5,background:DJ_ACCENT,borderRadius:"2px 2px 0 0"}}/>}
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Search + Add (solo en tracks y artistas) */}
+      {subTab!=="set"&&(
+        <div style={{padding:"8px 12px 0",flexShrink:0,display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",gap:8,background:"#070605",border:"1px solid #181614",borderRadius:10,padding:"7px 11px"}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2a2826" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={subTab==="artistas"?"buscar artista…":"buscar artista o track…"} style={{flex:1,background:"none",border:"none",outline:"none",fontSize:11,color:T.text,fontFamily:T.sans}}/>
+            {search&&<button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#a8a4a0",cursor:"pointer",fontSize:12,padding:0}}>✕</button>}
+          </div>
+          <button onClick={()=>{setEditTrack(null);setShowForm(true);}} style={{background:`${DJ_ACCENT}15`,border:`1px solid ${DJ_ACCENT}44`,color:DJ_ACCENT,width:36,height:36,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,flexShrink:0,WebkitTapHighlightColor:"transparent",fontFamily:T.sans}}>+</button>
+        </div>
+      )}
+
+      {/* ── SUB-TAB: TRACKS ── */}
+      {subTab==="tracks"&&(
+        <>
+          <div style={{padding:"5px 14px 3px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+            <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>{filtered.length} tracks emergentes</span>
+            {djTracks.length>0&&<span style={{fontFamily:T.mono,fontSize:8,color:DJ_ACCENT,opacity:0.6}}>{djTracks.length} en total</span>}
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+            {filtered.length===0&&djTracks.length===0&&(
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:14,padding:"0 40px",textAlign:"center"}}>
+                <div style={{fontSize:32,opacity:0.12}}>🎧</div>
+                <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.textMid}}>Aún no hay DJs emergentes</div>
+                <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textDim,lineHeight:2}}>Tocá el <span style={{color:DJ_ACCENT,fontWeight:700}}>+</span> para agregar el primer track</div>
+              </div>
+            )}
+            {filtered.length===0&&djTracks.length>0&&(
+              <div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>
+            )}
+            <div style={{display:"flex",flexDirection:"column",gap:6,paddingTop:4}}>
+              {filtered.map(t=>(
+                <DjTrackCard key={t.id} track={t} onAdd={addToSet} onRemove={removeFromSet} inSet={mySet.some(s=>s.id===t.id)} onEdit={startEdit} onDelete={deleteTrack} mySet={mySet}/>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── SUB-TAB: ARTISTAS (base de datos) ── */}
+      {subTab==="artistas"&&(
+        <>
+          <div style={{padding:"5px 14px 3px",flexShrink:0}}>
+            <span style={{fontFamily:T.mono,fontSize:8,color:T.textGhost}}>{filteredArtists.length} artista{filteredArtists.length!==1?"s":""} · {djTracks.length} tracks</span>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
+            {filteredArtists.length===0&&djTracks.length===0&&(
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:14,padding:"0 40px",textAlign:"center"}}>
+                <div style={{fontSize:32,opacity:0.12}}>👤</div>
+                <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:T.textMid}}>Sin artistas aún</div>
+                <div style={{fontFamily:T.sans,fontSize:9.5,color:T.textDim,lineHeight:2}}>Agregá tracks en la pestaña <span style={{color:DJ_ACCENT,fontWeight:700}}>Tracks</span></div>
+              </div>
+            )}
+            {filteredArtists.length===0&&djTracks.length>0&&(
+              <div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>
+            )}
+            <div style={{paddingTop:4}}>
+              {filteredArtists.map(a=>(
+                <ArtistCard
+                  key={a}
+                  artist={a}
+                  tracks={artistsMap[a]}
+                  onEditTrack={startEdit}
+                  onDeleteTrack={deleteTrack}
+                  onAddToSet={addToSet}
+                  onRemoveFromSet={removeFromSet}
+                  mySet={mySet}
+                  expanded={expandedArtist===a}
+                  onToggle={()=>setExpandedArtist(expandedArtist===a?null:a)}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── SUB-TAB: SET EMERGENTE ── */}
+      {subTab==="set"&&(
+        <div style={{flex:1,overflow:"hidden",position:"relative"}}>
+          <DjSetBuilder djTracks={djTracks} mySet={mySet} addToSet={addToSet} removeFromSet={removeFromSet}/>
+        </div>
+      )}
+
       {/* Form modal */}
       {showForm&&<DjTrackForm onSave={saveTrack} onCancel={()=>{setShowForm(false);setEditTrack(null);}} initial={editTrack}/>}
     </div>
