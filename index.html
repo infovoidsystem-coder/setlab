@@ -816,50 +816,104 @@ function isSoundCloudUrl(url) {
   try { return new URL(url).hostname.includes('soundcloud.com'); } catch { return false; }
 }
 
-// Obtiene la URL de stream de SoundCloud usando su API oEmbed + proxy CORS
-// SoundCloud expone un endpoint oEmbed público que devuelve el HTML del embed,
-// del cual extraemos la URL de stream directo via el widget API.
-async function getSoundCloudStreamUrl(scPageUrl) {
-  // Proxies CORS gratuitos para hacer la petición desde el browser
-  const PROXIES = [
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://thingproxy.freeboard.io/fetch/${url}`,
-  ];
+// ── SOUNDCLOUD WIDGET PLAYER (iframe) ────────────────────────────────────
+// Usamos el widget oficial de SoundCloud embebido en un iframe oculto.
+// No requiere client_id ni proxies CORS. Funciona con tracks públicos.
 
-  // 1. Primero resolvemos el track ID via oEmbed (no necesita API key)
-  const oembedUrl = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(scPageUrl)}`;
+let _scIframe = null;
+let _scReady = false;
+let _scReadyCallbacks = [];
+let _scPlayingUrl = null;
+let _scOnEnd = null;
 
-  for (const proxy of PROXIES) {
+function getSCWidgetIframe() {
+  if (_scIframe) return _scIframe;
+  const iframe = document.createElement("iframe");
+  iframe.id = "sc-widget-hidden";
+  iframe.allow = "autoplay";
+  iframe.style.cssText = "position:fixed;width:1px;height:1px;bottom:0;left:0;opacity:0;pointer-events:none;border:none;";
+  // Inicializamos con una URL placeholder
+  iframe.src = "https://w.soundcloud.com/player/?url=https%3A//soundcloud.com&auto_play=false&show_artwork=false&visual=false";
+  document.body.appendChild(iframe);
+  _scIframe = iframe;
+
+  window.addEventListener("message", (e) => {
+    if (!e.origin.includes("soundcloud.com")) return;
     try {
-      const res = await fetch(proxy(oembedUrl), { signal: AbortSignal.timeout(6000) });
-      if (!res.ok) continue;
-      const data = await res.json();
-
-      // El HTML del embed contiene el track ID en la URL del iframe
-      // Ejemplo: https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/12345
-      if (data.html) {
-        const match = data.html.match(/api\.soundcloud\.com\/tracks\/(\d+)/);
-        if (match) {
-          const trackId = match[1];
-          // Construimos la URL del widget embebido — el navegador puede reproducirla
-          // como iframe pero no como Audio(). En cambio, usamos el endpoint de stream
-          // público (funciona sin client_id para tracks con stream habilitado)
-          const streamUrl = `https://api.soundcloud.com/tracks/${trackId}/stream?client_id=iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX`;
-          return { trackId, streamUrl };
-        }
+      const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      if (!data || !data.soundcloudmessage) return;
+      const ev = data.soundcloudmessage;
+      if (ev === "ready") {
+        _scReady = true;
+        _scReadyCallbacks.forEach(fn => fn());
+        _scReadyCallbacks = [];
       }
-    } catch { /* probar siguiente proxy */ }
-  }
-  return null;
+      if (ev === "finish") {
+        if (_scOnEnd) { _scOnEnd(); _scOnEnd = null; }
+      }
+    } catch {}
+  });
+  return iframe;
 }
+
+function scWidgetMessage(method, value) {
+  const iframe = getSCWidgetIframe();
+  const msg = { method };
+  if (value !== undefined) msg.value = value;
+  iframe.contentWindow?.postMessage(JSON.stringify(msg), "*");
+}
+
+function playSoundCloudTrack(scPageUrl) {
+  return new Promise((resolve, reject) => {
+    const iframe = getSCWidgetIframe();
+    // Cargamos el track en el widget cambiando la URL del iframe
+    const widgetUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(scPageUrl)}&auto_play=true&show_artwork=false&visual=false&buying=false&sharing=false&download=false&show_comments=false&show_playcount=false&show_user=false`;
+    
+    _scReady = false;
+    _scPlayingUrl = scPageUrl;
+
+    const timeout = setTimeout(() => reject(new Error("SC timeout")), 12000);
+
+    function onReady() {
+      clearTimeout(timeout);
+      resolve();
+    }
+
+    _scReadyCallbacks.push(onReady);
+    iframe.src = widgetUrl;
+  });
+}
+
+function stopSoundCloud() {
+  if (_scIframe) {
+    scWidgetMessage("pause");
+    _scOnEnd = null;
+  }
+  _scPlayingUrl = null;
+}
+
+// Track which PreviewButton is "SC playing" to reset it when another starts
+let _scPlayingSetState = null;
 
 function PreviewButton({ track, accent }) {
   const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf
 
-  function stopCurrent() {
+  function stopCurrentAudio() {
     if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
     if (_previewSetState) { _previewSetState("idle"); _previewSetState = null; }
+  }
+
+  function stopCurrentSC() {
+    stopSoundCloud();
+    if (_scPlayingSetState && _scPlayingSetState !== setState) {
+      _scPlayingSetState("idle");
+    }
+    _scPlayingSetState = null;
+  }
+
+  function stopAll() {
+    stopCurrentAudio();
+    stopCurrentSC();
   }
 
   async function playAudioUrl(url) {
@@ -871,7 +925,6 @@ function PreviewButton({ track, accent }) {
         audio.play().then(resolve).catch(reject);
       }, { once: true });
       audio.addEventListener("error", () => reject(new Error("audio error")), { once: true });
-      // Timeout por si el audio nunca carga
       setTimeout(() => reject(new Error("timeout")), 8000);
       audio.load();
     });
@@ -880,36 +933,32 @@ function PreviewButton({ track, accent }) {
   async function handleClick(e) {
     e.stopPropagation();
     if (state === "playing" || state === "loading") {
-      stopCurrent();
+      stopAll();
       setState("idle");
       return;
     }
-    stopCurrent();
+    stopAll();
     setState("loading");
 
-    // ── PRIORIDAD 1: SoundCloud URL ──────────────────────────────────────
+    // ── PRIORIDAD 1: SoundCloud URL → Widget iframe ──────────────────────
     if (isSoundCloudUrl(track.soundcloudUrl)) {
       try {
-        const result = await getSoundCloudStreamUrl(track.soundcloudUrl);
-        if (result) {
-          try {
-            await playAudioUrl(result.streamUrl);
-            setState("playing");
-            _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
-            return;
-          } catch {
-            // stream API falló (track privado o sin stream) → abrir en nueva pestaña
-            stopCurrent();
-          }
-        }
-      } catch { /* seguir */ }
-
-      // Si no se pudo reproducir inline → abrir la página de SC en nueva pestaña
-      stopCurrent();
-      window.open(track.soundcloudUrl, "_blank", "noopener");
-      setState("nf");
-      setTimeout(() => setState("idle"), 2000);
-      return;
+        _scPlayingSetState = setState;
+        await playSoundCloudTrack(track.soundcloudUrl);
+        setState("playing");
+        _scOnEnd = () => {
+          setState("idle");
+          _scPlayingSetState = null;
+        };
+        return;
+      } catch {
+        stopAll();
+        // Fallback: abrir en SC
+        window.open(track.soundcloudUrl, "_blank", "noopener");
+        setState("nf");
+        setTimeout(() => setState("idle"), 2000);
+        return;
+      }
     }
 
     // ── PRIORIDAD 2: URL de audio directo ────────────────────────────────
@@ -919,7 +968,7 @@ function PreviewButton({ track, accent }) {
         setState("playing");
         _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
         return;
-      } catch { stopCurrent(); }
+      } catch { stopCurrentAudio(); }
     }
 
     // ── PRIORIDAD 3: iTunes (solo para tracks del catálogo principal) ────
@@ -932,19 +981,18 @@ function PreviewButton({ track, accent }) {
           _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
           return;
         }
-      } catch { stopCurrent(); }
+      } catch { stopCurrentAudio(); }
     }
 
-    // No se encontró ninguna fuente
     setState("nf");
     setTimeout(() => setState("idle"), 3000);
   }
 
   const isSC = isSoundCloudUrl(track.soundcloudUrl);
   const map = {
-    idle:    { icon:"▶", color: isSC ? "#ff5500" : "#3a9e6a", bg:"#0e0e0c", border: isSC ? "#ff550022" : "#1e1c1a", title: isSC ? "Reproducir desde SoundCloud" : "Preescucha 30s" },
-    loading: { icon:"…", color:"#706860", bg:"#0e0e0c", border:"#1e1c1a", title:"Cargando…" },
-    playing: { icon:"■", color:accent,    bg:`${accent}12`, border:`${accent}44`, title:"Detener" },
+    idle:    { icon:"▶", color: isSC ? "#ff5500" : "#3a9e6a", bg:"#0e0e0c", border: isSC ? "#ff550033" : "#1e1c1a", title: isSC ? "▶ Reproducir en SoundCloud" : "Preescucha 30s" },
+    loading: { icon:"…", color:"#ff5500", bg:"#1a0800", border:"#ff550033", title:"Cargando SoundCloud…" },
+    playing: { icon:"■", color: isSC ? "#ff5500" : accent, bg: isSC ? "#1a0800" : `${accent}12`, border: isSC ? "#ff550055" : `${accent}44`, title:"Detener" },
     error:   { icon:"✕", color:T.red,     bg:"#0e0e0c", border:"#1e1c1a", title:"Error al cargar" },
     nf:      { icon:"↗", color:"#ff5500", bg:"#0e0e0c", border:"#ff550022", title:"Abriendo en SoundCloud…" },
   };
@@ -2359,7 +2407,7 @@ function DjTrackForm({ onSave, onCancel, initial }) {
 }
 
 // ── DJ TRACK CARD (versión compacta con badge EMERGENTE) ──────────────────
-function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
+function DjTrackCard({ track, onAdd, onRemove, inSet, onEdit, onDelete, mySet }) {
   const [pressed, setPressed] = React.useState(false);
   const [showDel, setShowDel] = React.useState(false);
   const links = [];
@@ -2410,20 +2458,20 @@ function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
               <a key={l.hint} href={l.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title={l.hint}
                  style={{background:"#0e0e0c",border:`1px solid ${l.color}33`,color:l.color,fontSize:10,width:26,height:26,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",flexShrink:0,fontFamily:T.mono,fontWeight:700}}>{l.icon}</a>
             ))}
-            <button onClick={e=>{e.stopPropagation();onEdit(track);}} title="Editar" style={{background:"#0e0e0c",border:"1px solid #1e1c1a",color:"#484440",fontSize:11,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.mono,WebkitTapHighlightColor:"transparent"}}>✎</button>
-            <button onClick={e=>{e.stopPropagation();onAdd(track);}} style={{background:inSet?"#071a07":"#0e0e0c",border:`1px solid ${inSet?"#22c55e28":"#1e1c1a"}`,color:inSet?T.green:"#383430",fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}}>{inSet?"✓":"+"}</button>
+            <button onClick={e=>{e.stopPropagation();onEdit(track);}} title="Editar track" style={{background:"#0e0e0c",border:"1px solid #2a2826",color:"#6a6460",fontSize:11,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.mono,WebkitTapHighlightColor:"transparent",transition:"all 0.15s"}}>✎</button>
+            {/* Botón eliminar — rojo visible */}
+            <button onClick={e=>{e.stopPropagation();setShowDel(v=>!v);}} title="Eliminar track" style={{background:showDel?"#3a0808":"#150505",border:`1px solid ${showDel?"#7a1818":"#3a1010"}`,color:showDel?"#ff6060":"#8a3030",fontSize:10,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.mono,WebkitTapHighlightColor:"transparent",transition:"all 0.15s",fontWeight:700}}>✕</button>
+            <button onClick={e=>{e.stopPropagation();inSet?(onRemove&&onRemove(track.id)):onAdd(track);}} style={{background:inSet?"#071a07":"#0e0e0c",border:`1px solid ${inSet?"#22c55e44":"#1e1c1a"}`,color:inSet?T.green:"#383430",fontSize:inSet?10:14,width:26,height:26,borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",WebkitTapHighlightColor:"transparent",fontWeight:600,fontFamily:T.sans}} title={inSet?"Quitar del set":"Agregar al set"}>{inSet?"✓":"+"}</button>
           </div>
         </div>
         {/* Delete confirm */}
         {showDel&&(
-          <div style={{marginTop:8,padding:"8px 10px",background:"#1a0606",border:"1px solid #3a1010",borderRadius:8,display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontFamily:T.sans,fontSize:9,color:"#d08080",flex:1}}>¿Eliminar este track?</span>
-            <button onClick={e=>{e.stopPropagation();onDelete(track.id);}} style={{background:"#3a0808",border:"1px solid #5a1010",color:T.red,fontFamily:T.sans,fontSize:9,padding:"3px 10px",borderRadius:6,cursor:"pointer",fontWeight:700}}>Sí</button>
-            <button onClick={e=>{e.stopPropagation();setShowDel(false);}} style={{background:"#1a1614",border:"1px solid #2a2422",color:T.textDim,fontFamily:T.sans,fontSize:9,padding:"3px 10px",borderRadius:6,cursor:"pointer"}}>No</button>
+          <div style={{marginTop:8,padding:"10px 12px",background:"#1a0606",border:"1px solid #5a1515",borderRadius:10,display:"flex",alignItems:"center",gap:10}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff6060" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span style={{fontFamily:T.sans,fontSize:9.5,color:"#d08080",flex:1}}>¿Eliminar <strong style={{color:"#ff8080"}}>{track.title}</strong>?</span>
+            <button onClick={e=>{e.stopPropagation();onDelete(track.id);}} style={{background:"#5a0a0a",border:"1px solid #8a1a1a",color:"#ff7070",fontFamily:T.sans,fontSize:9,padding:"4px 12px",borderRadius:7,cursor:"pointer",fontWeight:700,letterSpacing:0.3}}>Eliminar</button>
+            <button onClick={e=>{e.stopPropagation();setShowDel(false);}} style={{background:"#1a1614",border:"1px solid #2a2422",color:T.textDim,fontFamily:T.sans,fontSize:9,padding:"4px 10px",borderRadius:7,cursor:"pointer"}}>Cancelar</button>
           </div>
-        )}
-        {!showDel&&(
-          <button onClick={e=>{e.stopPropagation();setShowDel(true);}} style={{marginTop:6,background:"none",border:"none",color:"#2a1414",fontFamily:T.mono,fontSize:7.5,cursor:"pointer",letterSpacing:0.5,padding:0}}>eliminar track</button>
         )}
       </div>
     </div>
@@ -2431,7 +2479,7 @@ function DjTrackCard({ track, onAdd, inSet, onEdit, onDelete, mySet }) {
 }
 
 // ── PANTALLA DJS EMERGENTES ───────────────────────────────────────────────
-function DJsScreen({ djTracks, setDjTracks, mySet, addToSet }) {
+function DJsScreen({ djTracks, setDjTracks, mySet, addToSet, removeFromSet }) {
   const [search, setSearch] = React.useState("");
   const [showForm, setShowForm] = React.useState(false);
   const [editTrack, setEditTrack] = React.useState(null);
@@ -2513,7 +2561,7 @@ function DJsScreen({ djTracks, setDjTracks, mySet, addToSet }) {
         )}
         <div style={{display:"flex",flexDirection:"column",gap:6,paddingTop:4}}>
           {filtered.map(t=>(
-            <DjTrackCard key={t.id} track={t} onAdd={addToSet} inSet={mySet.some(s=>s.id===t.id)} onEdit={startEdit} onDelete={deleteTrack} mySet={mySet}/>
+            <DjTrackCard key={t.id} track={t} onAdd={addToSet} onRemove={removeFromSet} inSet={mySet.some(s=>s.id===t.id)} onEdit={startEdit} onDelete={deleteTrack} mySet={mySet}/>
           ))}
         </div>
       </div>
@@ -2605,6 +2653,7 @@ function App() {
   React.useEffect(()=>{ applyTheme(theme); },[]);
 
   const addToSet=t=>{if(!mySet.some(s=>s.id===t.id))setMySet(p=>[...p,t]);};
+  const removeFromSet=id=>setMySet(p=>p.filter(t=>t.id!==id));
   const handleSeed=t=>{setSeed(t);if(t)setTab("build");};
   const tabs=[
     {id:"library",label:"Library",badge:null},
@@ -2617,7 +2666,7 @@ function App() {
     library: {seed, setSeed:handleSeed, mySet, addToSet, maxPop, setMaxPop, styleFilter:style, setStyleFilter:setStyle, search, setSearch, onFind:setFindTrack, djTracks},
     build:   {seed, setSeed:t=>{setSeed(t);if(!t)setTab("library");}, mySet, addToSet, setMySet, maxPop, onFind:setFindTrack, djTracks},
     set:     {mySet, setMySet, onFind:setFindTrack},
-    djs:     {djTracks, setDjTracks, mySet, addToSet},
+    djs:     {djTracks, setDjTracks, mySet, addToSet, removeFromSet},
   };
 
   const screens = { library:LibraryScreen, build:BuildScreen, set:SetScreen, djs:DJsScreen };
@@ -2752,7 +2801,7 @@ function App() {
           {tab==="library"&&<LibraryScreen seed={seed} setSeed={handleSeed} mySet={mySet} addToSet={addToSet} maxPop={maxPop} setMaxPop={setMaxPop} styleFilter={style} setStyleFilter={setStyle} search={search} setSearch={setSearch} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="build"&&<BuildScreen seed={seed} setSeed={t=>{setSeed(t);if(!t)setTab("library");}} mySet={mySet} addToSet={addToSet} setMySet={setMySet} maxPop={maxPop} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="set"&&<SetScreen mySet={mySet} setMySet={setMySet} onFind={setFindTrack}/>}
-          {tab==="djs"&&<DJsScreen djTracks={djTracks} setDjTracks={setDjTracks} mySet={mySet} addToSet={addToSet}/>}
+          {tab==="djs"&&<DJsScreen djTracks={djTracks} setDjTracks={setDjTracks} mySet={mySet} addToSet={addToSet} removeFromSet={removeFromSet}/>}
         </div>
       </div>
 
