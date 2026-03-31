@@ -1342,16 +1342,6 @@ function stopSoundCloud() {
 }
 
 // ── PREVIEW BUTTON — usa el orquestador multi-fuente ──────────────────────
-function isSoundCloudUrl(url) { try { return !!url && new URL(url).hostname.includes('soundcloud.com'); } catch { return false; } }
-function isDirectAudioUrl(url) {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    return /\.(mp3|ogg|wav|aac|m4a|opus)(\?|$)/i.test(u.pathname) ||
-      u.hostname.includes('dl.dropbox') || u.hostname.includes('amazonaws') || u.hostname.includes('storage.googleapis');
-  } catch { return false; }
-}
-
 function PreviewButton({ track, accent }) {
   const [state, setState] = React.useState(() => {
     if (_previewTrackId === track.id && _previewAudio && !_previewAudio.paused) return "playing";
@@ -2619,7 +2609,39 @@ function App() {
 }
 
 
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+// ── ERROR BOUNDARY ────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  componentDidCatch(e, info) { console.error('[SetLab] React error:', e, info); }
+  render() {
+    if (this.state.error) {
+      const e = this.state.error;
+      return React.createElement('div', { style: { color:'#ef4444', fontFamily:'monospace', padding:40, background:'#030302', minHeight:'100vh', wordBreak:'break-word' } },
+        React.createElement('b', null, 'Error en la app:'),
+        React.createElement('br', null),
+        React.createElement('br', null),
+        String(e && e.message ? e.message : e),
+        React.createElement('br', null),
+        React.createElement('br', null),
+        React.createElement('small', { style: { color:'#706860' } }, e && e.stack ? e.stack : '')
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Capturar errores globales (incluyendo async)
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;min-height:100vh;word-break:break-word"><b>Error global:</b><br><br>' + msg + '<br><small style="color:#706860">Line ' + line + ': ' + (err && err.stack ? err.stack : '') + '</small></div>';
+};
+window.onunhandledrejection = function(e) {
+  console.error('[SetLab] Unhandled promise rejection:', e.reason);
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(ErrorBoundary, null, React.createElement(App, null))
+);
 
   }
 })();
