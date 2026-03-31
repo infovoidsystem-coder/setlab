@@ -3,208 +3,887 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="impact-site-verification" value="164f2076-6689-4865-9991-b04829b8ff15"/>
-<title>SetLab — DJ Set Planner</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-<!-- PWA — iOS compatible -->
-<link id="pwa-manifest" rel="manifest"/>
-<meta name="theme-color" content="#030302"/>
-<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="SetLab"/>
-<meta name="apple-touch-fullscreen" content="yes"/>
-<link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href=""/>
+<title>SetLab — DJ Set Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{font-size:100%}
-  html,body{height:100%;background:#030302;font-family:'Syne',sans-serif;transition:background 0.3s}
-  #app-scaler{transform-origin:top left;transition:transform 0.2s}
-  ::-webkit-scrollbar{display:none}
-  input[type=range]{-webkit-appearance:none;height:1.5px;border-radius:1px;background:#161412;outline:none}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#c9a84c;cursor:pointer;box-shadow:0 0 0 3px #c9a84c18}
-  body.light input[type=range]{background:#d8d4ce}
-  body.light input[type=range]::-webkit-slider-thumb{background:#9a7030;box-shadow:0 0 0 3px #9a703022}
-  select option{background:#1a1814;color:#e8e2d9}
-  body.light select option{background:#ffffff;color:#1c1a17}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#c9a84c;--gold2:#7a6230;
+  --bg:#030302;--bg2:#080808;--bg3:#0f0e0c;
+  --border:#1c1a17;--border2:#252320;
+  --text:#e8e2d9;--text2:#a09890;--text3:#706860;--text4:#403c38;
+  --green:#22c55e;--lime:#84cc16;--yellow:#eab308;--orange:#f97316;--red:#ef4444;
+  --sans:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+button{cursor:pointer;border:none;background:none;color:inherit;font-family:inherit}
+input{font-family:var(--mono);outline:none;border:none}
+::-webkit-scrollbar{display:none}
 
-  /* ── Inputs del formulario DJs ── */
-  .sl-input {
-    width:100%; border-radius:10px; padding:11px 13px;
-    font-family:'Syne',sans-serif; font-size:13px; outline:none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .sl-input:focus { box-shadow: 0 0 0 2px #a855f730; }
-  body:not(.light) .sl-input {
-    background:#1c1914; border:1px solid #2e2c28;
-    color:#e8e2d9;
-  }
-  body:not(.light) .sl-input::placeholder { color:#706860; }
-  body:not(.light) .sl-input:focus { border-color:#a855f766; background:#201d18; }
-  body.light .sl-input {
-    background:#f8f6f2; border:1px solid #d4cfc8;
-    color:#1c1a17;
-  }
-  body.light .sl-input::placeholder { color:#a0998f; }
-  body.light .sl-input:focus { border-color:#a855f766; background:#ffffff; }
+/* LAYOUT */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#header{
+  padding-top:var(--safe-top);
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  position:relative;
+  z-index:10;
+}
+#header-inner{height:52px;display:flex;align-items:center;padding:0 16px;gap:12px}
+#logo{display:flex;align-items:center;gap:8px;flex:1}
+#logo-text{font-size:18px;font-weight:800;letter-spacing:-0.5px;color:var(--gold)}
+#logo-sub{font-family:var(--mono);font-size:7px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-top:1px}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:relative}
+#nav{
+  padding-bottom:var(--safe-bot);
+  background:rgba(4,3,2,0.97);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;
+  position:relative;
+  z-index:10;
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:10px 0;
+  border:none;background:none;position:relative;
+}
+.nav-label{font-size:8px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text4);font-weight:600}
+.nav-btn.active .nav-label{color:var(--gold)}
+.nav-dot{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:18px;height:2px;background:var(--gold);border-radius:0 0 2px 2px;opacity:0}
+.nav-btn.active .nav-dot{opacity:1}
+.nav-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--gold);color:#000;font-size:7px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 
-  .sl-select {
-    width:100%; border-radius:10px; padding:11px 13px;
-    font-family:'DM Mono',monospace; font-size:13px; outline:none; cursor:pointer;
-    transition: border-color 0.2s;
-    -webkit-appearance:none; appearance:none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23706860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 12px center;
-  }
-  body:not(.light) .sl-select {
-    background-color:#1c1914; border:1px solid #2e2c28; color:#e8e2d9;
-  }
-  body:not(.light) .sl-select:focus { border-color:#a855f766; }
-  body.light .sl-select {
-    background-color:#f8f6f2; border:1px solid #d4cfc8; color:#1c1a17;
-  }
-  body.light .sl-select:focus { border-color:#a855f766; }
-  body.light .sl-select option { background:#ffffff; color:#1c1a17; }
+/* SCREENS */
+.screen{display:none;padding:16px;max-width:480px;margin:0 auto;min-height:100%}
+.screen.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.card-title{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+
+/* TRACK CARD */
+.track-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+  transition:border-color 0.15s;
+}
+.track-card.selected{border-color:var(--gold);background:var(--bg3)}
+.track-card.in-set{border-color:#22c55e44}
+.track-info{flex:1;min-width:0}
+.track-title{font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-size:11px;color:var(--text3);margin-top:2px}
+.track-meta{display:flex;align-items:center;gap:6px;margin-top:5px}
+.key-pill{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;border:1px solid;font-weight:500}
+.bpm-tag{font-family:var(--mono);font-size:9px;color:var(--text3)}
+.energy-dots{display:flex;gap:2px;align-items:center}
+.energy-dot{width:4px;height:4px;border-radius:50%;background:var(--border2)}
+.energy-dot.on{background:var(--gold)}
+
+/* BUTTONS */
+.btn-add{
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--border2);color:var(--text3);
+  font-size:18px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all 0.15s;
+}
+.btn-add.added{border-color:#22c55e44;color:#22c55e;background:#22c55e11}
+.btn-remove{
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid var(--red)33;color:var(--red);
+  font-size:14px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;opacity:0.7;
+}
+
+/* SEARCH */
+.search-box{
+  width:100%;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;padding:10px 14px;color:var(--text);font-size:13px;
+  margin-bottom:12px;
+}
+.search-box::placeholder{color:var(--text3)}
+
+/* FILTERS */
+.filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;scrollbar-width:none}
+.filter-chip{
+  font-family:var(--mono);font-size:9px;white-space:nowrap;
+  padding:5px 10px;border-radius:20px;border:1px solid var(--border2);
+  color:var(--text3);transition:all 0.15s;flex-shrink:0;
+}
+.filter-chip.active{border-color:var(--gold);color:var(--gold);background:#c9a84c11}
+
+/* SECTION HEADERS */
+.section-header{
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--text3);
+  margin:16px 0 10px;display:flex;align-items:center;gap:8px;
+}
+.section-header::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* SET ITEM */
+.set-item{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;
+}
+.set-num{font-family:var(--mono);font-size:10px;color:var(--text4);width:20px;text-align:center;flex-shrink:0}
+.set-info{flex:1;min-width:0}
+.set-title{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-artist{font-size:10px;color:var(--text3)}
+.compat-badge{
+  font-family:var(--mono);font-size:8px;padding:3px 8px;
+  border-radius:20px;border:1px solid;flex-shrink:0;
+}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat-val{font-size:24px;font-weight:800;color:var(--gold)}
+.stat-lbl{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:0.5}
+.empty-text{font-size:13px;line-height:1.6}
+
+/* COMPAT CONNECTOR */
+.compat-row{display:flex;align-items:center;gap:6px;margin:4px 0;padding:0 4px}
+.compat-line{flex:1;height:1px;background:var(--border)}
+.compat-label{font-family:var(--mono);font-size:8px;padding:2px 8px;border-radius:10px;border:1px solid;flex-shrink:0}
+
+/* BUILD SCREEN */
+.seed-card{
+  background:var(--bg3);border:1px solid var(--gold)33;
+  border-radius:16px;padding:14px 16px;margin-bottom:12px;
+}
+.seed-label{font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.seed-title{font-size:16px;font-weight:800;color:var(--gold)}
+.seed-artist{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* BUILD SUGGESTIONS */
+.suggestion{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;
+}
+.score-bar{height:3px;border-radius:2px;background:var(--border2);margin-top:6px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px;background:var(--gold);transition:width 0.3s}
+
+/* MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);
+  z-index:100;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:20px 20px 0 0;padding:20px 20px 32px;
+  width:100%;max-height:80vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform 0.3s;
+}
+.modal-overlay.open .modal-box{transform:translateY(0)}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:4px}
+.modal-artist{font-size:11px;color:var(--text3);margin-bottom:16px}
+.modal-close{position:absolute;top:16px;right:16px;font-size:20px;color:var(--text3);padding:4px 8px}
+.link-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-radius:12px;
+  border:1px solid var(--border2);margin-bottom:8px;
+  text-decoration:none;color:var(--text);
+}
+.link-btn:active{background:var(--bg3)}
+.link-icon{font-size:16px;width:24px;text-align:center}
+.link-label{font-size:13px;font-weight:600}
+.link-sub{font-size:10px;color:var(--text3)}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.track-card,.set-item,.suggestion{animation:fadeIn 0.2s ease both}
 </style>
 </head>
 <body>
-<div id="root"><div style="color:#c9a84c;font-family:monospace;font-size:14px;padding:40px;background:#030302;min-height:100vh">Cargando SetLab...</div></div>
+<div id="app">
+  <div id="header">
+    <div id="header-inner">
+      <div id="logo">
+        <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+          <circle cx="22" cy="22" r="20" fill="#0c0a08" stroke="#c9a84c" stroke-width="0.5" opacity="0.5"/>
+          <circle cx="22" cy="22" r="14" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.4"/>
+          <circle cx="22" cy="22" r="8" fill="#1f1a0e" stroke="#c9a84c" stroke-width="1"/>
+          <circle cx="22" cy="22" r="2.5" fill="#c9a84c"/>
+          <line x1="36" y1="10" x2="26" y2="28" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+        </svg>
+        <div>
+          <div id="logo-text">SET<span style="font-weight:300;letter-spacing:4px;color:#aca49a;margin-left:2px">LAB</span></div>
+          <div id="logo-sub">DJ Set Planner</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="content">
+    <!-- LIBRARY SCREEN -->
+    <div id="screen-library" class="screen active">
+      <input class="search-box" id="search-input" type="search" placeholder="Buscar track o artista..." autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <div class="filter-row" id="style-filters"></div>
+      <div id="library-list"></div>
+    </div>
+
+    <!-- BUILD SCREEN -->
+    <div id="screen-build" class="screen">
+      <div id="build-content"></div>
+    </div>
+
+    <!-- SET SCREEN -->
+    <div id="screen-set" class="screen">
+      <div id="set-content"></div>
+    </div>
+  </div>
+
+  <div id="nav">
+    <button class="nav-btn active" data-tab="library" onclick="switchTab('library')">
+      <div class="nav-dot"></div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+      </svg>
+      <span class="nav-label">Library</span>
+    </button>
+    <button class="nav-btn" data-tab="build" onclick="switchTab('build')">
+      <div class="nav-dot"></div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      <span class="nav-label">Build</span>
+    </button>
+    <button class="nav-btn" data-tab="set" onclick="switchTab('set')">
+      <div class="nav-dot"></div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      <span class="nav-label">Set</span>
+      <div class="nav-badge" id="set-badge" style="display:none">0</div>
+    </button>
+  </div>
+</div>
+
+<!-- FIND MODAL -->
+<div class="modal-overlay" id="find-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" style="position:relative">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
 
 <script>
-window.onerror = function(msg, src, line, col, e) {
-  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:20px;background:#030302;min-height:100vh;word-break:break-word;font-size:12px"><b>Error JS:</b><br>' + msg + '<br>Línea: ' + line + '<br>' + (e&&e.stack?e.stack.slice(0,600):'') + '</div>';
-};
-window.onunhandledrejection = function(e) { console.error('[SetLab]', e.reason); };
-
-function showErr(msg) {
-  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:20px;background:#030302;min-height:100vh;word-break:break-word;font-size:12px">' + msg + '</div>';
-}
-
-// Load scripts sequentially
-var scripts = [
-  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
-  'chunk1.js','chunk2.js','chunk3.js','chunk4.js','chunk5.js'
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const TRACKS = [
+  {id:1,title:"Heartbeat",artist:"Adam Beyer",bpm:132,key:"11A",energy:8,style:["techno","dark"],pop:42,label:"Drumcode"},
+  {id:2,title:"Teach Me",artist:"Adam Beyer",bpm:130,key:"10A",energy:7,style:["techno","dark"],pop:38,label:"Drumcode"},
+  {id:3,title:"Drumcode",artist:"Adam Beyer",bpm:134,key:"12A",energy:8,style:["techno","industrial techno"],pop:40,label:"Drumcode"},
+  {id:4,title:"Your Mind Is a Box",artist:"Ancient Methods",bpm:138,key:"1B",energy:9,style:["industrial techno","dark"],pop:22,label:"Mote-Evolver"},
+  {id:5,title:"Stalker",artist:"Ancient Methods",bpm:136,key:"12A",energy:9,style:["industrial techno","techno"],pop:25,label:"Mote-Evolver"},
+  {id:6,title:"A3",artist:"Aphex Twin",bpm:120,key:"8A",energy:5,style:["ambient techno","deep techno"],pop:35,label:"Warp"},
+  {id:7,title:"Flim",artist:"Aphex Twin",bpm:116,key:"6A",energy:4,style:["ambient techno","melodic techno"],pop:38,label:"Warp"},
+  {id:8,title:"Alberto Balsam",artist:"Aphex Twin",bpm:108,key:"3A",energy:3,style:["ambient techno","melodic techno"],pop:32,label:"Warp"},
+  {id:9,title:"Xtal",artist:"Aphex Twin",bpm:95,key:"1A",energy:2,style:["ambient techno","deep house"],pop:28,label:"Apollo"},
+  {id:10,title:"Windowlicker",artist:"Aphex Twin",bpm:123,key:"9A",energy:6,style:["techno","experimental"],pop:45,label:"Warp"},
+  {id:11,title:"Strings of Life",artist:"Rhythim Is Rhythim",bpm:125,key:"8B",energy:7,style:["deep house","chicago"],pop:55,label:"Transmat"},
+  {id:12,title:"Nude Photo",artist:"Rhythim Is Rhythim",bpm:118,key:"6A",energy:5,style:["deep house","chicago"],pop:40,label:"Transmat"},
+  {id:13,title:"Let No Man",artist:"Model 500",bpm:122,key:"8A",energy:6,style:["deep techno","detroit"],pop:32,label:"Metroplex"},
+  {id:14,title:"No UFOs",artist:"Model 500",bpm:120,key:"7A",energy:6,style:["deep techno","detroit"],pop:35,label:"Metroplex"},
+  {id:15,title:"The Hunt",artist:"Model 500",bpm:126,key:"9B",energy:7,style:["techno","detroit"],pop:30,label:"R&S Records"},
+  {id:16,title:"Derrick May — Strings of Life",artist:"Derrick May",bpm:127,key:"9A",energy:7,style:["deep house","detroit"],pop:50,label:"Transmat"},
+  {id:17,title:"Beyond the Dance",artist:"Derrick May",bpm:124,key:"8B",energy:6,style:["deep house","detroit"],pop:42,label:"Transmat"},
+  {id:18,title:"Nude Photo",artist:"Derrick May",bpm:119,key:"6B",energy:5,style:["deep house","chicago"],pop:38,label:"Transmat"},
+  {id:19,title:"The Bells",artist:"Jeff Mills",bpm:134,key:"12A",energy:8,style:["techno","detroit"],pop:52,label:"Axis Records"},
+  {id:20,title:"Changes of Life",artist:"Jeff Mills",bpm:130,key:"10B",energy:7,style:["techno","detroit"],pop:45,label:"Axis Records"},
+  {id:21,title:"Basic Reshape",artist:"Basic Channel",bpm:120,key:"7B",energy:5,style:["dub techno","minimal"],pop:38,label:"Chain Reaction"},
+  {id:22,title:"Phylyps Trak",artist:"Basic Channel",bpm:118,key:"6A",energy:5,style:["dub techno","minimal"],pop:42,label:"Basic Channel"},
+  {id:23,title:"Quadrant Dub",artist:"Basic Channel",bpm:116,key:"5B",energy:4,style:["dub techno","deep techno"],pop:35,label:"Basic Channel"},
+  {id:24,title:"Octagon",artist:"Basic Channel",bpm:122,key:"8B",energy:6,style:["dub techno","minimal"],pop:36,label:"Basic Channel"},
+  {id:25,title:"Spastik",artist:"Plastikman",bpm:128,key:"9A",energy:7,style:["techno","minimal"],pop:48,label:"NovaMute"},
+  {id:26,title:"Pakard",artist:"Plastikman",bpm:124,key:"8A",energy:6,style:["minimal","techno"],pop:38,label:"NovaMute"},
+  {id:27,title:"Sheet One",artist:"Plastikman",bpm:120,key:"7A",energy:5,style:["minimal","dub techno"],pop:32,label:"NovaMute"},
+  {id:28,title:"Zig Zag",artist:"Surgeon",bpm:132,key:"11B",energy:8,style:["techno","industrial"],pop:28,label:"Counterbalance"},
+  {id:29,title:"Magneze",artist:"Surgeon",bpm:128,key:"9B",energy:7,style:["techno","industrial"],pop:22,label:"Counterbalance"},
+  {id:30,title:"Badminton",artist:"Surgeon",bpm:126,key:"8B",energy:6,style:["minimal","techno"],pop:18,label:"Counterbalance"},
+  {id:31,title:"Losing Control",artist:"Aphex Twin",bpm:140,key:"2B",energy:8,style:["rave","techno"],pop:36,label:"R&S Records"},
+  {id:32,title:"Digeridoo",artist:"Aphex Twin",bpm:132,key:"11A",energy:7,style:["rave","ambient techno"],pop:40,label:"R&S Records"},
+  {id:33,title:"On",artist:"Aphex Twin",bpm:136,key:"12B",energy:8,style:["techno","rave"],pop:34,label:"Warp"},
+  {id:34,title:"Mantis",artist:"Surgeon",bpm:130,key:"10A",energy:7,style:["techno","dark"],pop:20,label:"Counterbalance"},
+  {id:35,title:"Come Out",artist:"Surgeon",bpm:134,key:"12A",energy:8,style:["techno","hard techno"],pop:25,label:"Counterbalance"},
+  {id:36,title:"Reverberate",artist:"Surgeon",bpm:128,key:"9A",energy:7,style:["techno","dark"],pop:22,label:"Dynamic Tension"},
+  {id:37,title:"Body Request",artist:"Surgeon",bpm:132,key:"11B",energy:8,style:["techno","hard techno"],pop:24,label:"Dynamic Tension"},
+  {id:38,title:"O.T.F.",artist:"DJ Stingray",bpm:138,key:"1A",energy:9,style:["techno","electro"],pop:18,label:"Tresor"},
+  {id:39,title:"El Gueto",artist:"Actress",bpm:120,key:"7A",energy:5,style:["dark house","experimental"],pop:28,label:"Werkdiscs"},
+  {id:40,title:"Ascending",artist:"Actress",bpm:118,key:"6B",energy:4,style:["dark house","ambient"],pop:24,label:"Werkdiscs"},
+  {id:41,title:"GSSL",artist:"Actress",bpm:122,key:"8A",energy:6,style:["techno","minimal"],pop:26,label:"Werkdiscs"},
+  {id:42,title:"Birdcage",artist:"Actress",bpm:116,key:"5A",energy:4,style:["dark house","ambient"],pop:22,label:"Werkdiscs"},
+  {id:43,title:"Hailstones",artist:"Actress",bpm:124,key:"8B",energy:6,style:["techno","dark"],pop:20,label:"Werkdiscs"},
+  {id:44,title:"Jardin",artist:"Dj Stingray 313",bpm:134,key:"12B",energy:8,style:["electro","techno"],pop:16,label:"Tresor"},
+  {id:45,title:"Detroit 3000",artist:"Green Velvet",bpm:128,key:"9A",energy:7,style:["techno","chicago"],pop:38,label:"Relief Records"},
+  {id:46,title:"Preacher Man",artist:"Green Velvet",bpm:126,key:"8B",energy:7,style:["deep house","chicago"],pop:42,label:"Relief Records"},
+  {id:47,title:"Flash",artist:"Green Velvet",bpm:130,key:"10A",energy:7,style:["techno","chicago"],pop:36,label:"Relief Records"},
+  {id:48,title:"La La Land",artist:"Green Velvet",bpm:124,key:"8A",energy:6,style:["deep house","chicago"],pop:44,label:"Relief Records"},
+  {id:49,title:"Rhythm Conversion",artist:"Underground Resistance",bpm:130,key:"10B",energy:8,style:["techno","detroit"],pop:40,label:"Underground Resistance"},
+  {id:50,title:"Final Frontier",artist:"Underground Resistance",bpm:128,key:"9A",energy:7,style:["techno","detroit"],pop:35,label:"Underground Resistance"},
+  {id:51,title:"Electronic Warfare",artist:"Underground Resistance",bpm:132,key:"11A",energy:9,style:["techno","industrial techno"],pop:38,label:"Underground Resistance"},
+  {id:52,title:"Hi-Tech Jazz",artist:"Underground Resistance",bpm:126,key:"8B",energy:7,style:["techno","detroit"],pop:30,label:"Underground Resistance"},
+  {id:53,title:"Punisher",artist:"Perc",bpm:136,key:"12A",energy:9,style:["industrial techno","hard techno"],pop:28,label:"Perc Trax"},
+  {id:54,title:"Force of Habit",artist:"Perc",bpm:134,key:"11B",energy:8,style:["techno","industrial techno"],pop:24,label:"Perc Trax"},
+  {id:55,title:"Wicker & Steel",artist:"Perc",bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],pop:20,label:"Perc Trax"},
+  {id:56,title:"It Is What It Is",artist:"Surgeon",bpm:129,key:"10B",energy:7,style:["techno","industrial"],pop:24,label:"Counterbalance"},
+  {id:57,title:"Creep",artist:"Pearson Sound",bpm:126,key:"8B",energy:7,style:["dark house","bass"],pop:24,label:"Hessle Audio"},
+  {id:58,title:"Agnes Apparatus",artist:"Objekt",bpm:126,key:"10A",energy:7,style:["techno","dark"],pop:30,label:"TJ Hertz / Objekt"},
+  {id:59,title:"Two Completely Different Things",artist:"Objekt",bpm:124,key:"9B",energy:6,style:["techno","minimal"],pop:32,label:"TJ Hertz / Objekt"},
+  {id:60,title:"Violence",artist:"Andy Stott",bpm:119,key:"5A",energy:5,style:["dark house","dub"],pop:28,label:"Modern Love"},
+  {id:61,title:"Needle & Thread",artist:"Andy Stott",bpm:117,key:"4B",energy:4,style:["dark house","ambient"],pop:26,label:"Modern Love"},
+  {id:62,title:"Shed",artist:"Shed",bpm:122,key:"7B",energy:6,style:["deep house","dark"],pop:15,label:"Ostgut Ton"},
+  {id:63,title:"Substance",artist:"L.B. Dub Corp",bpm:119,key:"6B",energy:5,style:["dub house","deep house"],pop:10,label:"Ostgut Ton"},
+  {id:64,title:"Untitled 4",artist:"Actress",bpm:118,key:"5B",energy:4,style:["dark house","minimal"],pop:18,label:"Werkdiscs"},
+  {id:65,title:"You're Mine",artist:"Larry Heard",bpm:116,key:"3B",energy:4,style:["deep house","chicago"],pop:38,label:"Alleviated Records"},
+  {id:66,title:"The Sun Can't Compare",artist:"Larry Heard",bpm:115,key:"3A",energy:4,style:["deep house","chicago"],pop:35,label:"Alleviated Records"},
+  {id:67,title:"Glisten",artist:"Bicep",bpm:128,key:"10A",energy:6,style:["deep house","melodic house"],pop:62,label:"Ninja Tune"},
+  {id:68,title:"Orca",artist:"Bicep",bpm:130,key:"11B",energy:7,style:["deep house","melodic house"],pop:58,label:"Ninja Tune"},
+  {id:69,title:"Aura",artist:"Bicep",bpm:124,key:"8A",energy:5,style:["melodic house","deep house"],pop:55,label:"Ninja Tune"},
+  {id:70,title:"Atlas",artist:"Bicep",bpm:126,key:"9B",energy:6,style:["melodic house","deep house"],pop:50,label:"Ninja Tune"},
+  {id:71,title:"Nothing",artist:"Burial",bpm:140,key:"5A",energy:5,style:["dubstep","dark house"],pop:45,label:"Hyperdub"},
+  {id:72,title:"Archangel",artist:"Burial",bpm:138,key:"4B",energy:6,style:["dubstep","ambient"],pop:48,label:"Hyperdub"},
+  {id:73,title:"Siren",artist:"Blawan",bpm:134,key:"12A",energy:9,style:["industrial techno","hard techno"],pop:30,label:"Ternesc"},
+  {id:74,title:"Getting Me Down",artist:"Blawan",bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],pop:28,label:"Ternesc"},
+  {id:75,title:"Cascades",artist:"Function",bpm:128,key:"9A",energy:7,style:["deep techno","dark"],pop:22,label:"Sandwell District"},
+  {id:76,title:"Obsession",artist:"Function",bpm:126,key:"8A",energy:6,style:["deep techno","ambient techno"],pop:20,label:"Sandwell District"},
+  {id:77,title:"Boiler",artist:"Paula Temple",bpm:136,key:"1A",energy:9,style:["industrial techno","hard techno"],pop:25,label:"Noise Manifesto"},
+  {id:78,title:"Core",artist:"Paula Temple",bpm:138,key:"2B",energy:9,style:["hard techno","industrial techno"],pop:22,label:"Noise Manifesto"},
+  {id:79,title:"Eternal Drift",artist:"Truncate",bpm:130,key:"11A",energy:8,style:["techno","dark"],pop:20,label:"Truncate"},
+  {id:80,title:"Payload",artist:"Truncate",bpm:128,key:"9B",energy:7,style:["techno","industrial techno"],pop:18,label:"Truncate"},
+  {id:81,title:"Strobe",artist:"Deadmau5",bpm:128,key:"9A",energy:6,style:["melodic techno","ambient techno"],pop:62,label:"mau5trap"},
+  {id:82,title:"Some Chords",artist:"Deadmau5",bpm:126,key:"8A",energy:5,style:["melodic techno","deep techno"],pop:58,label:"mau5trap"},
+  {id:83,title:"Ghosts N Stuff",artist:"Deadmau5",bpm:128,key:"9B",energy:7,style:["melodic techno","rave"],pop:68,label:"mau5trap"},
+  {id:84,title:"Raise Your Weapon",artist:"Deadmau5",bpm:90,key:"3A",energy:5,style:["melodic techno","ambient"],pop:60,label:"mau5trap"},
+  {id:85,title:"Closer",artist:"Nine Inch Nails",bpm:130,key:"10A",energy:8,style:["industrial","dark"],pop:72,label:"Nothing Records"},
+  {id:86,title:"Echoes",artist:"Recondite",bpm:120,key:"7A",energy:4,style:["deep techno","ambient techno"],pop:18,label:"Plangent"},
+  {id:87,title:"Hinterland",artist:"Recondite",bpm:118,key:"6B",energy:4,style:["deep techno","minimal"],pop:16,label:"Plangent"},
+  {id:88,title:"Dusted",artist:"Recondite",bpm:122,key:"8A",energy:5,style:["deep techno","ambient techno"],pop:14,label:"Ghostly International"},
+  {id:89,title:"Porphyria",artist:"Recondite",bpm:116,key:"5A",energy:3,style:["ambient techno","deep techno"],pop:12,label:"Ghostly International"},
+  {id:90,title:"LB",artist:"Blawan",bpm:130,key:"10B",energy:8,style:["techno","industrial techno"],pop:26,label:"Ternesc"},
+  {id:91,title:"Charges",artist:"Blawan",bpm:136,key:"12B",energy:9,style:["hard techno","industrial techno"],pop:24,label:"Ternesc"},
+  {id:92,title:"Why They Hide Their Bodies Under My Garage",artist:"Blawan",bpm:128,key:"9A",energy:8,style:["techno","industrial techno"],pop:22,label:"Hessle Audio"},
+  {id:93,title:"Untitled 01",artist:"Various Artists",bpm:132,key:"11A",energy:7,style:["techno","dark"],pop:8,label:"Berceuse Heroique"},
+  {id:94,title:"Metropolis",artist:"Jeff Mills",bpm:135,key:"12A",energy:8,style:["techno","detroit"],pop:48,label:"Axis Records"},
+  {id:95,title:"Wrath of Code",artist:"Jeff Mills",bpm:138,key:"1B",energy:9,style:["techno","industrial techno"],pop:40,label:"Axis Records"},
+  {id:96,title:"Cycle 30",artist:"Jeff Mills",bpm:132,key:"11B",energy:8,style:["techno","detroit"],pop:42,label:"Axis Records"},
+  {id:97,title:"Sonic Destroyer",artist:"Underground Resistance",bpm:136,key:"12B",energy:9,style:["techno","electro"],pop:32,label:"Underground Resistance"},
+  {id:98,title:"Inversion",artist:"Robert Hood",bpm:128,key:"9A",energy:7,style:["minimal","techno"],pop:35,label:"M-Plant"},
+  {id:99,title:"Moveable Parts",artist:"Robert Hood",bpm:126,key:"8B",energy:6,style:["minimal","techno"],pop:30,label:"M-Plant"},
+  {id:100,title:"Internal Empire",artist:"Robert Hood",bpm:130,key:"10A",energy:7,style:["minimal","techno"],pop:32,label:"M-Plant"},
+  {id:101,title:"Minus",artist:"Robert Hood",bpm:124,key:"8A",energy:6,style:["minimal","techno"],pop:28,label:"M-Plant"},
+  {id:102,title:"Floorplan — Never Grow Old",artist:"Floorplan",bpm:130,key:"10B",energy:8,style:["deep house","gospel house"],pop:50,label:"M-Plant"},
+  {id:103,title:"We Magnify His Name",artist:"Floorplan",bpm:128,key:"9A",energy:7,style:["deep house","gospel house"],pop:45,label:"M-Plant"},
+  {id:104,title:"Baby Baby",artist:"Floorplan",bpm:126,key:"8B",energy:7,style:["deep house","chicago"],pop:42,label:"M-Plant"},
+  {id:105,title:"Promised Land",artist:"Joe Smooth",bpm:120,key:"7A",energy:5,style:["deep house","chicago"],pop:48,label:"DJ International"},
+  {id:106,title:"Your Love",artist:"Frankie Knuckles",bpm:118,key:"6B",energy:5,style:["deep house","chicago"],pop:65,label:"Trax Records"},
+  {id:107,title:"Baby Wants to Ride",artist:"Frankie Knuckles",bpm:120,key:"7B",energy:6,style:["deep house","chicago"],pop:55,label:"Trax Records"},
+  {id:108,title:"The Whistle Song",artist:"Frankie Knuckles",bpm:124,key:"8A",energy:6,style:["deep house","chicago"],pop:60,label:"Virgin"},
+  {id:109,title:"Move Your Body",artist:"Marshall Jefferson",bpm:118,key:"6A",energy:6,style:["deep house","chicago"],pop:58,label:"Trax Records"},
+  {id:110,title:"Can You Feel It",artist:"Larry Heard",bpm:116,key:"5B",energy:5,style:["deep house","chicago"],pop:62,label:"Trax Records"},
+  {id:111,title:"Mystery of Love",artist:"Larry Heard",bpm:114,key:"4A",energy:4,style:["deep house","chicago"],pop:55,label:"Alleviated Records"},
+  {id:112,title:"Washing Machine",artist:"Blawan",bpm:134,key:"11B",energy:8,style:["techno","industrial techno"],pop:20,label:"Ternesc"},
+  {id:113,title:"Rehab",artist:"Blawan",bpm:132,key:"11A",energy:8,style:["hard techno","techno"],pop:18,label:"Ternesc"},
+  {id:114,title:"Paradise Circus",artist:"Massive Attack",bpm:90,key:"3B",energy:4,style:["trip-hop","dark house"],pop:65,label:"Virgin"},
+  {id:115,title:"Teardrop",artist:"Massive Attack",bpm:80,key:"1A",energy:3,style:["trip-hop","ambient"],pop:72,label:"Virgin"},
+  {id:116,title:"Black Milk",artist:"Massive Attack",bpm:100,key:"4A",energy:4,style:["trip-hop","dark house"],pop:58,label:"Virgin"},
+  {id:117,title:"Unfinished Sympathy",artist:"Massive Attack",bpm:100,key:"4B",energy:5,style:["trip-hop","soul"],pop:70,label:"Wild Bunch"},
+  {id:118,title:"Angel",artist:"Massive Attack",bpm:98,key:"3A",energy:5,style:["trip-hop","dark"],pop:68,label:"Virgin"},
+  {id:119,title:"Blue Lines",artist:"Massive Attack",bpm:95,key:"2A",energy:4,style:["trip-hop","soul"],pop:62,label:"Wild Bunch"},
+  {id:120,title:"Khohen",artist:"Kobosil",bpm:130,key:"10A",energy:7,style:["techno","hypnotic"],pop:28,label:"RH-05"},
+  {id:121,title:"M_REC",artist:"Kobosil",bpm:128,key:"9B",energy:7,style:["techno","dark"],pop:25,label:"RH-05"},
+  {id:122,title:"Jux B",artist:"Objekt",bpm:128,key:"9A",energy:7,style:["techno","bass"],pop:28,label:"TJ Hertz"},
+  {id:123,title:"Theme From Q",artist:"Objekt",bpm:130,key:"10B",energy:7,style:["techno","dark"],pop:26,label:"TJ Hertz"},
+  {id:124,title:"Flatland",artist:"Objekt",bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],pop:24,label:"Objekt"},
+  {id:125,title:"Needle & Thread",artist:"Objekt",bpm:126,key:"8B",energy:6,style:["techno","minimal"],pop:22,label:"TJ Hertz"},
+  {id:126,title:"Come",artist:"DJ Deeon",bpm:128,key:"9A",energy:7,style:["ghetto house","chicago"],pop:16,label:"Dance Mania"},
+  {id:127,title:"Work It",artist:"DJ Deeon",bpm:130,key:"10B",energy:8,style:["ghetto house","chicago"],pop:14,label:"Dance Mania"},
+  {id:128,title:"Drop",artist:"DJ Rashad",bpm:160,key:"4A",energy:8,style:["footwork","juke"],pop:22,label:"Hyperdub"},
+  {id:129,title:"Teklife",artist:"DJ Rashad",bpm:160,key:"4B",energy:8,style:["footwork","juke"],pop:20,label:"Hyperdub"},
+  {id:130,title:"Feelin",artist:"DJ Rashad",bpm:160,key:"5A",energy:7,style:["footwork","juke"],pop:18,label:"Hyperdub"},
+  {id:131,title:"Welcome to Chicago",artist:"DJ Rashad",bpm:160,key:"4A",energy:9,style:["footwork","juke"],pop:16,label:"Hyperdub"},
+  {id:132,title:"Acid Rain",artist:"Objekt",bpm:134,key:"12B",energy:8,style:["techno","acid"],pop:28,label:"Objekt"},
+  {id:133,title:"One Fell Swoop",artist:"Objekt",bpm:130,key:"10A",energy:7,style:["techno","dark"],pop:26,label:"Objekt"},
+  {id:134,title:"Ganzfeld",artist:"Objekt",bpm:128,key:"9A",energy:7,style:["techno","minimal"],pop:24,label:"Objekt"},
+  {id:135,title:"Agnes Apparatus",artist:"Objekt",bpm:126,key:"8B",energy:6,style:["techno","minimal"],pop:22,label:"Objekt"},
+  {id:136,title:"Lost & Found",artist:"DJ Sprinkles",bpm:122,key:"7B",energy:5,style:["deep house","dub house"],pop:20,label:"Mule Musiq"},
 ];
-var idx = 0;
-function loadNext() {
-  if (idx >= scripts.length) { startApp(); return; }
-  var src = scripts[idx++];
-  var s = document.createElement('script');
-  s.src = src;
-  s.onload = loadNext;
-  s.onerror = function() { showErr('No se pudo cargar: ' + src + '<br>Verificá tu conexión.'); };
-  document.head.appendChild(s);
-}
-loadNext();
-</script>
 
-<script>
-function startApp() {
-  try {
-    // ── ERROR BOUNDARY ────────────────────────────────────────────────────────
-    class ErrorBoundary extends React.Component {
-      constructor(props) { super(props); this.state = { error: null }; }
-      static getDerivedStateFromError(e) { return { error: e }; }
-      componentDidCatch(e, info) { console.error('[SetLab] React error:', e, info); }
-      render() {
-        if (this.state.error) {
-          var e = this.state.error;
-          return React.createElement('div', { style: { color:'#ef4444', fontFamily:'monospace', padding:40, background:'#030302', minHeight:'100vh', wordBreak:'break-word', fontSize:12 } },
-            'Error en la app: ' + String(e && e.message ? e.message : e)
-          );
-        }
-        return this.props.children;
-      }
+const STYLE_FAMILY = {
+  "techno":["techno","dark","industrial techno","hard techno","minimal","hypnotic","detroit"],
+  "dark":["dark","techno","industrial techno","dark house","dub techno"],
+  "industrial techno":["industrial techno","hard techno","techno","industrial"],
+  "hard techno":["hard techno","industrial techno","techno"],
+  "deep techno":["deep techno","dub techno","ambient techno","minimal","techno"],
+  "dub techno":["dub techno","deep techno","minimal","ambient techno"],
+  "ambient techno":["ambient techno","deep techno","melodic techno","dub techno"],
+  "melodic techno":["melodic techno","ambient techno","deep techno","melodic house"],
+  "deep house":["deep house","chicago","dark house","dub house","gospel house"],
+  "dark house":["dark house","deep house","dub techno","dub house","bass"],
+  "chicago":["chicago","deep house","ghetto house","gospel house"],
+  "minimal":["minimal","deep techno","dub techno","techno"],
+  "melodic house":["melodic house","deep house","ambient techno"],
+  "detroit":["detroit","techno","deep house","electro"],
+  "rave":["rave","techno","hard techno"],
+  "dubstep":["dubstep","dark house","bass"],
+  "footwork":["footwork","juke"],
+  "trip-hop":["trip-hop","dark house","ambient"],
+};
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+var state = {
+  tab: 'library',
+  mySet: [],
+  seed: null,
+  suggestions: [],
+  search: '',
+  styleFilter: 'all',
+  findTrack: null,
+};
+
+// ─────────────────────────────────────────────
+// LOGIC
+// ─────────────────────────────────────────────
+function camelotScore(a, b) {
+  var nA=parseInt(a), nB=parseInt(b), lA=a.slice(-1), lB=b.slice(-1);
+  if(nA===nB && lA===lB) return 100;
+  if(nA===nB) return 75;
+  var d=Math.min(Math.abs(nA-nB), 12-Math.abs(nA-nB));
+  if(d===1 && lA===lB) return 90;
+  if(d===1 && lA!==lB) return 50;
+  if(d===2 && lA===lB) return 30;
+  if(d===2 && lA!==lB) return 15;
+  if(d===3) return 8;
+  return 3;
+}
+
+function styleCompatScore(stylesA, stylesB) {
+  for(var s of stylesA) if(stylesB.includes(s)) return 45;
+  for(var s of stylesA) {
+    var fA = STYLE_FAMILY[s] || [s];
+    for(var t of stylesB) {
+      var fB = STYLE_FAMILY[t] || [t];
+      if(fA.some(function(f){return fB.includes(f);})) return 30;
     }
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      React.createElement(ErrorBoundary, null, React.createElement(App, null))
-    );
-  } catch(e) {
-    showErr('<b>Error al iniciar:</b><br>' + e.message + '<br>' + (e.stack||'').slice(0,400));
+  }
+  return 10;
+}
+
+function scoreMatch(seed, t) {
+  var d = Math.abs(seed.bpm - t.bpm);
+  var bpmScore = d===0?100:d<=2?95:d<=4?85:d<=7?65:d<=12?35:d<=15?10:0;
+  var keyScore = camelotScore(seed.key, t.key);
+  var eDiff = t.energy - seed.energy;
+  var energyScore = eDiff===0?90:eDiff===1?100:eDiff===-1?80:eDiff===2?70:eDiff===-2?60:eDiff===3?50:eDiff===-3?30:10;
+  var styleScore = styleCompatScore(seed.style, t.style);
+  if(bpmScore===0) return {total:0,bpmScore,keyScore,energyScore,styleScore};
+  var total = bpmScore + keyScore + energyScore + styleScore;
+  return {total,bpmScore,keyScore,energyScore,styleScore};
+}
+
+function keyCompatLabel(a, b) {
+  var s = camelotScore(a, b);
+  if(s===100) return {label:'PERFECTO', color:'var(--green)'};
+  if(s>=90)   return {label:'ARMÓNICO', color:'var(--lime)'};
+  if(s>=75)   return {label:'MODAL',    color:'var(--yellow)'};
+  if(s>=50)   return {label:'TENSIÓN',  color:'var(--orange)'};
+  if(s>=15)   return {label:'SALTO',    color:'var(--orange)'};
+  return             {label:'CHOQUE',   color:'var(--red)'};
+}
+
+function getKeyColor(k) {
+  var n = parseInt(k);
+  var l = k.slice(-1);
+  var colors = ['#ef4444','#f97316','#eab308','#84cc16','#22c55e','#14b8a6','#06b6d4','#3b82f6','#6366f1','#8b5cf6','#a855f7','#ec4899'];
+  return colors[(n-1) % 12];
+}
+
+function autoBuild(seed) {
+  var pool = TRACKS.filter(function(t){ return t.id !== seed.id; });
+  var sequence = [seed];
+  var used = new Set([seed.id]);
+  for(var step = 0; step < 7; step++) {
+    var last = sequence[sequence.length-1];
+    var scored = pool
+      .filter(function(t){ return !used.has(t.id); })
+      .map(function(t){
+        var sc = scoreMatch(last, t);
+        var drift = Math.abs(t.bpm - seed.bpm);
+        var driftPen = drift > 18 ? -60 : drift > 12 ? -25 : drift > 8 ? -10 : 0;
+        return {t, total: sc.total + driftPen};
+      })
+      .filter(function(x){ return x.total > 0; })
+      .sort(function(a,b){ return b.total - a.total; });
+    if(!scored.length) break;
+    // pick from top 3 with some variety
+    var pick = scored[Math.min(Math.floor(Math.random()*2), scored.length-1)];
+    sequence.push(pick.t);
+    used.add(pick.t.id);
+  }
+  return sequence.slice(1); // return without seed
+}
+
+function matchesStyle(t, filter) {
+  if(filter === 'all') return true;
+  return t.style.some(function(s){ return s === filter || (STYLE_FAMILY[filter]||[]).includes(s); });
+}
+
+// ─────────────────────────────────────────────
+// RENDER HELPERS
+// ─────────────────────────────────────────────
+function keyPillHTML(k) {
+  var c = getKeyColor(k);
+  return '<span class="key-pill" style="color:'+c+';border-color:'+c+'44">'+k+'</span>';
+}
+
+function energyDotsHTML(e) {
+  var html = '<div class="energy-dots">';
+  for(var i=1;i<=10;i++) html += '<div class="energy-dot'+(i<=e?' on':'')+'"></div>';
+  html += '</div>';
+  return html;
+}
+
+function inSet(id) {
+  return state.mySet.some(function(t){ return t.id===id; });
+}
+
+function trackCardHTML(track, opts) {
+  opts = opts || {};
+  var selected = state.seed && state.seed.id === track.id;
+  var added = inSet(track.id);
+  var cls = 'track-card' + (selected?' selected':'') + (added?' in-set':'');
+  var scoreHtml = '';
+  if(opts.score !== undefined) {
+    var pct = Math.min(100, Math.round(opts.score.total / 3.5));
+    scoreHtml = '<div class="score-bar"><div class="score-fill" style="width:'+pct+'%"></div></div>';
+  }
+  var compatHtml = '';
+  if(opts.compat) {
+    var c = keyCompatLabel(opts.compat.from, track.key);
+    compatHtml = '<span class="compat-badge" style="color:'+c.color+';border-color:'+c.color+'44">'+c.label+'</span>';
+  }
+  return '<div class="'+cls+'" data-id="'+track.id+'" style="animation-delay:'+((opts.idx||0)*0.04)+'s">'
+    + '<div class="track-info" onclick="onTrackClick('+track.id+')">'
+    + '<div class="track-title">'+track.title+'</div>'
+    + '<div class="track-artist">'+track.artist+'</div>'
+    + '<div class="track-meta">'
+    + keyPillHTML(track.key)
+    + '<span class="bpm-tag">'+track.bpm+' BPM</span>'
+    + energyDotsHTML(track.energy)
+    + compatHtml
+    + '</div>'
+    + scoreHtml
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;align-items:center;flex-shrink:0">'
+    + '<button class="btn-add'+(added?' added':'')+'" onclick="toggleSet('+track.id+')" title="'+(added?'Quitar':'Agregar')+'">'+(added?'✓':'+')+'</button>'
+    + '<button onclick="openFind('+track.id+')" style="font-size:9px;color:var(--text3);padding:2px 4px;letter-spacing:0.5px">🔗</button>'
+    + '</div>'
+    + '</div>';
+}
+
+// ─────────────────────────────────────────────
+// SCREENS
+// ─────────────────────────────────────────────
+function renderLibrary() {
+  var q = state.search.toLowerCase();
+  var filtered = TRACKS.filter(function(t){
+    var matchSearch = !q || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q);
+    var matchStyle = matchesStyle(t, state.styleFilter);
+    return matchSearch && matchStyle;
+  });
+
+  var html = '';
+  filtered.forEach(function(t, i){ html += trackCardHTML(t, {idx:i}); });
+  if(!html) html = '<div class="empty"><div class="empty-icon">🎵</div><div class="empty-text">No hay tracks que coincidan</div></div>';
+  document.getElementById('library-list').innerHTML = html;
+}
+
+function renderStyleFilters() {
+  var styles = ['all','techno','deep techno','industrial techno','hard techno','dub techno','ambient techno','melodic techno','dark house','deep house','melodic house','chicago','minimal','detroit','rave','dubstep','trip-hop'];
+  var html = styles.map(function(s){
+    return '<button class="filter-chip'+(state.styleFilter===s?' active':'')+'" onclick="setStyleFilter(\''+s+'\')">'+s+'</button>';
+  }).join('');
+  document.getElementById('style-filters').innerHTML = html;
+}
+
+function renderBuild() {
+  var el = document.getElementById('build-content');
+  if(!state.seed) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🌱</div><div class="empty-text">Seleccioná un track en Library como semilla para construir tu set</div></div>';
+    return;
+  }
+  var seed = state.seed;
+  var suggs = state.suggestions;
+  var html = '';
+
+  // Seed card
+  html += '<div class="seed-card">'
+    + '<div class="seed-label">Semilla</div>'
+    + '<div class="seed-title">'+seed.title+'</div>'
+    + '<div class="seed-artist">'+seed.artist+'</div>'
+    + '<div class="track-meta" style="margin-top:8px">'
+    + keyPillHTML(seed.key)
+    + '<span class="bpm-tag">'+seed.bpm+' BPM</span>'
+    + energyDotsHTML(seed.energy)
+    + '</div>'
+    + '</div>';
+
+  // Action buttons
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px">'
+    + '<button onclick="buildAutoSet()" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--gold)33;color:var(--gold);font-family:var(--sans);font-weight:700;font-size:11px;background:var(--gold)11">⚡ Auto-Build Set</button>'
+    + '<button onclick="addSetToMain()" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--green)33;color:var(--green);font-family:var(--sans);font-weight:700;font-size:11px;background:var(--green)11">＋ Agregar todo</button>'
+    + '</div>';
+
+  // Suggestions
+  if(suggs.length) {
+    html += '<div class="section-header">Tracks compatibles</div>';
+    suggs.forEach(function(item, i){
+      var t = item.track;
+      var sc = item.score;
+      var added = inSet(t.id);
+      var c = keyCompatLabel(seed.key, t.key);
+      html += '<div class="suggestion" style="animation-delay:'+(i*0.05)+'s">'
+        + '<div style="flex:1;min-width:0;cursor:pointer" onclick="onTrackClick('+t.id+')">'
+        + '<div style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.title+'</div>'
+        + '<div style="font-size:10px;color:var(--text3)">'+t.artist+'</div>'
+        + '<div class="track-meta" style="margin-top:4px">'
+        + keyPillHTML(t.key)
+        + '<span class="bpm-tag">'+t.bpm+' BPM</span>'
+        + '<span class="compat-badge" style="color:'+c.color+';border-color:'+c.color+'44">'+c.label+'</span>'
+        + '</div>'
+        + '<div class="score-bar"><div class="score-fill" style="width:'+Math.min(100,Math.round(sc.total/3.5))+'%"></div></div>'
+        + '</div>'
+        + '<button class="btn-add'+(added?' added':'')+'" onclick="toggleSet('+t.id+')">'+(added?'✓':'+')+'</button>'
+        + '</div>';
+    });
+  } else {
+    html += '<div class="empty"><div class="empty-text">Tocá "Auto-Build Set" para generar sugerencias</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function renderSet() {
+  var el = document.getElementById('set-content');
+  if(!state.mySet.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🎚️</div><div class="empty-text">Tu set está vacío.<br>Agregá tracks desde Library o Build.</div></div>';
+    return;
+  }
+
+  // Stats
+  var bpms = state.mySet.map(function(t){return t.bpm;});
+  var minBpm = Math.min.apply(null,bpms), maxBpm = Math.max.apply(null,bpms);
+  var avgEnergy = Math.round(state.mySet.reduce(function(a,t){return a+t.energy;},0)/state.mySet.length*10)/10;
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="stat-val">'+state.mySet.length+'</div><div class="stat-lbl">Tracks</div></div>'
+    + '<div class="stat-card"><div class="stat-val" style="font-size:16px">'+minBpm+'–'+maxBpm+'</div><div class="stat-lbl">BPM Range</div></div>'
+    + '</div>';
+
+  html += '<div style="display:flex;gap:8px;margin-bottom:12px">'
+    + '<button onclick="clearSet()" style="flex:1;padding:9px;border-radius:10px;border:1px solid var(--red)33;color:var(--red);font-size:11px;font-family:var(--sans);font-weight:700">🗑 Vaciar set</button>'
+    + '</div>';
+
+  html += '<div class="section-header">Tracks ('+state.mySet.length+')</div>';
+  state.mySet.forEach(function(t, i){
+    var prev = i > 0 ? state.mySet[i-1] : null;
+    var compat = prev ? keyCompatLabel(prev.key, t.key) : null;
+
+    if(compat) {
+      html += '<div class="compat-row">'
+        + '<div class="compat-line"></div>'
+        + '<div class="compat-label" style="color:'+compat.color+';border-color:'+compat.color+'44">'+compat.label+'</div>'
+        + '<div class="compat-line"></div>'
+        + '</div>';
+    }
+
+    html += '<div class="set-item">'
+      + '<span class="set-num">'+(i+1)+'</span>'
+      + '<div class="set-info">'
+      + '<div class="set-title">'+t.title+'</div>'
+      + '<div class="set-artist">'+t.artist+'</div>'
+      + '<div class="track-meta" style="margin-top:3px">'+keyPillHTML(t.key)+'<span class="bpm-tag">'+t.bpm+' BPM</span>'+energyDotsHTML(t.energy)+'</div>'
+      + '</div>'
+      + '<button class="btn-remove" onclick="removeFromSet('+t.id+')" title="Quitar">−</button>'
+      + '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function renderModal() {
+  var t = state.findTrack;
+  if(!t) return;
+  var bpUrl = 'https://www.beatport.com/search?q='+encodeURIComponent(t.title+' '+t.artist);
+  var spUrl = 'https://open.spotify.com/search/'+encodeURIComponent(t.title+' '+t.artist);
+  var ytUrl = 'https://www.youtube.com/results?search_query='+encodeURIComponent(t.title+' '+t.artist);
+  var raUrl = 'https://www.residentadvisor.net/search/?q='+encodeURIComponent(t.title+' '+t.artist)+'&section=tracks';
+
+  var html = '<div class="modal-title">'+t.title+'</div>'
+    + '<div class="modal-artist">'+t.artist+' · '+t.label+'</div>'
+    + '<div class="track-meta" style="margin-bottom:16px">'+keyPillHTML(t.key)+'<span class="bpm-tag">'+t.bpm+' BPM</span>'+energyDotsHTML(t.energy)+'</div>'
+    + '<a href="'+bpUrl+'" target="_blank" class="link-btn">'
+    + '<span class="link-icon">🎵</span>'
+    + '<div><div class="link-label">Beatport</div><div class="link-sub">Comprar / escuchar</div></div>'
+    + '</a>'
+    + '<a href="'+spUrl+'" target="_blank" class="link-btn">'
+    + '<span class="link-icon">💚</span>'
+    + '<div><div class="link-label">Spotify</div><div class="link-sub">Escuchar</div></div>'
+    + '</a>'
+    + '<a href="'+ytUrl+'" target="_blank" class="link-btn">'
+    + '<span class="link-icon">▶️</span>'
+    + '<div><div class="link-label">YouTube</div><div class="link-sub">Ver video</div></div>'
+    + '</a>'
+    + '<a href="'+raUrl+'" target="_blank" class="link-btn">'
+    + '<span class="link-icon">📻</span>'
+    + '<div><div class="link-label">Resident Advisor</div><div class="link-sub">Info del track</div></div>'
+    + '</a>';
+
+  document.getElementById('modal-content').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────────
+function switchTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelector('[data-tab="'+tab+'"]').classList.add('active');
+  if(tab === 'build') renderBuild();
+  if(tab === 'set') renderSet();
+  // scroll content to top
+  document.getElementById('content').scrollTop = 0;
+}
+
+function onTrackClick(id) {
+  var t = TRACKS.find(function(x){ return x.id===id; });
+  if(!t) return;
+  if(state.seed && state.seed.id === id) {
+    state.seed = null;
+    state.suggestions = [];
+  } else {
+    state.seed = t;
+    // Auto-generate suggestions immediately
+    var pool = TRACKS.filter(function(x){ return x.id !== id; });
+    var scored = pool.map(function(x){
+      return {track:x, score:scoreMatch(t, x)};
+    }).filter(function(x){ return x.score.total > 0; })
+      .sort(function(a,b){ return b.score.total - a.score.total; });
+    state.suggestions = scored.slice(0, 20);
+    switchTab('build');
+  }
+  renderLibrary();
+}
+
+function toggleSet(id) {
+  var t = TRACKS.find(function(x){ return x.id===id; });
+  if(!t) return;
+  if(inSet(id)) {
+    state.mySet = state.mySet.filter(function(x){ return x.id!==id; });
+  } else {
+    state.mySet.push(t);
+  }
+  updateBadge();
+  // Re-render current screen
+  if(state.tab === 'library') renderLibrary();
+  if(state.tab === 'build') renderBuild();
+  if(state.tab === 'set') renderSet();
+}
+
+function removeFromSet(id) {
+  state.mySet = state.mySet.filter(function(x){ return x.id!==id; });
+  updateBadge();
+  renderSet();
+}
+
+function clearSet() {
+  state.mySet = [];
+  updateBadge();
+  renderSet();
+}
+
+function updateBadge() {
+  var badge = document.getElementById('set-badge');
+  if(state.mySet.length > 0) {
+    badge.textContent = state.mySet.length;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
   }
 }
-</script>
 
+function buildAutoSet() {
+  if(!state.seed) return;
+  var built = autoBuild(state.seed);
+  // Add seed + built to set
+  state.mySet = [state.seed];
+  built.forEach(function(t){
+    if(!inSet(t.id)) state.mySet.push(t);
+  });
+  updateBadge();
+  renderBuild();
+}
 
-<script>
-// ── PWA: ÍCONO PNG via Canvas (iOS requiere PNG, no SVG) ───────────────────
-(function(){
-  try {
-    const c = document.createElement('canvas');
-    c.width = c.height = 512;
-    const ctx = c.getContext('2d');
-    // Fondo
-    ctx.fillStyle = '#030302';
-    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0,0,512,512,80); ctx.fill(); }
-    else { ctx.fillRect(0,0,512,512); }
-    // Círculos
-    const draw = (r, sw, color, alpha) => {
-      ctx.save(); ctx.globalAlpha = alpha||1;
-      ctx.strokeStyle = color; ctx.lineWidth = sw;
-      ctx.beginPath(); ctx.arc(256,256,r,0,Math.PI*2); ctx.stroke();
-      ctx.restore();
-    };
-    draw(200, 12, '#c9a84c', 1);
-    draw(140, 6,  '#c9a84c', 0.4);
-    draw(80,  0,  '#c9a84c', 0);
-    ctx.fillStyle = '#c9a84c44';
-    ctx.beginPath(); ctx.arc(256,256,80,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#c9a84c';
-    ctx.beginPath(); ctx.arc(256,256,28,0,Math.PI*2); ctx.fill();
-    const dataUrl = c.toDataURL('image/png');
-    // Ícono touch
-    document.getElementById('apple-touch-icon').href = dataUrl;
-    // Manifest con PNG embebido (compatible iOS)
-    const manifest = {
-      name: "SetLab — DJ Set Planner",
-      short_name: "SetLab",
-      description: "Planeá tus sets de DJ con compatibilidad armónica y energía",
-      start_url: ".",
-      scope: ".",
-      display: "standalone",
-      background_color: "#030302",
-      theme_color: "#030302",
-      orientation: "portrait",
-      icons: [
-        { src: dataUrl, sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: dataUrl, sizes: "192x192", type: "image/png", purpose: "maskable" }
-      ]
-    };
-    const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
-    document.getElementById("pwa-manifest").href = URL.createObjectURL(blob);
-  } catch(e) { console.warn('[SetLab] PWA icon error:', e); }
-})();
+function addSetToMain() {
+  if(!state.seed) return;
+  if(!inSet(state.seed.id)) state.mySet.unshift(state.seed);
+  state.suggestions.forEach(function(item){
+    if(!inSet(item.track.id)) state.mySet.push(item.track);
+  });
+  updateBadge();
+  switchTab('set');
+}
 
-// ── PWA: BANNER iOS — instrucciones "Agregar a inicio" ────────────────────
-(function(){
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.navigator.standalone === true;
-  const dismissed = (() => { try { return localStorage.getItem('sl_ios_banner'); } catch { return null; } })();
-  if (!isIOS || isStandalone || dismissed) return;
-  // Mostrar banner después de 3s
-  setTimeout(() => {
-    const banner = document.createElement('div');
-    banner.id = 'ios-install-banner';
-    banner.style.cssText = [
-      'position:fixed','bottom:80px','left:50%','transform:translateX(-50%)',
-      'background:#1a1610','border:1px solid #c9a84c55','border-radius:16px',
-      'padding:14px 18px','z-index:9999','max-width:320px','width:calc(100% - 40px)',
-      'box-shadow:0 8px 32px rgba(0,0,0,0.7)','display:flex','align-items:center','gap:12px'
-    ].join(';');
-    banner.innerHTML = `
-      <div style="font-size:28px;flex-shrink:0">📲</div>
-      <div style="flex:1">
-        <div style="font-family:sans-serif;font-size:12px;font-weight:700;color:#c9a84c;margin-bottom:3px">Agregar SetLab al inicio</div>
-        <div style="font-family:monospace;font-size:10px;color:#a09880;line-height:1.5">Tocá <b style="color:#c9a84c">Compartir</b> <span style="font-size:14px">⎋</span> y luego <b style="color:#c9a84c">"Agregar a pantalla de inicio"</b></div>
-      </div>
-      <button onclick="this.parentElement.remove();try{localStorage.setItem('sl_ios_banner','1')}catch{}" style="background:none;border:none;color:#706860;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>
-    `;
-    document.body.appendChild(banner);
-    // Auto-hide after 12s
-    setTimeout(() => { if (banner.parentElement) banner.remove(); }, 12000);
-  }, 3000);
-})();
+function setStyleFilter(s) {
+  state.styleFilter = s;
+  renderStyleFilters();
+  renderLibrary();
+}
+
+function openFind(id) {
+  var t = TRACKS.find(function(x){ return x.id===id; });
+  if(!t) return;
+  state.findTrack = t;
+  renderModal();
+  document.getElementById('find-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('find-modal').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────
+// SEARCH
+// ─────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', function(e) {
+  state.search = e.target.value;
+  renderLibrary();
+});
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderStyleFilters();
+renderLibrary();
 </script>
 </body>
 </html>
