@@ -71,18 +71,29 @@
 <div id="root"></div>
 <script>
 (function(){
-  var loaded = 0;
-  function onScriptLoad() {
-    loaded++;
-    if (loaded === 2) run();
+  function showError(msg) {
+    document.body.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;height:100vh">' + msg + '</div>';
   }
-  function loadScript(src) {
+  function loadScript(src, onload, onerror) {
     var s = document.createElement('script');
     s.src = src;
-    s.onload = onScriptLoad;
-    s.onerror = function() { document.body.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;height:100vh">Error: No se pudo cargar React desde CDN.<br>Verificá tu conexión a internet y recargá la página.</div>'; };
+    s.onload = onload;
+    s.onerror = onerror || function() { showError('Error: No se pudo cargar React desde CDN.<br>Verificá tu conexión a internet y recargá la página.'); };
     document.head.appendChild(s);
   }
+  // Cargar en secuencia: primero React, luego ReactDOM, luego ejecutar
+  loadScript(
+    'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+    function() {
+      loadScript(
+        'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
+        function() {
+          // Esperar al próximo frame para asegurar que el DOM esté listo en Safari/iOS
+          requestAnimationFrame(function() { run(); });
+        }
+      );
+    }
+  );
   function run() {
 
 const { useState, useMemo, useRef, useEffect, useContext, createContext } = React;
@@ -2590,7 +2601,16 @@ function App() {
   );
 }
 
-function env_safe_area_top() { return 44; }
+function env_safe_area_top() {
+  try {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);height:0;width:0;visibility:hidden';
+    document.body.appendChild(el);
+    var top = el.getBoundingClientRect().top;
+    document.body.removeChild(el);
+    return top > 0 ? top : 44;
+  } catch(e) { return 44; }
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
 
