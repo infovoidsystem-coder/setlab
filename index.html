@@ -3388,10 +3388,13 @@ self.addEventListener('fetch', e => {
   );
 });
 `;
-  const swUrl = 'data:application/javascript;charset=utf-8,' + encodeURIComponent(swCode);
-  navigator.serviceWorker.register(swUrl).then(()=>{
-    console.log('[SetLab] PWA lista — instalable desde el navegador');
-  }).catch(()=>{});
+  try {
+    const swBlob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).then(()=>{
+      console.log('[SetLab] PWA lista — instalable desde el navegador');
+    }).catch(()=>{});
+  } catch(e) {}
 }
 </script>
 </body>
