@@ -744,52 +744,72 @@ function itunesMatchScore(result, track) {
   const tArtist = normStr(track.artist);
   const tTitle  = normStr(track.title);
 
+  // REQUISITO DURO: si el artista no coincide en absoluto, descartar inmediatamente
+  const firstWordArtistCheck = tArtist.split(" ")[0];
+  const artistAnyMatch = rArtist === tArtist ||
+    rArtist.includes(tArtist) || tArtist.includes(rArtist) ||
+    (firstWordArtistCheck.length > 2 && rArtist.includes(firstWordArtistCheck));
+  if (!artistAnyMatch) return 0;
+
+  // REQUISITO DURO: si el título no tiene ninguna palabra significativa en común, descartar
+  const titleWords = tTitle.split(" ").filter(w => w.length > 2);
+  const titleAnyMatch = rTitle === tTitle ||
+    rTitle.includes(tTitle) || tTitle.includes(rTitle) ||
+    (titleWords.length > 0 && titleWords.some(w => rTitle.includes(w)));
+  if (!titleAnyMatch) return 0;
+
   let score = 0;
 
-  // Coincidencia de artista
+  // Coincidencia de artista (peso: 50 puntos)
   if (rArtist === tArtist) score += 50;
-  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 30;
+  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 40;
   else {
-    // Al menos la primera palabra del artista debe coincidir
-    const firstWordArtist = tArtist.split(" ")[0];
-    if (firstWordArtist.length > 2 && rArtist.includes(firstWordArtist)) score += 15;
+    // Múltiples palabras del artista deben coincidir
+    const artistWords = tArtist.split(" ").filter(w => w.length > 2);
+    const matchedArtistWords = artistWords.filter(w => rArtist.includes(w));
+    if (artistWords.length > 0) {
+      score += Math.round((matchedArtistWords.length / artistWords.length) * 35);
+    }
   }
 
-  // Coincidencia de título
+  // Coincidencia de título (peso: 50 puntos)
   if (rTitle === tTitle) score += 50;
-  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 30;
+  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 38;
   else {
-    // Al menos la primera palabra significativa del título debe coincidir
-    const titleWords = tTitle.split(" ").filter(w => w.length > 2);
-    const matchedWords = titleWords.filter(w => rTitle.includes(w));
-    score += Math.round((matchedWords.length / Math.max(titleWords.length, 1)) * 25);
+    // Proporción de palabras significativas del título que coinciden
+    const titleWords2 = tTitle.split(" ").filter(w => w.length > 2);
+    const matchedWords = titleWords2.filter(w => rTitle.includes(w));
+    score += Math.round((matchedWords.length / Math.max(titleWords2.length, 1)) * 30);
   }
 
-  return score; // necesitamos ≥50 para aceptar el resultado
+  return score; // necesitamos ≥80 para aceptar (artista Y título deben coincidir bien)
 }
 
 async function searchItunesPreview(track) {
   const firstArtist = track.artist.split(/[&,+]/)[0].trim();
   const shortTitle  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
 
+  // Solo queries artista+título — NUNCA solo título (devuelve cualquier cosa)
   const queries = [
     `${firstArtist} ${shortTitle}`,
     `${track.artist} ${shortTitle}`,
     `${firstArtist} ${track.title}`,
+    // Último recurso: solo el artista para explorar su catálogo y matchear por título
+    `${firstArtist}`,
   ];
 
   for (const q of queries) {
     try {
       const res = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=15&entity=song`
+        `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=25&entity=song`
       );
       const data = await res.json();
 
-      // Filtrar solo resultados con previewUrl y ordenar por score de coincidencia
+      // Umbral alto (80): requiere coincidencia real de ARTISTA Y TÍTULO
       const candidates = data.results
         .filter(r => r.previewUrl)
         .map(r => ({ r, score: itunesMatchScore(r, track) }))
-        .filter(x => x.score >= 50)   // umbral mínimo: artista O título deben coincidir bien
+        .filter(x => x.score >= 80)
         .sort((a, b) => b.score - a.score);
 
       if (candidates.length > 0) return candidates[0].r.previewUrl;
@@ -823,19 +843,35 @@ function deezerMatchScore(result, track) {
   const rTitle  = normStr(result.title || '');
   const tArtist = normStr(track.artist);
   const tTitle  = normStr(track.title);
+
+  // REQUISITO DURO: artista debe tener alguna coincidencia
+  const firstWordArtist = tArtist.split(' ')[0];
+  const artistAnyMatch = rArtist === tArtist ||
+    rArtist.includes(tArtist) || tArtist.includes(rArtist) ||
+    (firstWordArtist.length > 2 && rArtist.includes(firstWordArtist));
+  if (!artistAnyMatch) return 0;
+
+  // REQUISITO DURO: título debe tener alguna palabra significativa en común
+  const titleWords = tTitle.split(' ').filter(w => w.length > 2);
+  const titleAnyMatch = rTitle === tTitle ||
+    rTitle.includes(tTitle) || tTitle.includes(rTitle) ||
+    (titleWords.length > 0 && titleWords.some(w => rTitle.includes(w)));
+  if (!titleAnyMatch) return 0;
+
   let score = 0;
   if (rArtist === tArtist) score += 50;
-  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 30;
+  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 40;
   else {
-    const fw = tArtist.split(' ')[0];
-    if (fw.length > 2 && rArtist.includes(fw)) score += 15;
+    const artistWords = tArtist.split(' ').filter(w => w.length > 2);
+    const matched = artistWords.filter(w => rArtist.includes(w));
+    if (artistWords.length > 0) score += Math.round((matched.length / artistWords.length) * 35);
   }
   if (rTitle === tTitle) score += 50;
-  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 30;
+  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 38;
   else {
     const words = tTitle.split(' ').filter(w => w.length > 2);
     const matched = words.filter(w => rTitle.includes(w));
-    score += Math.round((matched.length / Math.max(words.length, 1)) * 25);
+    score += Math.round((matched.length / Math.max(words.length, 1)) * 30);
   }
   return score;
 }
@@ -844,21 +880,22 @@ async function searchDeezerPreview(track) {
   const firstArtist = track.artist.split(/[&,+]/)[0].trim();
   const shortTitle  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
 
-  // Tres estrategias de query: con comillas (exacto), libre, y solo título
+  // Solo queries artista+título — NUNCA solo título
   const queries = [
     `artist:"${firstArtist}" track:"${shortTitle}"`,
     `${firstArtist} ${shortTitle}`,
-    shortTitle,
+    `${track.artist} ${track.title}`,
   ];
 
   for (const q of queries) {
     try {
       const data = await deezerJsonp(q);
       if (!data?.data?.length) continue;
+      // Umbral alto (80): requiere artista Y título reales
       const candidates = data.data
         .filter(r => r.preview)
         .map(r => ({ r, score: deezerMatchScore(r, track) }))
-        .filter(x => x.score >= 45)
+        .filter(x => x.score >= 80)
         .sort((a, b) => b.score - a.score);
       if (candidates.length > 0) return candidates[0].r.preview;
     } catch { /* continuar */ }
