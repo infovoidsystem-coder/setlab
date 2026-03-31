@@ -820,30 +820,8 @@ async function searchDeezerPreview(track) {
   return null;
 }
 
-// ── FUENTE 2: iTunes (buena cobertura mainstream / sellos grandes) ────────
-async function searchItunesPreview(track) {
-  const a1 = track.artist.split(/[&,+]/)[0].trim();
-  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  const queries = [
-    `${a1} ${t1}`,
-    `${track.artist} ${t1}`,
-    `${a1} ${track.title}`,
-    a1,
-  ];
-  for (const q of queries) {
-    try {
-      const res  = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=25&entity=song`);
-      const data = await res.json();
-      const best = data.results
-        .filter(r => r.previewUrl)
-        .map(r => ({ r, s: matchScore(r.artistName, r.trackName, track) }))
-        .filter(x => x.s >= 80)
-        .sort((a, b) => b.s - a.s)[0];
-      if (best) return { url: best.r.previewUrl, source: "iTunes" };
-    } catch {}
-  }
-  return null;
-}
+// ── FUENTE 2: iTunes — deshabilitada (CORS bloqueado desde file/github.io) ─
+async function searchItunesPreview(track) { return null; }
 
 // ── FUENTE 3: Beatport (preview de 128kbps, formato conocido) ────────────
 // Beatport sirve previews sin auth como: /previews/{trackId}/128.mp3
@@ -910,23 +888,7 @@ async function searchYouTubeVideoId(track) {
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   // Usamos el endpoint de YouTube search con términos estrictos
   // Sin API key usamos el truco de invidious (instancia pública) que sí tiene CORS
-  const instances = [
-    `https://invidious.io/api/v1/search?q=${encodeURIComponent(`${a1} ${t1} official`)}&fields=videoId,title,author&type=video`,
-    `https://vid.puffyan.us/api/v1/search?q=${encodeURIComponent(`${a1} ${t1}`)}&fields=videoId,title,author&type=video`,
-    `https://invidious.snopyta.org/api/v1/search?q=${encodeURIComponent(`${a1} ${t1}`)}&fields=videoId,title,author&type=video`,
-  ];
-  for (const url of instances) {
-    try {
-      const res  = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      const data = await res.json();
-      if (!Array.isArray(data) || !data.length) continue;
-      const best = data
-        .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
-        .filter(x => x.s >= 65) // umbral más relajado para video (títulos suelen traer "Official Video" etc.)
-        .sort((a, b) => b.s - a.s)[0];
-      if (best) return best.v.videoId;
-    } catch {}
-  }
+  // Invidious deshabilitado — CORS bloqueado desde file/github.io
   return null;
 }
 
@@ -950,61 +912,13 @@ async function searchLastFm(track) {
   return null;
 }
 
-// ── FUENTE 6: Jamendo (música electrónica con licencia libre, CORS friendly)
-async function searchJamendoPreview(track) {
-  const CLIENT_ID = "b6747d04"; // cliente público gratuito
-  const q = encodeURIComponent(`${track.artist.split(/[&,+]/)[0].trim()} ${track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim()}`);
-  try {
-    const res  = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&namesearch=${q}&audioformat=mp32`, { signal: AbortSignal.timeout(5000) });
-    const data = await res.json();
-    const results = data?.results || [];
-    const best = results
-      .filter(r => r.audio)
-      .map(r => ({ r, s: matchScore(r.artist_name, r.name, track) }))
-      .filter(x => x.s >= 80)
-      .sort((a, b) => b.s - a.s)[0];
-    if (best) return { url: best.r.audio, source: "Jamendo" };
-  } catch {}
-  return null;
-}
-
-// ── FUENTE AUTO: SoundCloud search via noembed/oEmbed (sin CORS) ─────────
-// SoundCloud tiene un endpoint de búsqueda pública que devuelve HTML embebible.
-// Usamos el truco: construimos la URL canónica del track y la pasamos al widget.
-async function searchSoundCloudAuto(track) {
-  const a1 = track.artist.split(/[&,+]/)[0].trim();
-  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  const queries = [
-    `${a1} ${t1}`,
-    `${track.artist} ${track.title}`,
-    `${a1} ${t1} ${track.bpm || ''}`.trim(),
-  ];
-  for (const q of queries) {
-    try {
-      // SoundCloud oEmbed — no tiene CORS, devuelve HTML con iframe src
-      const url = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(q)}`;
-      // Usamos noembed.com que actúa de proxy CORS-safe para SoundCloud
-      const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent('https://soundcloud.com/search?q=' + encodeURIComponent(q))}`, { signal: AbortSignal.timeout(5000) });
-      const data = await res.json();
-      if (data?.html) {
-        const m = data.html.match(/src="([^"]*soundcloud[^"]*)"/);
-        if (m) return { scUrl: decodeURIComponent(m[1]), source: "SC-auto" };
-      }
-    } catch {}
-    try {
-      // Fallback: construir URL directa de búsqueda en SC y pasarla al widget
-      const scSearchUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(q)}`;
-      return { scSearchUrl, source: "SC-search" };
-    } catch {}
-  }
-  return null;
-}
+// ── FUENTE 6: Jamendo — deshabilitada (CORS bloqueado desde file/github.io) ─
+async function searchJamendoPreview(track) { return null; }
 
 // ── ORQUESTADOR PRINCIPAL ──────────────────────────────────────────────────
 // Lanza todas las fuentes en paralelo y retorna la primera que responda con match.
-// Fuentes sin CORS: Deezer JSONP ✅ | SoundCloud widget ✅
-// Fuentes con CORS (pueden fallar según host): iTunes, Jamendo
 async function findPreviewUrl(track) {
+  // Race paralelo entre todas las fuentes con audio directo
   return new Promise(resolve => {
     let done = false;
     const finish = result => { if (!done) { done = true; resolve(result); } };
@@ -1023,6 +937,7 @@ async function findPreviewUrl(track) {
       }).catch(() => { pending--; if (pending === 0) finish(null); });
     });
 
+    // Timeout global de seguridad
     setTimeout(() => finish(null), 12000);
   });
 }
@@ -1089,7 +1004,7 @@ function stopSoundCloud() {
   _scPlayingUrl = null; _scOnEnd = null;
 }
 
-// ── PREVIEW BUTTON — usa el orquestador multi-fuente ──────────────────────
+// ── PREVIEW BUTTON ──────────────────────────────────────────────────────────
 function PreviewButton({ track, accent }) {
   const [state, setState] = React.useState(() => {
     if (_previewTrackId === track.id && _previewAudio && !_previewAudio.paused) return "playing";
@@ -1131,14 +1046,14 @@ function PreviewButton({ track, accent }) {
 
   async function handleClick(e) {
     e.stopPropagation();
-
-    if (state === "playing" || state === "loading") {
-      stopAll(); setState("idle"); setSource(""); return;
-    }
+    if (state === "playing" || state === "loading") { stopAll(); setState("idle"); setSource(""); return; }
     stopAll();
     setState("loading");
 
-    // ── PRIORIDAD 1: URL SoundCloud explícita en el track ───────────────
+    const a1 = track.artist.split(/[&,+]/)[0].trim();
+    const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+
+    // 1: SoundCloud URL explícita
     if (isSoundCloudUrl(track.soundcloudUrl)) {
       try {
         _scPlayingSetState = setState; _scPlayingTrackId = track.id;
@@ -1149,60 +1064,45 @@ function PreviewButton({ track, accent }) {
       } catch { stopAll(); }
     }
 
-    // ── PRIORIDAD 2: URL de audio directo en el track ───────────────────
+    // 2: Audio directo
     if (track.previewUrl && isDirectAudioUrl(track.previewUrl)) {
       try {
         await playAudioUrl(track.previewUrl);
-        setState("playing"); setSource("direct");
+        setState("playing"); setSource("▶");
         _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
         return;
       } catch { stopAll(); }
     }
 
-    // ── PRIORIDAD 3: Deezer JSONP (sin CORS, mejor para electrónica) ─────
+    // 3: Deezer JSONP (sin CORS)
     try {
-      const result = await searchDeezerPreview(track);
-      if (result?.url) {
-        await playAudioUrl(result.url);
+      const r = await searchDeezerPreview(track);
+      if (r?.url) {
+        await playAudioUrl(r.url);
         setState("playing"); setSource("Deezer");
         _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
         return;
       }
     } catch { stopAll(); }
 
-    // ── PRIORIDAD 4: iTunes (puede fallar por CORS según host) ───────────
+    // 4: SoundCloud búsqueda automática por artista + título (sin CORS)
     try {
-      const result = await searchItunesPreview(track);
-      if (result?.url) {
-        await playAudioUrl(result.url);
-        setState("playing"); setSource("iTunes");
-        _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
-        return;
-      }
-    } catch { stopAll(); }
-
-    // ── PRIORIDAD 5: SoundCloud búsqueda automática (sin CORS) ───────────
-    try {
-      const a1 = track.artist.split(/[&,+]/)[0].trim();
-      const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-      const scSearchUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(a1 + ' ' + t1)}`;
+      const scUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(a1 + ' ' + t1)}`;
       _scPlayingSetState = setState; _scPlayingTrackId = track.id;
-      await playSoundCloudTrack(scSearchUrl);
+      await playSoundCloudTrack(scUrl);
       setState("playing"); setSource("SC");
       _scOnEnd = () => { setState("idle"); setSource(""); _scPlayingSetState = null; _scPlayingTrackId = null; };
       return;
     } catch { stopAll(); }
 
-    // ── PRIORIDAD 6: YouTube iframe ──────────────────────────────────────
+    // 5: SoundCloud búsqueda solo por título
     try {
-      const vid = await searchYouTubeVideoId(track);
-      if (vid) {
-        _ytSetState = setState; _ytTrackId = track.id; _ytPlaying = true;
-        await loadYTVideo(vid);
-        setState("playing"); setSource("YT");
-        _ytOnEnd = () => { setState("idle"); setSource(""); _ytPlaying = false; _ytTrackId = null; _ytSetState = null; };
-        return;
-      }
+      const scUrl2 = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(t1)}`;
+      _scPlayingSetState = setState; _scPlayingTrackId = track.id;
+      await playSoundCloudTrack(scUrl2);
+      setState("playing"); setSource("SC");
+      _scOnEnd = () => { setState("idle"); setSource(""); _scPlayingSetState = null; _scPlayingTrackId = null; };
+      return;
     } catch { stopAll(); }
 
     setState("nf"); setSource("");
