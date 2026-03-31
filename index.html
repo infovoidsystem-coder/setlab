@@ -89,7 +89,13 @@
         'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
         function() {
           // Esperar al próximo frame para asegurar que el DOM esté listo en Safari/iOS
-          requestAnimationFrame(function() { run(); });
+          requestAnimationFrame(function() {
+            try {
+              run();
+            } catch(e) {
+              document.body.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;min-height:100vh;word-break:break-word"><b>Error al iniciar la app:</b><br><br>' + (e && e.message ? e.message : String(e)) + '<br><br><small style="color:#706860">Stack: ' + (e && e.stack ? e.stack.replace(/</g,"&lt;") : "N/A") + '</small></div>';
+            }
+          });
         }
       );
     }
@@ -2615,8 +2621,6 @@ function env_safe_area_top() {
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
 
   }
-  loadScript('https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js');
-  loadScript('https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js');
 })();
 </script>
 
