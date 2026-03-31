@@ -800,23 +800,54 @@ function deezerJsonp(query) {
 async function searchDeezerPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  const queries = [
+
+  // Fase 1: búsqueda exacta con distintas queries
+  const exactQueries = [
     `artist:"${a1}" track:"${t1}"`,
     `${a1} ${t1}`,
     `${track.artist} ${track.title}`,
   ];
-  for (const q of queries) {
+  for (const q of exactQueries) {
     try {
       const data = await deezerJsonp(q);
       if (!data?.data?.length) continue;
-      const best = data.data
-        .filter(r => r.preview)
+      const withPreview = data.data.filter(r => r.preview);
+      if (!withPreview.length) continue;
+      const best = withPreview
         .map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
-        .filter(x => x.s >= 80)
+        .filter(x => x.s >= 60)
         .sort((a, b) => b.s - a.s)[0];
       if (best) return { url: best.r.preview, source: "Deezer" };
     } catch {}
   }
+
+  // Fase 2: buscar variantes — remixes, collabs, versiones del mismo título
+  try {
+    const data = await deezerJsonp(t1);
+    if (data?.data?.length) {
+      const withPreview = data.data.filter(r => r.preview);
+      // Buscar cualquier track cuyo título contenga palabras clave del título original
+      const titleWords = normStr(t1).split(' ').filter(w => w.length > 3);
+      const variant = withPreview.find(r => {
+        const rt = normStr(r.title);
+        const ra = normStr(r.artist?.name || '');
+        const titleHit = titleWords.length > 0 && titleWords.some(w => rt.includes(w));
+        const artistHit = ra.includes(normStr(a1).split(' ')[0]);
+        return titleHit || artistHit;
+      });
+      if (variant) return { url: variant.preview, source: "Deezer~" };
+    }
+  } catch {}
+
+  // Fase 3: buscar solo por artista y tomar el primer track con preview
+  try {
+    const data = await deezerJsonp(`artist:"${a1}"`);
+    if (data?.data?.length) {
+      const withPreview = data.data.filter(r => r.preview);
+      if (withPreview.length) return { url: withPreview[0].preview, source: "Deezer~" };
+    }
+  } catch {}
+
   return null;
 }
 
@@ -1025,14 +1056,7 @@ function getSCWidgetIframe() {
   return iframe;
 }
 
-async function playSoundCloudTrack(scPageUrl) {
-  // Verificar que el track existe via oEmbed antes de cargar el iframe (evita 404 silenciosos)
-  try {
-    const oembedRes = await fetch(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(scPageUrl)}`, { signal: AbortSignal.timeout(5000) });
-    if (!oembedRes.ok) throw new Error("SC 404");
-  } catch(e) {
-    throw new Error("SC no disponible: " + e.message);
-  }
+function playSoundCloudTrack(scPageUrl) {
   return new Promise((resolve, reject) => {
     const iframe = getSCWidgetIframe();
     _scReady = false; _scPlayingUrl = scPageUrl;
@@ -1093,7 +1117,7 @@ function PreviewButton({ track, accent }) {
     stopAll();
     setState("loading");
 
-    // 1: SoundCloud URL explícita — verifica existencia antes de cargar
+    // 1: SoundCloud URL explícita
     if (isSoundCloudUrl(track.soundcloudUrl)) {
       try {
         _scPlayingSetState = setState; _scPlayingTrackId = track.id;
@@ -1114,12 +1138,12 @@ function PreviewButton({ track, accent }) {
       } catch { stopAll(); }
     }
 
-    // 3: Deezer JSONP (funciona sin CORS)
+    // 3: Deezer — exacto, variantes y por artista
     try {
       const r = await searchDeezerPreview(track);
       if (r?.url) {
         await playAudioUrl(r.url);
-        setState("playing"); setSource("Deezer");
+        setState("playing"); setSource(r.source || "Deezer");
         _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
         return;
       }
