@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23030302'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c9a84c' stroke-width='8'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%23c9a84c' opacity='.3'/%3E%3C/svg%3E"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;height:-webkit-fill-available;background:#030302;font-family:'Syne',sans-serif;transition:background 0.3s}
+  html,body{height:100%;background:#030302;font-family:'Syne',sans-serif;transition:background 0.3s}
   ::-webkit-scrollbar{display:none}
   input[type=range]{-webkit-appearance:none;height:1.5px;border-radius:1px;background:#161412;outline:none}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#c9a84c;cursor:pointer;box-shadow:0 0 0 3px #c9a84c18}
@@ -3285,7 +3285,7 @@ function App() {
   const NAV_H = 64;
   return (
     <ScaleCtx.Provider value={scale}>
-    <div style={{height:"100vh",height:"-webkit-fill-available",overflow:"hidden",background:T.bg,position:"relative"}}>
+    <div style={{height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}>
 
       {/* HEADER FIJO — siempre visible */}
       <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}>
@@ -3302,7 +3302,7 @@ function App() {
         overflowY:"auto", overflowX:"hidden",
         WebkitOverflowScrolling:"touch", scrollbarWidth:"none",
       }}>
-        <div style={{maxWidth:430, margin:"0 auto", minHeight:"100%", background:T.bgAlt, display:"flex", flexDirection:"column", fontSize:`${scale * 100}%`}}>
+        <div style={{zoom:scale, maxWidth:430, margin:"0 auto", minHeight:"100%", background:T.bgAlt, display:"flex", flexDirection:"column"}}>
           {tab==="library"&&<LibraryScreen seed={seed} setSeed={handleSeed} mySet={mySet} addToSet={addToSet} maxPop={maxPop} setMaxPop={setMaxPop} styleFilter={style} setStyleFilter={setStyle} search={search} setSearch={setSearch} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="build"&&<BuildScreen seed={seed} setSeed={t=>{setSeed(t);if(!t)setTab("library");}} mySet={mySet} addToSet={addToSet} setMySet={setMySet} maxPop={maxPop} onFind={setFindTrack} djTracks={djTracks}/>}
           {tab==="set"&&<SetScreen mySet={mySet} setMySet={setMySet} onFind={setFindTrack}/>}
@@ -3362,17 +3362,35 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
       { src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%23030302'/%3E%3Ccircle cx='256' cy='256' r='200' fill='none' stroke='%23c9a84c' stroke-width='12'/%3E%3Ccircle cx='256' cy='256' r='140' fill='none' stroke='%23c9a84c' stroke-width='6' opacity='.4'/%3E%3Ccircle cx='256' cy='256' r='80' fill='%23c9a84c' opacity='.25'/%3E%3Ccircle cx='256' cy='256' r='28' fill='%23c9a84c'/%3E%3C/svg%3E", sizes:"512x512", type:"image/svg+xml", purpose:"any maskable" }
     ]
   };
-  // Safari does NOT support blob: URLs for manifests — use data: URL instead
-  const manifestStr = JSON.stringify(manifest);
-  document.getElementById("pwa-manifest").href = 'data:application/json,' + encodeURIComponent(manifestStr);
+  const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+  document.getElementById("pwa-manifest").href = URL.createObjectURL(blob);
 })();
 
-// ── PWA: SERVICE WORKER (Safari-compatible) ───────────────────────────────
+// ── PWA: SERVICE WORKER ───────────────────────────────────────────────────
 if('serviceWorker' in navigator) {
-  const swCode = `const CACHE='setlab-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html']).catch(()=>{})));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;
-  const swDataUrl = 'data:application/javascript,' + encodeURIComponent(swCode);
-  navigator.serviceWorker.register(swDataUrl).then(()=>{
-    console.log('[SetLab] PWA lista');
+  const swCode = `
+const CACHE = 'setlab-v1';
+const ASSETS = ['./', './index.html'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
+});
+`;
+  const swUrl = 'data:application/javascript;charset=utf-8,' + encodeURIComponent(swCode);
+  navigator.serviceWorker.register(swUrl).then(()=>{
+    console.log('[SetLab] PWA lista — instalable desde el navegador');
   }).catch(()=>{});
 }
 </script>
