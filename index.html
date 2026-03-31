@@ -2505,6 +2505,17 @@ function useIsDesktop() {
   return desk;
 }
 
+// Pre-calculate safe area top once, outside any component
+var SAFE_AREA_TOP = 44;
+try {
+  var _safeEl = document.createElement('div');
+  _safeEl.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);height:0;width:0;visibility:hidden;pointer-events:none';
+  document.body.appendChild(_safeEl);
+  var _safeTop = _safeEl.getBoundingClientRect().top;
+  document.body.removeChild(_safeEl);
+  if (_safeTop > 0) SAFE_AREA_TOP = _safeTop;
+} catch(e) {}
+
 function App() {
   const [tab,setTab]=useState("library");
   const [seed,setSeed]=useState(null);
@@ -2584,10 +2595,10 @@ function App() {
   );
 
   // ── MOBILE LAYOUT — header y footer siempre visibles ──────────────────────
-  const HEADER_H = env_safe_area_top() + 52; // 44 safe area + 52 header
+  const HEADER_H = SAFE_AREA_TOP + 52; // safe area + 52 header
   const NAV_H = 64;
   return (
-    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"id": "app-scaler", "style": {height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}, React.createElement("div", {"style": {position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}, React.createElement("div", {"style": {height:env_safe_area_top()}}), React.createElement("div", {"style": {height:52,display:"flex",alignItems:"center",padding:"0 14px 0 20px",justifyContent:"space-between",maxWidth:430,margin:"0 auto",width:"100%"}}, React.createElement(LogoFull, null), React.createElement(SettingsBar, {"theme": theme, "setThemeFn": setThemeFn, "scale": scale, "setScaleFn": setScaleFn, "compact": true}))), React.createElement("div", {"style": {
+    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"id": "app-scaler", "style": {height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}, React.createElement("div", {"style": {position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}, React.createElement("div", {"style": {height:SAFE_AREA_TOP}}), React.createElement("div", {"style": {height:52,display:"flex",alignItems:"center",padding:"0 14px 0 20px",justifyContent:"space-between",maxWidth:430,margin:"0 auto",width:"100%"}}, React.createElement(LogoFull, null), React.createElement(SettingsBar, {"theme": theme, "setThemeFn": setThemeFn, "scale": scale, "setScaleFn": setScaleFn, "compact": true}))), React.createElement("div", {"style": {
         position:"absolute", top:HEADER_H, bottom:NAV_H, left:0, right:0,
         overflowY:"auto", overflowX:"hidden",
         WebkitOverflowScrolling:"touch", scrollbarWidth:"none",
@@ -2607,16 +2618,6 @@ function App() {
   );
 }
 
-function env_safe_area_top() {
-  try {
-    var el = document.createElement('div');
-    el.style.cssText = 'position:fixed;top:env(safe-area-inset-top,0px);height:0;width:0;visibility:hidden';
-    document.body.appendChild(el);
-    var top = el.getBoundingClientRect().top;
-    document.body.removeChild(el);
-    return top > 0 ? top : 44;
-  } catch(e) { return 44; }
-}
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
 
