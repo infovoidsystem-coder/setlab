@@ -178,157 +178,90 @@ function LogoFull() {
 
 const TRACKS = [
   // --- TECHNO OSCURO / BERLIN ---
-  {id:1,  title:"Heartbeat",              artist:"Adam Beyer",           bpm:132,key:"11A",energy:8,style:["techno","dark"],               pop:42, label:"Drumcode"},
-  {id:2,  title:"Your Mind Is a Box (Let Us Fill It With Wonder)", artist:"Adam Beyer & Ida Engberg", bpm:130,key:"10A",energy:7,style:["techno","dark"],pop:38,label:"Drumcode"},
-  {id:3,  title:"Doppler",                artist:"Charlotte de Witte",   bpm:134,key:"12A",energy:9,style:["techno","hard techno"],         pop:52, label:"KNTXT"},
-  {id:4,  title:"Doppler (Remixed)",      artist:"Charlotte de Witte",   bpm:136,key:"1A", energy:9,style:["techno","hard techno"],         pop:48, label:"KNTXT"},
-  {id:5,  title:"Return to Nowhere",      artist:"Charlotte de Witte",   bpm:131,key:"11B",energy:8,style:["techno","dark"],                pop:55, label:"KNTXT"},
-  {id:6,  title:"Obscur",                 artist:"Amelie Lens",          bpm:133,key:"12B",energy:8,style:["techno","dark"],                pop:50, label:"Exhale"},
-  {id:7,  title:"LOVE",                   artist:"Amelie Lens",          bpm:135,key:"2A", energy:9,style:["techno","hard techno"],         pop:58, label:"Exhale"},
-  {id:8,  title:"Exhale",                 artist:"Amelie Lens",          bpm:129,key:"10B",energy:7,style:["techno","dark"],                pop:45, label:"Exhale"},
-  {id:9,  title:"Skin",                   artist:"Ben Klock",            bpm:126,key:"9A", energy:6,style:["deep techno","dark"],           pop:40, label:"Ostgut Ton"},
-  {id:10, title:"Subzero",                artist:"Ben Klock",            bpm:128,key:"10A",energy:7,style:["deep techno","dark"],           pop:38, label:"Ostgut Ton"},
-  {id:11, title:"One",                    artist:"Ben Klock",            bpm:125,key:"8B", energy:7,style:["techno","dark"],                pop:44, label:"Ostgut Ton"},
-  {id:12, title:"Solitary Daze",          artist:"Ben Klock",            bpm:130,key:"11A",energy:8,style:["techno","dark"],                pop:36, label:"Ostgut Ton"},
-  {id:13, title:"Tresor",                 artist:"Surgeon",              bpm:127,key:"9B", energy:7,style:["techno","industrial"],          pop:32, label:"Counterbalance"},
-  {id:14, title:"Force + Form",           artist:"Surgeon",              bpm:130,key:"10A",energy:8,style:["techno","industrial"],          pop:28, label:"Counterbalance"},
-  {id:15, title:"Magneze",                artist:"Marcel Dettmann",      bpm:127,key:"9A", energy:7,style:["deep techno","dark"],           pop:35, label:"MDR"},
-  {id:16, title:"Undulation",             artist:"Marcel Dettmann",      bpm:125,key:"8A", energy:6,style:["deep techno","minimal"],        pop:30, label:"MDR"},
-  {id:17, title:"Pylon",                  artist:"Perc",                 bpm:133,key:"11A",energy:8,style:["industrial techno","hard techno"],pop:22,label:"Perc Trax"},
-  {id:18, title:"Black Acid",             artist:"Perc",                 bpm:130,key:"10A",energy:8,style:["industrial techno","acid"],     pop:19, label:"Perc Trax"},
-  {id:19, title:"Predator",               artist:"Ancient Methods",      bpm:134,key:"10B",energy:9,style:["industrial techno","dark"],     pop:28, label:"Figure"},
-  {id:20, title:"Metropolis",             artist:"Ancient Methods",      bpm:136,key:"11A",energy:9,style:["industrial techno","hard techno"],pop:24,label:"Figure"},
-  // --- TECHNO HIPNÓTICO / BERGHAIN ---
-  {id:21, title:"Ritual",                 artist:"DVS1",                 bpm:126,key:"9A", energy:7,style:["deep techno","dark"],           pop:30, label:"Houndstooth"},
-  {id:22, title:"Nothing Is Real",        artist:"DVS1",                 bpm:127,key:"8A", energy:7,style:["techno","dark"],                pop:28, label:"Houndstooth"},
-  {id:23, title:"Aleph",                  artist:"Donato Dozzy",         bpm:117,key:"5B", energy:4,style:["deep techno","hypnotic"],       pop:25, label:"Spazio Disponibile"},
-  {id:24, title:"K",                      artist:"Donato Dozzy",         bpm:115,key:"4A", energy:4,style:["hypnotic","deep techno"],       pop:22, label:"Spazio Disponibile"},
-  {id:25, title:"Mono No Aware",          artist:"Shifted",              bpm:122,key:"7A", energy:6,style:["deep techno","minimal"],        pop:18, label:"Mote-Evolver"},
-  {id:26, title:"Phase Space",            artist:"Phase Fatale",         bpm:126,key:"8A", energy:7,style:["dark techno","hypnotic"],       pop:32, label:"Afterlife"},
-  {id:27, title:"Eltanin",                artist:"Phase Fatale",         bpm:128,key:"9B", energy:7,style:["dark techno","hypnotic"],       pop:29, label:"Afterlife"},
-  {id:28, title:"Labyrinth",              artist:"Svreca",               bpm:131,key:"11B",energy:8,style:["industrial techno","hard techno"],pop:18,label:"Semantica Records"},
-  {id:29, title:"Arrhythmia",             artist:"Cio D'Or",             bpm:125,key:"8A", energy:6,style:["techno","minimal"],             pop:15, label:"Semantica Records"},
-  {id:30, title:"Klartraum",              artist:"Rrose",                bpm:123,key:"7B", energy:6,style:["techno","ambient techno"],      pop:20, label:"Eaux"},
-  // --- TECHNO DURO / HARD TECHNO ---
-  {id:31, title:"Hydro Bounce",           artist:"Headless Horseman",    bpm:138,key:"1A", energy:9,style:["hard techno","industrial"],     pop:28, label:"Muscletone"},
-  {id:32, title:"Bionic",                 artist:"Headless Horseman",    bpm:140,key:"2A", energy:9,style:["hard techno","dark"],           pop:25, label:"Muscletone"},
-  {id:33, title:"Trinity",                artist:"Reinier Zonneveld",    bpm:141,key:"3A", energy:9,style:["hard techno","techno"],         pop:42, label:"Filth on Acid"},
-  {id:34, title:"Psycho",                 artist:"Reinier Zonneveld",    bpm:138,key:"12B",energy:9,style:["hard techno","industrial"],     pop:38, label:"Filth on Acid"},
-  {id:35, title:"Machine",               artist:"Alignment",            bpm:136,key:"1B", energy:9,style:["hard techno","dark"],           pop:35, label:"Filth on Acid"},
-  {id:36, title:"Labyrinth",             artist:"Alignment",            bpm:134,key:"12A",energy:8,style:["hard techno","techno"],         pop:30, label:"Filth on Acid"},
-  {id:37, title:"Machination",            artist:"Drumcell",             bpm:133,key:"11A",energy:8,style:["industrial techno","hard techno"],pop:18,label:"Droid Recordings"},
-  // --- DUB TECHNO / MINIMAL ---
-  {id:38, title:"C2",                     artist:"Kareem",               bpm:124,key:"8B", energy:6,style:["techno","dub techno"],          pop:14, label:"Sandwell District"},
-  {id:39, title:"Wad",                    artist:"Developer",            bpm:126,key:"9A", energy:6,style:["techno","industrial"],          pop:12, label:"Sandwell District"},
-  {id:40, title:"Refraction",             artist:"Answer Code Req.",     bpm:128,key:"10A",energy:7,style:["techno","dub techno"],          pop:18, label:"Token Records"},
-  {id:41, title:"Demonize",               artist:"Answer Code Req.",     bpm:130,key:"11A",energy:7,style:["techno","dark"],                pop:15, label:"Token Records"},
-  // --- ELECTRO / ACID ---
-  {id:42, title:"Drexciyan Storm",        artist:"DJ Stingray 313",      bpm:123,key:"9A", energy:7,style:["electro","techno"],             pop:30, label:"Tresor Records"},
-  {id:43, title:"Poltergeist",            artist:"Legowelt",             bpm:119,key:"6A", energy:5,style:["acid","electro"],               pop:28, label:"Clone Records"},
-  {id:44, title:"The Simulation",         artist:"I-f",                  bpm:130,key:"10A",energy:8,style:["acid","electro"],               pop:20, label:"Clone Records"},
-  {id:45, title:"Lost in Space",          artist:"Nina Kraviz",          bpm:131,key:"11B",energy:8,style:["techno","acid"],                pop:52, label:"трип"},
-  {id:46, title:"I'm Gonna Get You",      artist:"Nina Kraviz",          bpm:128,key:"9A", energy:7,style:["techno","acid"],                pop:55, label:"трип"},
-  {id:47, title:"Ghetto Kraviz",          artist:"Nina Kraviz",          bpm:126,key:"8B", energy:7,style:["techno","chicago"],             pop:60, label:"трип"},
-  // --- MELODIC TECHNO / DARK TRANCE ---
-  {id:48, title:"Menhir",                 artist:"Innellea",             bpm:130,key:"10B",energy:7,style:["melodic techno","dark"],        pop:32, label:"Innellea"},
-  {id:49, title:"The Ritual",             artist:"Alignment",            bpm:133,key:"12A",energy:8,style:["melodic techno","dark"],        pop:28, label:"Afterlife"},
-  {id:50, title:"Pantheon",               artist:"Tale Of Us",           bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"],pop:55,label:"Afterlife"},
-  {id:51, title:"Another Earth",          artist:"Tale Of Us",           bpm:126,key:"8A", energy:5,style:["melodic techno","deep techno"], pop:48, label:"Afterlife"},
-  {id:52, title:"Koor",                   artist:"Recondite",            bpm:120,key:"7A", energy:5,style:["deep techno","ambient techno"], pop:22, label:"Ghostly International"},
-  {id:53, title:"Hinterland",             artist:"Recondite",            bpm:118,key:"6A", energy:4,style:["deep techno","minimal"],        pop:20, label:"Ghostly International"},
-  // --- TECHNO CLÁSICO / DETROIT ---
-  {id:54, title:"Strings of Life",        artist:"Derrick May",          bpm:122,key:"7A", energy:7,style:["detroit techno","classic"],     pop:55, label:"Transmat"},
-  {id:55, title:"Beyond the Dance",       artist:"Derrick May",          bpm:120,key:"6B", energy:6,style:["detroit techno","classic"],     pop:45, label:"Transmat"},
-  {id:56, title:"It Is What It Is",       artist:"Surgeon",              bpm:129,key:"10B",energy:7,style:["techno","industrial"],          pop:24, label:"Counterbalance"},
-  // --- DARK HOUSE / DUB HOUSE ---
-  {id:57, title:"Creep",                  artist:"Pearson Sound",        bpm:126,key:"8B", energy:7,style:["dark house","bass"],            pop:24, label:"Hessle Audio"},
-  {id:58, title:"Agnes Apparatus",        artist:"Objekt",               bpm:126,key:"10A",energy:7,style:["techno","dark"],               pop:30, label:"TJ Hertz / Objekt"},
-  {id:59, title:"Two Completely Different Things", artist:"Objekt",      bpm:124,key:"9B", energy:6,style:["techno","minimal"],             pop:32, label:"TJ Hertz / Objekt"},
-  {id:60, title:"Violence",               artist:"Andy Stott",           bpm:119,key:"5A", energy:5,style:["dark house","dub"],             pop:28, label:"Modern Love"},
-  {id:61, title:"Needle & Thread",        artist:"Andy Stott",           bpm:117,key:"4B", energy:4,style:["dark house","ambient"],        pop:26, label:"Modern Love"},
-  {id:62, title:"Shed",                   artist:"Shed",                 bpm:122,key:"7B", energy:6,style:["deep house","dark"],            pop:15, label:"Ostgut Ton"},
-  {id:63, title:"Substance",              artist:"L.B. Dub Corp",        bpm:119,key:"6B", energy:5,style:["dub house","deep house"],       pop:10, label:"Ostgut Ton"},
-  {id:64, title:"Untitled 4",             artist:"Actress",              bpm:118,key:"5B", energy:4,style:["dark house","minimal"],         pop:18, label:"Werkdiscs"},
-  // --- DEEP HOUSE / CLÁSICOS ---
-  {id:65, title:"You're Mine",            artist:"Larry Heard",          bpm:116,key:"3B", energy:4,style:["deep house","chicago"],        pop:38, label:"Alleviated Records"},
-  {id:66, title:"The Sun Can't Compare",  artist:"Larry Heard",          bpm:115,key:"3A", energy:4,style:["deep house","chicago"],        pop:35, label:"Alleviated Records"},
-  {id:67, title:"Glisten",                artist:"Bicep",                bpm:128,key:"10A",energy:6,style:["deep house","melodic house"],   pop:62, label:"Ninja Tune"},
-  {id:68, title:"Orca",                   artist:"Bicep",                bpm:130,key:"11B",energy:7,style:["deep house","melodic house"],   pop:58, label:"Ninja Tune"},
-  {id:69, title:"Aura",                   artist:"Bicep",                bpm:124,key:"8A", energy:5,style:["melodic house","deep house"],   pop:55, label:"Ninja Tune"},
-  {id:70, title:"Atlas",                  artist:"Bicep",                bpm:126,key:"9B", energy:6,style:["melodic house","deep house"],   pop:50, label:"Ninja Tune"},
-  {id:71, title:"I'm Gonna Get You",      artist:"DJ Deeon",             bpm:127,key:"8A", energy:7,style:["ghetto house","chicago"],      pop:14, label:"Dance Mania"},
-  {id:72, title:"We On",                  artist:"DJ Deeon",             bpm:126,key:"7B", energy:7,style:["ghetto house","chicago"],      pop:12, label:"Dance Mania"},
-  // --- DRUM & BASS / DUBSTEP ---
-  {id:73, title:"Nothing",               artist:"Burial",               bpm:140,key:"5A", energy:5,style:["dubstep","dark house"],        pop:45, label:"Hyperdub"},
-  {id:74, title:"Archangel",             artist:"Burial",               bpm:138,key:"4B", energy:6,style:["dubstep","ambient"],           pop:48, label:"Hyperdub"},
-  {id:75, title:"Blood on My Hands",     artist:"Shackleton",           bpm:138,key:"2B", energy:7,style:["dubstep","tribal"],            pop:20, label:"Skull Disco"},
-  {id:76, title:"Northern Exposure",     artist:"Pessimist",            bpm:172,key:"4A", energy:8,style:["drum and bass","dark"],        pop:22, label:"Pessimist Productions"},
+  {id:1,  title:"Minus",                   artist:"Sven Väth",             bpm:132,key:"11A",energy:8, style:["techno","dark"],               pop:60, label:"Cocoon Recordings"},
+  {id:2,  title:"Komisch",                 artist:"Sven Väth",             bpm:130,key:"10A",energy:7, style:["techno","dark"],               pop:55, label:"Cocoon Recordings"},
+  {id:3,  title:"Doppler",                 artist:"Charlotte de Witte",    bpm:134,key:"12A",energy:9, style:["techno","hard techno"],        pop:72, label:"KNTXT"},
+  {id:4,  title:"Return to Nowhere",       artist:"Charlotte de Witte",    bpm:131,key:"11B",energy:8, style:["techno","dark"],               pop:68, label:"KNTXT"},
+  {id:5,  title:"Sgat",                    artist:"Charlotte de Witte",    bpm:135,key:"1A", energy:9, style:["techno","hard techno"],        pop:65, label:"KNTXT"},
+  {id:6,  title:"LOVE",                    artist:"Amelie Lens",           bpm:135,key:"2A", energy:9, style:["techno","hard techno"],        pop:75, label:"Exhale"},
+  {id:7,  title:"Exhale",                  artist:"Amelie Lens",           bpm:129,key:"10B",energy:7, style:["techno","dark"],               pop:65, label:"Exhale"},
+  {id:8,  title:"Obscur",                  artist:"Amelie Lens",           bpm:133,key:"12B",energy:8, style:["techno","dark"],               pop:62, label:"Exhale"},
+  {id:9,  title:"Heartbeat",               artist:"Stephan Bodzin",        bpm:128,key:"9A", energy:7, style:["melodic techno","dark"],       pop:70, label:"Afterlife"},
+  {id:10, title:"Singularity",             artist:"Stephan Bodzin",        bpm:126,key:"8A", energy:6, style:["melodic techno","deep techno"],pop:65, label:"Afterlife"},
+  {id:11, title:"Strand",                  artist:"Stephan Bodzin",        bpm:124,key:"8B", energy:6, style:["deep techno","melodic techno"],pop:60, label:"Afterlife"},
+  {id:12, title:"Pompeii",                 artist:"Stephan Bodzin",        bpm:130,key:"10A",energy:8, style:["melodic techno","techno"],     pop:68, label:"Afterlife"},
+  {id:13, title:"Skin",                    artist:"Ben Klock",             bpm:126,key:"9A", energy:6, style:["deep techno","dark"],          pop:55, label:"Ostgut Ton"},
+  {id:14, title:"One",                     artist:"Ben Klock",             bpm:125,key:"8B", energy:7, style:["techno","dark"],               pop:58, label:"Ostgut Ton"},
+  {id:15, title:"Subzero",                 artist:"Ben Klock",             bpm:128,key:"10A",energy:7, style:["deep techno","dark"],          pop:52, label:"Ostgut Ton"},
+  {id:16, title:"Waves",                   artist:"Rødhåd",                bpm:130,key:"11A",energy:8, style:["techno","dark"],               pop:48, label:"Wsnwrth"},
+  {id:17, title:"Eternal",                 artist:"Rødhåd",                bpm:128,key:"9B", energy:7, style:["deep techno","dark"],          pop:45, label:"Wsnwrth"},
 
-  // --- TECHNO ADICIONAL ---
-  {id:77,  title:"Siren",                 artist:"Blawan",               bpm:134,key:"12A",energy:9,style:["industrial techno","hard techno"], pop:30, label:"Ternesc"},
-  {id:78,  title:"Getting Me Down",       artist:"Blawan",               bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],      pop:28, label:"Ternesc"},
-  {id:79,  title:"Cascades",              artist:"Function",             bpm:128,key:"9A", energy:7,style:["deep techno","dark"],              pop:22, label:"Sandwell District"},
-  {id:80,  title:"Obsession",             artist:"Function",             bpm:126,key:"8A", energy:6,style:["deep techno","ambient techno"],    pop:20, label:"Sandwell District"},
-  {id:81,  title:"Boiler",                artist:"Paula Temple",         bpm:136,key:"1A", energy:9,style:["industrial techno","hard techno"], pop:25, label:"Noise Manifesto"},
-  {id:82,  title:"Core",                  artist:"Paula Temple",         bpm:138,key:"2B", energy:9,style:["hard techno","industrial techno"], pop:22, label:"Noise Manifesto"},
-  {id:83,  title:"Eternal Drift",         artist:"Truncate",             bpm:130,key:"11A",energy:8,style:["techno","dark"],                   pop:20, label:"Truncate"},
-  {id:84,  title:"Payload",               artist:"Truncate",             bpm:128,key:"9B", energy:7,style:["techno","industrial techno"],      pop:18, label:"Truncate"},
-  {id:85,  title:"Takt",                  artist:"Sigha",                bpm:127,key:"9A", energy:7,style:["deep techno","minimal"],           pop:15, label:"Token Records"},
-  {id:86,  title:"Aether",                artist:"Sigha",                bpm:125,key:"8A", energy:6,style:["deep techno","ambient techno"],    pop:14, label:"Token Records"},
-  {id:87,  title:"Parallax",              artist:"Inigo Kennedy",        bpm:129,key:"10A",energy:7,style:["techno","dark"],                   pop:16, label:"Token Records"},
-  {id:88,  title:"Void",                  artist:"Inigo Kennedy",        bpm:131,key:"11B",energy:8,style:["techno","industrial techno"],      pop:14, label:"Token Records"},
-  {id:89,  title:"Raw Cut",               artist:"Surgeon",              bpm:133,key:"12A",energy:8,style:["techno","industrial"],             pop:24, label:"Counterbalance"},
-  {id:90,  title:"Force Majeure",         artist:"Ancient Methods",      bpm:135,key:"1A", energy:9,style:["industrial techno","dark"],        pop:26, label:"Figure"},
-  {id:91,  title:"Kharon",               artist:"Rebekah",              bpm:134,key:"12B",energy:8,style:["industrial techno","techno"],      pop:22, label:"Infrastructure"},
-  {id:92,  title:"Binary",               artist:"Rebekah",              bpm:132,key:"11A",energy:8,style:["techno","dark"],                   pop:20, label:"Infrastructure"},
-  {id:93,  title:"Hyper Tension",        artist:"Truss",                bpm:128,key:"10A",energy:7,style:["techno","industrial techno"],      pop:16, label:"Perc Trax"},
-  {id:94,  title:"Plasticity",           artist:"Varg",                 bpm:140,key:"2A", energy:9,style:["hard techno","industrial techno"], pop:20, label:"Northern Electronics"},
-  {id:95,  title:"Mördare",              artist:"Varg",                 bpm:138,key:"1B", energy:9,style:["industrial techno","dark"],        pop:18, label:"Northern Electronics"},
-  {id:96,  title:"Swarm",               artist:"Orphx",                bpm:136,key:"12A",energy:8,style:["industrial techno","hard techno"], pop:14, label:"Sonic Groove"},
-  {id:97,  title:"Overdrive",            artist:"Orphx",                bpm:134,key:"11A",energy:8,style:["techno","industrial techno"],      pop:12, label:"Sonic Groove"},
-  {id:98,  title:"System",              artist:"Surgeon",              bpm:131,key:"10B",energy:7,style:["techno","industrial"],             pop:22, label:"Counterbalance"},
-  {id:99,  title:"Klaxon",              artist:"Slam",                 bpm:132,key:"11A",energy:8,style:["techno","industrial techno"],      pop:30, label:"Soma Records"},
-  {id:100, title:"Positive Education",  artist:"Slam",                 bpm:128,key:"9A", energy:7,style:["techno","dark"],                   pop:35, label:"Soma Records"},
-  {id:101, title:"Pitch Black",         artist:"Speedy J",             bpm:130,key:"10A",energy:7,style:["techno","industrial techno"],      pop:28, label:"Tresor Records"},
-  {id:102, title:"G Spot",              artist:"Speedy J",             bpm:127,key:"8B", energy:7,style:["techno","acid"],                   pop:25, label:"Tresor Records"},
-  {id:103, title:"Mindkiller",          artist:"Oscar Mulero",         bpm:133,key:"12A",energy:8,style:["techno","dark"],                   pop:18, label:"Warm Up Recordings"},
-  {id:104, title:"Black Sun",           artist:"Oscar Mulero",         bpm:131,key:"11B",energy:8,style:["industrial techno","dark"],        pop:16, label:"Warm Up Recordings"},
+  // --- HARD TECHNO ---
+  {id:18, title:"Trinity",                 artist:"Reinier Zonneveld",     bpm:141,key:"3A", energy:9, style:["hard techno","techno"],        pop:72, label:"Filth on Acid"},
+  {id:19, title:"Psycho",                  artist:"Reinier Zonneveld",     bpm:138,key:"12B",energy:9, style:["hard techno","industrial"],    pop:68, label:"Filth on Acid"},
+  {id:20, title:"Born Slippy",             artist:"Reinier Zonneveld",     bpm:140,key:"2A", energy:9, style:["hard techno","techno"],        pop:65, label:"Filth on Acid"},
+  {id:21, title:"Shackles",                artist:"I Hate Models",         bpm:142,key:"3B", energy:9, style:["hard techno","industrial techno"],pop:62,label:"Arts"},
+  {id:22, title:"Away From Earth",         artist:"I Hate Models",         bpm:138,key:"1A", energy:8, style:["techno","industrial techno"],  pop:58, label:"Arts"},
+  {id:23, title:"Beyond Reason",           artist:"SPFDJ",                 bpm:150,key:"3A", energy:9, style:["hard techno","industrial techno"],pop:60,label:"Ilian Tape"},
+  {id:24, title:"Netzwerk",                artist:"SPFDJ",                 bpm:148,key:"2B", energy:9, style:["hard techno","techno"],        pop:55, label:"Ilian Tape"},
 
-  // --- HYPNOTIC / RAVE ADICIONAL ---
-  {id:105, title:"Khohen",              artist:"Kobosil",              bpm:130,key:"10A",energy:7,style:["techno","hypnotic"],               pop:28, label:"RH-05"},
-  {id:106, title:"M_REC",              artist:"Kobosil",              bpm:128,key:"9B", energy:7,style:["techno","dark"],                   pop:25, label:"RH-05"},
-  {id:107, title:"Strobe",             artist:"Deadmau5",             bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"], pop:62, label:"mau5trap"},
-  {id:108, title:"Some Chords",        artist:"Deadmau5",             bpm:126,key:"8A", energy:5,style:["melodic techno","deep techno"],    pop:58, label:"mau5trap"},
-  {id:109, title:"Fragment",           artist:"Blawan",               bpm:136,key:"1B", energy:9,style:["hard techno","industrial techno"], pop:26, label:"Ternesc"},
-  {id:110, title:"Spectral",           artist:"Phase Fatale",         bpm:130,key:"10B",energy:7,style:["dark techno","hypnotic"],          pop:28, label:"Afterlife"},
-  {id:111, title:"Onyx",               artist:"Alignment",            bpm:132,key:"12A",energy:8,style:["melodic techno","dark"],           pop:26, label:"Afterlife"},
-  {id:112, title:"Nexus",              artist:"Innellea",             bpm:128,key:"9A", energy:6,style:["melodic techno","ambient techno"], pop:28, label:"Innellea"},
-  {id:113, title:"Beyond Reason",      artist:"SPFDJ",                bpm:150,key:"3A", energy:9,style:["hard techno","industrial techno"], pop:38, label:"Ilian Tape"},
-  {id:114, title:"Netzwerk",           artist:"SPFDJ",                bpm:148,key:"2B", energy:9,style:["hard techno","techno"],            pop:35, label:"Ilian Tape"},
-  {id:115, title:"Bevel",              artist:"Skee Mask",            bpm:130,key:"10A",energy:6,style:["deep techno","ambient techno"],    pop:30, label:"Ilian Tape"},
-  {id:116, title:"Dial 3",             artist:"Skee Mask",            bpm:128,key:"9B", energy:6,style:["techno","deep techno"],            pop:28, label:"Ilian Tape"},
-  {id:117, title:"Shackles",           artist:"I Hate Models",        bpm:142,key:"3B", energy:9,style:["hard techno","industrial techno"], pop:45, label:"Arts"},
-  {id:118, title:"Away From Earth",    artist:"I Hate Models",        bpm:138,key:"1A", energy:8,style:["techno","industrial techno"],      pop:40, label:"Arts"},
-  {id:119, title:"Hafen",              artist:"HardFist",             bpm:144,key:"4A", energy:9,style:["hard techno","industrial techno"], pop:22, label:"Perc Trax"},
+  // --- MELODIC TECHNO / AFTERLIFE ---
+  {id:25, title:"Khronos",                 artist:"Tale Of Us",            bpm:126,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:72,label:"Afterlife"},
+  {id:26, title:"Pantheon",                artist:"Tale Of Us",            bpm:128,key:"9B", energy:6, style:["melodic techno","ambient techno"],pop:70,label:"Afterlife"},
+  {id:27, title:"Another Earth",           artist:"Tale Of Us",            bpm:124,key:"8A", energy:5, style:["melodic techno","deep techno"], pop:65, label:"Afterlife"},
+  {id:28, title:"Epigraph I",              artist:"Afterlife",             bpm:126,key:"8B", energy:6, style:["melodic techno","dark"],        pop:60, label:"Afterlife"},
+  {id:29, title:"Phase Space",             artist:"Phase Fatale",          bpm:126,key:"8A", energy:7, style:["dark techno","hypnotic"],       pop:55, label:"Afterlife"},
+  {id:30, title:"Spectral",                artist:"Phase Fatale",          bpm:130,key:"10B",energy:7, style:["dark techno","hypnotic"],       pop:52, label:"Afterlife"},
+  {id:31, title:"Orog Nuur",               artist:"Innellea",              bpm:126,key:"8B", energy:6, style:["melodic techno","dark"],        pop:50, label:"Innellea"},
+  {id:32, title:"Menhir",                  artist:"Innellea",              bpm:130,key:"10B",energy:7, style:["melodic techno","dark"],        pop:48, label:"Innellea"},
 
-  // --- DEEP HOUSE / MELODIC ADICIONAL ---
-  {id:120, title:"Sweat",              artist:"Move D",               bpm:122,key:"7B", energy:5,style:["deep house","chicago"],            pop:18, label:"Running Back"},
-  {id:121, title:"Sunshine",           artist:"Move D",               bpm:120,key:"6A", energy:5,style:["deep house","melodic house"],      pop:20, label:"Running Back"},
-  {id:122, title:"Cascades",           artist:"dOP",                  bpm:124,key:"8B", energy:5,style:["deep house","minimal"],            pop:22, label:"Innervisions"},
-  {id:123, title:"Unison",             artist:"Dixon",                bpm:126,key:"9A", energy:6,style:["deep house","melodic house"],      pop:38, label:"Innervisions"},
-  {id:124, title:"Phantasy",           artist:"Âme",                  bpm:128,key:"9B", energy:6,style:["melodic house","deep house"],      pop:42, label:"Innervisions"},
-  {id:125, title:"Rej",                artist:"Âme",                  bpm:126,key:"8A", energy:6,style:["deep house","melodic house"],      pop:40, label:"Innervisions"},
-  {id:126, title:"Faded",              artist:"Tensnake",             bpm:124,key:"8B", energy:6,style:["deep house","melodic house"],      pop:35, label:"Watergate Records"},
-  {id:127, title:"What You Gonna Do",  artist:"Tiger & Woods",        bpm:120,key:"6B", energy:5,style:["deep house","chicago"],            pop:20, label:"Edizioni Mondo"},
-  {id:128, title:"Tresillo",           artist:"Tiger & Woods",        bpm:118,key:"5A", energy:5,style:["deep house","minimal"],            pop:18, label:"Edizioni Mondo"},
-  {id:129, title:"It's Yours",         artist:"JT Donaldson",         bpm:122,key:"7A", energy:6,style:["deep house","chicago"],            pop:16, label:"Gooiland Electro"},
-  {id:130, title:"Raw Cuts",           artist:"Hunee",                bpm:124,key:"8A", energy:5,style:["deep house","chicago"],            pop:24, label:"Running Back"},
-  {id:131, title:"Hunch Music",        artist:"Hunee",                bpm:122,key:"7B", energy:5,style:["deep house","melodic house"],      pop:22, label:"Running Back"},
-  {id:132, title:"Devotion",           artist:"Peggy Gou",            bpm:126,key:"8B", energy:6,style:["deep house","melodic house"],      pop:52, label:"Gudu Records"},
-  {id:133, title:"Han Jan",            artist:"Peggy Gou",            bpm:124,key:"8A", energy:6,style:["melodic house","deep house"],      pop:48, label:"Gudu Records"},
-  {id:134, title:"Rebound",            artist:"Mall Grab",            bpm:128,key:"9A", energy:7,style:["dark house","bass"],               pop:30, label:"Steel City Dance Discs"},
-  {id:135, title:"Galaxy Thumpin",     artist:"Mall Grab",            bpm:130,key:"10B",energy:7,style:["dark house","deep house"],         pop:28, label:"Steel City Dance Discs"},
-  {id:136, title:"Rinse & Repeat",     artist:"Richy Ahmed",          bpm:126,key:"8A", energy:6,style:["deep house","dark house"],         pop:22, label:"Hot Creations"},
+  // --- TECHNO ACID / ELECTRO ---
+  {id:33, title:"Lost in Space",           artist:"Nina Kraviz",           bpm:131,key:"11B",energy:8, style:["techno","acid"],               pop:72, label:"трип"},
+  {id:34, title:"I'm Gonna Get You",       artist:"Nina Kraviz",           bpm:128,key:"9A", energy:7, style:["techno","acid"],               pop:75, label:"трип"},
+  {id:35, title:"Ghetto Kraviz",           artist:"Nina Kraviz",           bpm:126,key:"8B", energy:7, style:["techno","chicago"],            pop:78, label:"трип"},
+  {id:36, title:"Strings of Life",         artist:"Derrick May",           bpm:122,key:"7A", energy:7, style:["detroit techno","classic"],    pop:72, label:"Transmat"},
+  {id:37, title:"Beyond the Dance",        artist:"Derrick May",           bpm:120,key:"6B", energy:6, style:["detroit techno","classic"],    pop:65, label:"Transmat"},
+  {id:38, title:"Nude Photo",              artist:"Derrick May",           bpm:118,key:"5A", energy:6, style:["detroit techno","classic"],    pop:60, label:"Transmat"},
+
+  // --- DEEP HOUSE / MELODIC HOUSE ---
+  {id:39, title:"Glisten",                 artist:"Bicep",                 bpm:128,key:"10A",energy:6, style:["deep house","melodic house"],  pop:82, label:"Ninja Tune"},
+  {id:40, title:"Orca",                    artist:"Bicep",                 bpm:130,key:"11B",energy:7, style:["deep house","melodic house"],  pop:80, label:"Ninja Tune"},
+  {id:41, title:"Aura",                    artist:"Bicep",                 bpm:124,key:"8A", energy:5, style:["melodic house","deep house"],  pop:75, label:"Ninja Tune"},
+  {id:42, title:"Atlas",                   artist:"Bicep",                 bpm:126,key:"9B", energy:6, style:["melodic house","deep house"],  pop:72, label:"Ninja Tune"},
+  {id:43, title:"Meisa",                   artist:"Bicep",                 bpm:122,key:"7A", energy:5, style:["melodic house","deep house"],  pop:70, label:"Ninja Tune"},
+  {id:44, title:"Devotion",                artist:"Peggy Gou",             bpm:126,key:"8B", energy:6, style:["deep house","melodic house"],  pop:78, label:"Gudu Records"},
+  {id:45, title:"Han Jan",                 artist:"Peggy Gou",             bpm:124,key:"8A", energy:6, style:["melodic house","deep house"],  pop:75, label:"Gudu Records"},
+  {id:46, title:"(It Goes Like) Nanana",   artist:"Peggy Gou",             bpm:128,key:"9A", energy:7, style:["melodic house","deep house"],  pop:88, label:"Gudu Records"},
+  {id:47, title:"Phantasy",                artist:"Âme",                   bpm:128,key:"9B", energy:6, style:["melodic house","deep house"],  pop:65, label:"Innervisions"},
+  {id:48, title:"Rej",                     artist:"Âme",                   bpm:126,key:"8A", energy:6, style:["deep house","melodic house"],  pop:62, label:"Innervisions"},
+  {id:49, title:"Unison",                  artist:"Dixon",                 bpm:126,key:"9A", energy:6, style:["deep house","melodic house"],  pop:60, label:"Innervisions"},
+
+  // --- MELODIC TECHNO MAINSTREAM ---
+  {id:50, title:"Strobe",                  artist:"Deadmau5",              bpm:128,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:88,label:"mau5trap"},
+  {id:51, title:"Some Chords",             artist:"Deadmau5",              bpm:126,key:"8A", energy:5, style:["melodic techno","deep techno"], pop:85, label:"mau5trap"},
+  {id:52, title:"I Remember",              artist:"Deadmau5",              bpm:128,key:"9B", energy:6, style:["melodic techno","deep techno"], pop:80, label:"mau5trap"},
+  {id:53, title:"Ghosts n Stuff",          artist:"Deadmau5",              bpm:128,key:"10A",energy:7, style:["melodic techno","techno"],      pop:82, label:"mau5trap"},
+  {id:54, title:"Bevel",                   artist:"Skee Mask",             bpm:130,key:"10A",energy:6, style:["deep techno","ambient techno"], pop:55, label:"Ilian Tape"},
+  {id:55, title:"Dial 3",                  artist:"Skee Mask",             bpm:128,key:"9B", energy:6, style:["techno","deep techno"],         pop:52, label:"Ilian Tape"},
+
+  // --- DARK HOUSE / DUB ---
+  {id:56, title:"Nothing",                 artist:"Burial",                bpm:140,key:"5A", energy:5, style:["dubstep","dark house"],         pop:70, label:"Hyperdub"},
+  {id:57, title:"Archangel",               artist:"Burial",                bpm:138,key:"4B", energy:6, style:["dubstep","ambient"],            pop:72, label:"Hyperdub"},
+  {id:58, title:"Rough Sleeper",           artist:"Burial",                bpm:136,key:"3A", energy:5, style:["dubstep","dark house"],         pop:65, label:"Hyperdub"},
+
+  // --- TECHNO CLÁSICO ---
+  {id:59, title:"Klaxon",                  artist:"Slam",                  bpm:132,key:"11A",energy:8, style:["techno","industrial techno"],   pop:55, label:"Soma Records"},
+  {id:60, title:"Positive Education",      artist:"Slam",                  bpm:128,key:"9A", energy:7, style:["techno","dark"],               pop:58, label:"Soma Records"},
+  {id:61, title:"Pitch Black",             artist:"Speedy J",              bpm:130,key:"10A",energy:7, style:["techno","industrial techno"],   pop:55, label:"Tresor Records"},
+  {id:62, title:"G Spot",                  artist:"Speedy J",              bpm:127,key:"8B", energy:7, style:["techno","acid"],               pop:52, label:"Tresor Records"},
+  {id:63, title:"Khohen",                  artist:"Kobosil",               bpm:130,key:"10A",energy:7, style:["techno","hypnotic"],            pop:48, label:"RH-05"},
+  {id:64, title:"Siren",                   artist:"Blawan",                bpm:134,key:"12A",energy:9, style:["industrial techno","hard techno"],pop:52,label:"Ternesc"},
+  {id:65, title:"Getting Me Down",         artist:"Blawan",                bpm:132,key:"11A",energy:8, style:["techno","industrial techno"],   pop:50, label:"Ternesc"},
+
+  // --- DEEP HOUSE CLÁSICO ---
+  {id:66, title:"You're Mine",             artist:"Larry Heard",           bpm:116,key:"3B", energy:4, style:["deep house","chicago"],        pop:60, label:"Alleviated Records"},
+  {id:67, title:"Can You Feel It",         artist:"Larry Heard",           bpm:115,key:"3A", energy:4, style:["deep house","chicago"],        pop:65, label:"Alleviated Records"},
+  {id:68, title:"Mystery of Love",         artist:"Larry Heard",           bpm:117,key:"4A", energy:4, style:["deep house","chicago"],        pop:58, label:"Alleviated Records"},
 ];
 
 // Índice de estilos para matching rápido
@@ -801,50 +734,40 @@ async function searchDeezerPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
 
-  // Fase 1: búsqueda exacta con distintas queries
-  const exactQueries = [
-    `artist:"${a1}" track:"${t1}"`,
-    `${a1} ${t1}`,
-    `${track.artist} ${track.title}`,
-  ];
-  for (const q of exactQueries) {
+  // Fase 1: match estricto
+  const queries = [`artist:"${a1}" track:"${t1}"`, `${a1} ${t1}`, `${track.artist} ${track.title}`];
+  for (const q of queries) {
     try {
       const data = await deezerJsonp(q);
       if (!data?.data?.length) continue;
       const withPreview = data.data.filter(r => r.preview);
-      if (!withPreview.length) continue;
-      const best = withPreview
-        .map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
-        .filter(x => x.s >= 60)
-        .sort((a, b) => b.s - a.s)[0];
+      const best = withPreview.map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
+        .filter(x => x.s >= 55).sort((a, b) => b.s - a.s)[0];
       if (best) return { url: best.r.preview, source: "Deezer" };
     } catch {}
   }
 
-  // Fase 2: buscar variantes — remixes, collabs, versiones del mismo título
+  // Fase 2: variantes — remix / collab / versión con mismo título
   try {
     const data = await deezerJsonp(t1);
     if (data?.data?.length) {
       const withPreview = data.data.filter(r => r.preview);
-      // Buscar cualquier track cuyo título contenga palabras clave del título original
       const titleWords = normStr(t1).split(' ').filter(w => w.length > 3);
       const variant = withPreview.find(r => {
-        const rt = normStr(r.title);
+        const rt = normStr(r.title || '');
         const ra = normStr(r.artist?.name || '');
-        const titleHit = titleWords.length > 0 && titleWords.some(w => rt.includes(w));
-        const artistHit = ra.includes(normStr(a1).split(' ')[0]);
-        return titleHit || artistHit;
+        return titleWords.some(w => rt.includes(w)) || ra.includes(normStr(a1).split(' ')[0]);
       });
       if (variant) return { url: variant.preview, source: "Deezer~" };
     }
   } catch {}
 
-  // Fase 3: buscar solo por artista y tomar el primer track con preview
+  // Fase 3: cualquier track del artista
   try {
     const data = await deezerJsonp(`artist:"${a1}"`);
     if (data?.data?.length) {
-      const withPreview = data.data.filter(r => r.preview);
-      if (withPreview.length) return { url: withPreview[0].preview, source: "Deezer~" };
+      const first = data.data.find(r => r.preview);
+      if (first) return { url: first.preview, source: "Deezer~" };
     }
   } catch {}
 
@@ -1138,7 +1061,7 @@ function PreviewButton({ track, accent }) {
       } catch { stopAll(); }
     }
 
-    // 3: Deezer — exacto, variantes y por artista
+    // 3: Deezer JSONP — exacto, variantes, por artista
     try {
       const r = await searchDeezerPreview(track);
       if (r?.url) {
@@ -2133,6 +2056,7 @@ function BuildScreen({ seed, setSeed, mySet, addToSet, setMySet, maxPop, onFind,
                               </div>
                               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                                 <EBar energy={track.energy} showLabel/>
+                                <PreviewButton track={track} accent={T.gold}/>
                                 <button
                                   onClick={()=>addToSet(track)}
                                   style={{
