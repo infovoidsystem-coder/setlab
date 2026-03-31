@@ -65,9 +65,9 @@
 </head>
 <body>
 <div id="root"></div>
-<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect, useContext, createContext } = React;
 
@@ -1058,16 +1058,6 @@ function stopSoundCloud() {
 }
 
 // ── PREVIEW BUTTON — usa el orquestador multi-fuente ──────────────────────
-function isSoundCloudUrl(url) { try { return !!url && new URL(url).hostname.includes('soundcloud.com'); } catch { return false; } }
-function isDirectAudioUrl(url) {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    return /\.(mp3|ogg|wav|aac|m4a|opus)(\?|$)/i.test(u.pathname) ||
-      u.hostname.includes('dl.dropbox') || u.hostname.includes('amazonaws') || u.hostname.includes('storage.googleapis');
-  } catch { return false; }
-}
-
 function PreviewButton({ track, accent }) {
   const [state, setState] = React.useState(() => {
     if (_previewTrackId === track.id && _previewAudio && !_previewAudio.paused) return "playing";
