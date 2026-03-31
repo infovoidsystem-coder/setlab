@@ -726,6 +726,7 @@ function FindModal({ track, onClose }) {
 // ── PREESCUCHA GLOBAL ──────────────────────────────────────────────────────
 let _previewAudio = null;
 let _previewSetState = null;
+let _previewTrackId = null;   // ID del track que está sonando por Audio()
 
 // Normaliza texto para comparación: minúscula, sin tildes, sin puntuación
 function normStr(s) {
@@ -894,13 +895,27 @@ function stopSoundCloud() {
 
 // Track which PreviewButton is "SC playing" to reset it when another starts
 let _scPlayingSetState = null;
+let _scPlayingTrackId = null;  // ID del track reproduciendo en SC widget
 
 function PreviewButton({ track, accent }) {
-  const [state, setState] = React.useState("idle"); // idle|loading|playing|error|nf
+  // Inicializar con el estado real: si este track ya estaba sonando (p.ej. tras re-render por scroll)
+  const [state, setState] = React.useState(() => {
+    if (_previewTrackId === track.id && _previewAudio && !_previewAudio.paused) return "playing";
+    if (_scPlayingTrackId === track.id && _scPlayingUrl) return "playing";
+    return "idle";
+  });
+
+  // Mantener la referencia global al setState actualizada cada vez que este botón renderiza
+  // Si era el que estaba sonando, se re-registra como el setState activo (fix principal del bug)
+  React.useEffect(() => {
+    if (_previewTrackId === track.id) _previewSetState = setState;
+    if (_scPlayingTrackId === track.id) _scPlayingSetState = setState;
+  });
 
   function stopCurrentAudio() {
     if (_previewAudio) { _previewAudio.pause(); _previewAudio = null; }
     if (_previewSetState) { _previewSetState("idle"); _previewSetState = null; }
+    _previewTrackId = null;
   }
 
   function stopCurrentSC() {
@@ -909,6 +924,7 @@ function PreviewButton({ track, accent }) {
       _scPlayingSetState("idle");
     }
     _scPlayingSetState = null;
+    _scPlayingTrackId = null;
   }
 
   function stopAll() {
@@ -921,6 +937,7 @@ function PreviewButton({ track, accent }) {
       const audio = new Audio(url);
       _previewAudio = audio;
       _previewSetState = setState;
+      _previewTrackId = track.id;
       audio.addEventListener("canplay", () => {
         audio.play().then(resolve).catch(reject);
       }, { once: true });
@@ -944,15 +961,18 @@ function PreviewButton({ track, accent }) {
     if (isSoundCloudUrl(track.soundcloudUrl)) {
       try {
         _scPlayingSetState = setState;
+        _scPlayingTrackId = track.id;
         await playSoundCloudTrack(track.soundcloudUrl);
         setState("playing");
         _scOnEnd = () => {
           setState("idle");
           _scPlayingSetState = null;
+          _scPlayingTrackId = null;
         };
         return;
       } catch {
         stopAll();
+        _scPlayingTrackId = null;
         // Fallback: abrir en SC
         window.open(track.soundcloudUrl, "_blank", "noopener");
         setState("nf");
@@ -966,7 +986,7 @@ function PreviewButton({ track, accent }) {
       try {
         await playAudioUrl(track.previewUrl);
         setState("playing");
-        _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+        _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; _previewTrackId=null; });
         return;
       } catch { stopCurrentAudio(); }
     }
@@ -978,7 +998,7 @@ function PreviewButton({ track, accent }) {
         if (previewUrl) {
           await playAudioUrl(previewUrl);
           setState("playing");
-          _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; });
+          _previewAudio.addEventListener("ended", () => { setState("idle"); _previewAudio=null; _previewSetState=null; _previewTrackId=null; });
           return;
         }
       } catch { stopCurrentAudio(); }
