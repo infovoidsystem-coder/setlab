@@ -17,7 +17,9 @@
 <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href=""/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:100%}
   html,body{height:100%;background:#030302;font-family:'Syne',sans-serif;transition:background 0.3s}
+  #app-scaler{transform-origin:top left;transition:transform 0.2s}
   ::-webkit-scrollbar{display:none}
   input[type=range]{-webkit-appearance:none;height:1.5px;border-radius:1px;background:#161412;outline:none}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#c9a84c;cursor:pointer;box-shadow:0 0 0 3px #c9a84c18}
@@ -108,6 +110,20 @@ const LIGHT_T = {
 };
 
 const T = { ...DARK_T };
+function applyScale(s) {
+  const el = document.getElementById("app-scaler");
+  if (!el) return;
+  if (s === 1) {
+    el.style.transform = "";
+    el.style.width = "";
+    el.style.height = "";
+  } else {
+    el.style.transform = `scale(${s})`;
+    el.style.width = `${100/s}%`;
+    el.style.height = `${100/s}%`;
+  }
+}
+
 function applyTheme(name) {
   const src = name === "light" ? LIGHT_T : DARK_T;
   Object.assign(T, src);
@@ -592,7 +608,7 @@ function YouTubeEmbed({ track }) {
     status === "loading" && React.createElement("div", { style: { height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 } },
       React.createElement("div", { style: { width: 28, height: 28, borderRadius: "50%", border: "2px solid #ff444433", borderTopColor: "#ff4444", animation: "spin 0.8s linear infinite" } }),
       React.createElement("style", null, "@keyframes spin{to{transform:rotate(360deg)}}"),
-      React.createElement("span", { style: { fontFamily: T.mono, fontSize: 9, color: "#ff444488", letterSpacing: 1 } }, "buscando video…")
+      React.createElement("span", { style: { fontFamily: T.mono, fontSize: 9, color: "#ff444488", letterSpacing: 1 } }, "buscando en " + YT_INVIDIOUS.length + " servidores…")
     ),
     status === "found" && embedSrc && React.createElement("iframe", {
       src: embedSrc,
@@ -613,53 +629,125 @@ function YouTubeEmbed({ track }) {
   );
 }
 
-// Búsqueda YT relajada — acepta sets, compilaciones, channels donde aparezca el título
+// ── MOTOR DE BÚSQUEDA YT — PARALELO TOTAL ───────────────────────────────
+// Todas las instancias se llaman en paralelo. Primera que responde gana.
+// Acepta: track oficial, feat, collab, rip de set, compilación, cualquier
+// video que mencione el título del track.
+
+const YT_INVIDIOUS = [
+  "https://invidious.privacyredirect.com",
+  "https://invidious.nerdvpn.de",
+  "https://invidious.fdn.fr",
+  "https://inv.nadeko.net",
+  "https://yt.artemislena.eu",
+  "https://invidious.lunar.icu",
+  "https://invidious.reallyawfu.com",
+  "https://invidious.io",
+  "https://yewtu.be",
+  "https://iv.melmac.space",
+];
+
+const YT_PIPED = [
+  "https://pipedapi.kavin.rocks",
+  "https://piped-api.garudalinux.org",
+  "https://pipedapi.tokhmi.xyz",
+  "https://pipedapi.mha.fi",
+  "https://piped.privacydev.net/api",
+  "https://pipedapi.reallyawfu.com",
+];
+
+// Extrae videoId de un resultado de Invidious o Piped
+function extractVideoId(item) {
+  return item?.videoId || item?.url?.replace("/watch?v=", "") || null;
+}
+
+// Score relajado — acepta si el título del track aparece en el video
+function relaxedTitleMatch(videoTitle, trackTitle) {
+  const vt = normStr(videoTitle);
+  const tt = normStr(normTitle(trackTitle));
+  const words = tt.split(" ").filter(w => w.length > 3);
+  if (!words.length) return normStr(videoTitle).includes(normStr(trackTitle));
+  // Al menos 70% de las palabras del título deben estar en el título del video
+  const matched = words.filter(w => vt.includes(w));
+  return matched.length >= Math.ceil(words.length * 0.7);
+}
+
+// Busca en una instancia Invidious
+async function searchInvidious(base, query) {
+  const res = await fetch(
+    `${base}/api/v1/search?q=${query}&fields=videoId,title,author&type=video&page=1`,
+    { signal: AbortSignal.timeout(5000) }
+  );
+  if (!res.ok) throw new Error("not ok");
+  return await res.json();
+}
+
+// Busca en una instancia Piped
+async function searchPiped(base, query) {
+  const res = await fetch(
+    `${base}/search?q=${query}&filter=videos`,
+    { signal: AbortSignal.timeout(5000) }
+  );
+  if (!res.ok) throw new Error("not ok");
+  const data = await res.json();
+  return (data?.items || []).map(i => ({
+    videoId: (i.url || "").replace("/watch?v=", ""),
+    title: i.title,
+    author: i.uploaderName,
+  }));
+}
+
+// Selecciona el mejor video de una lista de resultados
+function pickBestVideo(results, track) {
+  if (!Array.isArray(results) || !results.length) return null;
+  // 1. Match estricto artista+título
+  const strict = results
+    .map(v => ({ v, s: matchScore(v.author || "", v.title || "", track) }))
+    .filter(x => x.s >= 30)
+    .sort((a, b) => b.s - a.s)[0];
+  if (strict) return extractVideoId(strict.v);
+  // 2. Match relajado — solo el título
+  const relaxed = results.find(v => relaxedTitleMatch(v.title || "", track.title));
+  if (relaxed) return extractVideoId(relaxed);
+  return null;
+}
+
+// Lanza TODAS las instancias en paralelo — primera que responde con resultado gana
 async function searchYouTubeVideoIdRelaxed(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1c = normTitle(track.title);
-  // Queries: primero exacto artista+título, luego solo título (para rips/sets)
   const queries = [
     encodeURIComponent(`${a1} ${t1c}`),
     encodeURIComponent(`${track.artist} ${track.title}`),
-    encodeURIComponent(`${t1c} techno`),          // para rips de sets
-    encodeURIComponent(`"${t1c}" ${a1}`),
+    encodeURIComponent(`${t1c} ${a1}`),
+    encodeURIComponent(t1c),
   ];
-  const instances = [
-    "https://invidious.privacyredirect.com",
-    "https://invidious.nerdvpn.de",
-    "https://invidious.fdn.fr",
-    "https://inv.nadeko.net",
-    "https://yt.artemislena.eu",
-    "https://invidious.lunar.icu",
-  ];
-  // Intentar todas las instancias con la primera query, luego fallback a queries más amplias
+
   for (const q of queries) {
-    for (const base of instances) {
-      try {
-        const res = await fetch(
-          `${base}/api/v1/search?q=${q}&fields=videoId,title,author&type=video`,
-          { signal: AbortSignal.timeout(4000) }
-        );
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (!Array.isArray(data) || !data.length) continue;
+    // Lanzar todas las instancias Invidious + Piped en paralelo
+    const invidiousProms = YT_INVIDIOUS.map(base =>
+      searchInvidious(base, q).then(data => pickBestVideo(data, track)).catch(() => null)
+    );
+    const pipedProms = YT_PIPED.map(base =>
+      searchPiped(base, q).then(data => pickBestVideo(data, track)).catch(() => null)
+    );
+    const all = [...invidiousProms, ...pipedProms];
 
-        // Primero intentar match estricto artista+título
-        const strict = data
-          .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
-          .filter(x => x.s >= 35)
-          .sort((a, b) => b.s - a.s)[0];
-        if (strict) return strict.v.videoId;
+    // Esperar hasta 7s — tomar el primer resultado no-null
+    const result = await Promise.race([
+      // Primero que devuelva un videoId gana
+      new Promise(resolve => {
+        let done = false;
+        let pending = all.length;
+        all.forEach(p => p.then(vid => {
+          if (vid && !done) { done = true; resolve(vid); }
+          else if (--pending === 0 && !done) resolve(null);
+        }).catch(() => { if (--pending === 0 && !done) resolve(null); }));
+      }),
+      new Promise(resolve => setTimeout(() => resolve(null), 7000)),
+    ]);
 
-        // Si no, match relajado: solo el título tiene que aparecer en el video
-        const tNorm = normStr(t1c);
-        const relaxed = data.find(v => {
-          const vTitle = normStr(v.title);
-          return tNorm.split(" ").filter(w => w.length > 3).every(w => vTitle.includes(w));
-        });
-        if (relaxed) return relaxed.videoId;
-      } catch {}
-    }
+    if (result) return result;
   }
   return null;
 }
@@ -1171,35 +1259,8 @@ function getYouTubeSearchUrl(track) {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(track.artist + " " + track.title)}`;
 }
 
-async function searchYouTubeVideoId(track) {
-  const a1 = track.artist.split(/[&,+]/)[0].trim();
-  const t1c = normTitle(track.title);
-  const q1 = encodeURIComponent(`${a1} ${t1c}`);
-  const q2 = encodeURIComponent(`${track.artist} ${track.title}`);
-  const instances = [
-    `https://invidious.privacyredirect.com/api/v1/search?q=${q1}&fields=videoId,title,author&type=video`,
-    `https://invidious.nerdvpn.de/api/v1/search?q=${q1}&fields=videoId,title,author&type=video`,
-    `https://invidious.fdn.fr/api/v1/search?q=${q2}&fields=videoId,title,author&type=video`,
-    `https://inv.nadeko.net/api/v1/search?q=${q1}&fields=videoId,title,author&type=video`,
-    `https://invidious.perennialte.ch/api/v1/search?q=${q2}&fields=videoId,title,author&type=video`,
-    `https://yt.artemislena.eu/api/v1/search?q=${q1}&fields=videoId,title,author&type=video`,
-    `https://invidious.lunar.icu/api/v1/search?q=${q1}&fields=videoId,title,author&type=video`,
-  ];
-  for (const url of instances) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (!Array.isArray(data) || !data.length) continue;
-      const best = data
-        .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
-        .filter(x => x.s >= 35)
-        .sort((a, b) => b.s - a.s)[0];
-      if (best) return best.v.videoId;
-    } catch {}
-  }
-  return null;
-}
+// searchYouTubeVideoId → alias to the parallel version
+async function searchYouTubeVideoId(track) { return searchYouTubeVideoIdRelaxed(track); }
 
 
 function isDirectAudioUrl(url) {
@@ -2454,11 +2515,15 @@ function App() {
   }
   function setScaleFn(s) {
     setScaleState(s);
+    applyScale(s);
     try { localStorage.setItem("setlab_scale", String(s)); } catch {}
   }
 
-  // Aplicar tema guardado al inicio
-  React.useEffect(()=>{ applyTheme(theme); },[]);
+  // Aplicar tema y escala guardados al inicio
+  React.useEffect(()=>{
+    applyTheme(theme);
+    applyScale(scale);
+  },[]);
 
   const addToSet=t=>{if(!mySet.some(s=>s.id===t.id))setMySet(p=>[...p,t]);};
   const removeFromSet=id=>setMySet(p=>p.filter(t=>t.id!==id));
@@ -2482,7 +2547,7 @@ function App() {
 
   // ── DESKTOP LAYOUT ────────────────────────────────────────────────────────
   if (isDesktop) return (
-    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"style": {minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",}}, React.createElement("div", {"style": {height:56,background:T.bgAlt,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 32px",gap:24,flexShrink:0,position:"sticky",top:0,zIndex:50,backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}, React.createElement(LogoFull, null), React.createElement("div", {"style": {width:1,height:24,background:T.border}}), React.createElement("div", {"style": {display:"flex",gap:4,flex:1}}, tabs.map(({id,label,badge})=>{
+    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"id": "app-scaler", "style": {minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",}}, React.createElement("div", {"style": {height:56,background:T.bgAlt,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",padding:"0 32px",gap:24,flexShrink:0,position:"sticky",top:0,zIndex:50,backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)"}}, React.createElement(LogoFull, null), React.createElement("div", {"style": {width:1,height:24,background:T.border}}), React.createElement("div", {"style": {display:"flex",gap:4,flex:1}}, tabs.map(({id,label,badge})=>{
             const active=tab===id;
             const accent=id==="djs"?DJ_ACCENT:T.gold;
             return (
@@ -2505,7 +2570,7 @@ function App() {
   const HEADER_H = env_safe_area_top() + 52; // 44 safe area + 52 header
   const NAV_H = 64;
   return (
-    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"style": {height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}, React.createElement("div", {"style": {position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}, React.createElement("div", {"style": {height:env_safe_area_top()}}), React.createElement("div", {"style": {height:52,display:"flex",alignItems:"center",padding:"0 14px 0 20px",justifyContent:"space-between",maxWidth:430,margin:"0 auto",width:"100%"}}, React.createElement(LogoFull, null), React.createElement(SettingsBar, {"theme": theme, "setThemeFn": setThemeFn, "scale": scale, "setScaleFn": setScaleFn, "compact": true}))), React.createElement("div", {"style": {
+    React.createElement(ScaleCtx.Provider, {"value": scale}, React.createElement("div", {"id": "app-scaler", "style": {height:"100vh",overflow:"hidden",background:T.bg,position:"relative"}}, React.createElement("div", {"style": {position:"fixed",top:0,left:0,right:0,zIndex:100,background:T.bgAlt,borderBottom:`1px solid ${T.border}`}}, React.createElement("div", {"style": {height:env_safe_area_top()}}), React.createElement("div", {"style": {height:52,display:"flex",alignItems:"center",padding:"0 14px 0 20px",justifyContent:"space-between",maxWidth:430,margin:"0 auto",width:"100%"}}, React.createElement(LogoFull, null), React.createElement(SettingsBar, {"theme": theme, "setThemeFn": setThemeFn, "scale": scale, "setScaleFn": setScaleFn, "compact": true}))), React.createElement("div", {"style": {
         position:"absolute", top:HEADER_H, bottom:NAV_H, left:0, right:0,
         overflowY:"auto", overflowX:"hidden",
         WebkitOverflowScrolling:"touch", scrollbarWidth:"none",
