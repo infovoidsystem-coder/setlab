@@ -674,44 +674,43 @@ function normStr(s) {
     .replace(/\s+/g, " ").trim();
 }
 
-// Calcula score artista+título. Requiere AMBOS para pasar.
+// Calcula score artista+título. Requiere coincidencia ESTRICTA de AMBOS para pasar.
+// Umbral mínimo recomendado: ≥80 (artista+título bien definidos)
 function matchScore(rArtistRaw, rTitleRaw, track) {
   const rArtist = normStr(rArtistRaw);
   const rTitle  = normStr(rTitleRaw);
   const tArtist = normStr(track.artist);
   const tTitle  = normStr(track.title);
 
-  // Requisito duro: alguna coincidencia de artista
-  const fw = tArtist.split(" ")[0];
-  const artistOk = rArtist === tArtist || rArtist.includes(tArtist) || tArtist.includes(rArtist) ||
-    (fw.length > 2 && rArtist.includes(fw));
+  // ── Artista: requisito DURO estricto ──────────────────────────────────────
+  // El artista del resultado debe contener o ser contenido por el artista buscado
+  // No aceptamos solo la primera palabra si es muy corta o ambigua
+  const artistOk = rArtist === tArtist ||
+    rArtist.includes(tArtist) ||
+    tArtist.includes(rArtist);
   if (!artistOk) return 0;
 
-  // Requisito duro: alguna coincidencia de título
-  const tWords = tTitle.split(" ").filter(w => w.length > 2);
-  const titleOk = rTitle === tTitle || rTitle.includes(tTitle) || tTitle.includes(rTitle) ||
-    (tWords.length > 0 && tWords.some(w => rTitle.includes(w)));
+  // ── Título: requisito DURO estricto ───────────────────────────────────────
+  // El título del resultado debe contener o ser contenido por el título buscado
+  // No alcanza con una sola palabra suelta
+  const tTitleClean = tTitle.replace(/\s*[\(\[].*?[\)\]]/g, '').trim(); // sin "(Original Mix)" etc.
+  const rTitleClean = rTitle.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+  const titleOk = rTitleClean === tTitleClean ||
+    rTitleClean.includes(tTitleClean) ||
+    tTitleClean.includes(rTitleClean);
   if (!titleOk) return 0;
 
   let score = 0;
 
   // Artista (0-50)
   if (rArtist === tArtist) score += 50;
-  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 40;
-  else {
-    const aw = tArtist.split(" ").filter(w => w.length > 2);
-    const am = aw.filter(w => rArtist.includes(w));
-    if (aw.length > 0) score += Math.round((am.length / aw.length) * 35);
-  }
+  else if (rArtist.includes(tArtist) || tArtist.includes(rArtist)) score += 42;
+  else score += 25;
 
   // Título (0-50)
-  if (rTitle === tTitle) score += 50;
-  else if (rTitle.includes(tTitle) || tTitle.includes(rTitle)) score += 38;
-  else {
-    const tw = tTitle.split(" ").filter(w => w.length > 2);
-    const tm = tw.filter(w => rTitle.includes(w));
-    score += Math.round((tm.length / Math.max(tw.length, 1)) * 30);
-  }
+  if (rTitleClean === tTitleClean) score += 50;
+  else if (rTitleClean.includes(tTitleClean) || tTitleClean.includes(rTitleClean)) score += 40;
+  else score += 20;
 
   return score; // umbral: ≥80
 }
@@ -734,43 +733,46 @@ async function searchDeezerPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
 
-  // Fase 1: match estricto
-  const queries = [`artist:"${a1}" track:"${t1}"`, `${a1} ${t1}`, `${track.artist} ${track.title}`];
+  // Fase 1: match estricto — artista + título exactos
+  const queries = [
+    `artist:"${a1}" track:"${t1}"`,
+    `${a1} ${t1}`,
+    `${track.artist} ${track.title}`,
+  ];
   for (const q of queries) {
     try {
       const data = await deezerJsonp(q);
       if (!data?.data?.length) continue;
       const withPreview = data.data.filter(r => r.preview);
+      // Umbral 80: requiere artista Y título bien matched
       const best = withPreview.map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
-        .filter(x => x.s >= 55).sort((a, b) => b.s - a.s)[0];
+        .filter(x => x.s >= 80).sort((a, b) => b.s - a.s)[0];
       if (best) return { url: best.r.preview, source: "Deezer" };
     } catch {}
   }
 
-  // Fase 2: variantes — remix / collab / versión con mismo título
+  // Fase 2: con versión limpia del título (sin "Original Mix", "Remaster", etc.)
+  // Solo acepta si el artista es exacto
   try {
-    const data = await deezerJsonp(t1);
+    const data = await deezerJsonp(`${a1} ${t1}`);
     if (data?.data?.length) {
       const withPreview = data.data.filter(r => r.preview);
-      const titleWords = normStr(t1).split(' ').filter(w => w.length > 3);
-      const variant = withPreview.find(r => {
-        const rt = normStr(r.title || '');
+      const tTitleClean = normStr(t1);
+      const tArtistNorm = normStr(a1);
+      const match = withPreview.find(r => {
         const ra = normStr(r.artist?.name || '');
-        return titleWords.some(w => rt.includes(w)) || ra.includes(normStr(a1).split(' ')[0]);
+        const rt = normStr(r.title || '').replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+        // Artista debe coincidir exactamente (o contener)
+        const artistMatch = ra === tArtistNorm || ra.includes(tArtistNorm) || tArtistNorm.includes(ra);
+        // Título debe coincidir exactamente (o contener)
+        const titleMatch = rt === tTitleClean || rt.includes(tTitleClean) || tTitleClean.includes(rt);
+        return artistMatch && titleMatch;
       });
-      if (variant) return { url: variant.preview, source: "Deezer~" };
+      if (match) return { url: match.preview, source: "Deezer~" };
     }
   } catch {}
 
-  // Fase 3: cualquier track del artista
-  try {
-    const data = await deezerJsonp(`artist:"${a1}"`);
-    if (data?.data?.length) {
-      const first = data.data.find(r => r.preview);
-      if (first) return { url: first.preview, source: "Deezer~" };
-    }
-  } catch {}
-
+  // NO HAY FASE 3 — no devolver un track random del artista
   return null;
 }
 
@@ -782,13 +784,12 @@ async function searchItunesPreview(track) {
     `${a1} ${t1}`,
     `${track.artist} ${t1}`,
     `${a1} ${track.title}`,
-    a1,
   ];
   for (const q of queries) {
     try {
-      throw new Error('disabled');
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=10`, { signal: AbortSignal.timeout(6000) });
       const data = await res.json();
-      const best = data.results
+      const best = (data.results || [])
         .filter(r => r.previewUrl)
         .map(r => ({ r, s: matchScore(r.artistName, r.trackName, track) }))
         .filter(x => x.s >= 80)
