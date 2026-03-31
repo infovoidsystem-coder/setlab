@@ -66,22 +66,65 @@
   body.light .sl-select:focus { border-color:#a855f766; }
   body.light .sl-select option { background:#ffffff; color:#1c1a17; }
 </style>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div style="color:#c9a84c;font-family:monospace;font-size:14px;padding:40px;background:#030302;min-height:100vh">Cargando SetLab...</div></div>
 <script>
-// Capturar errores globales y mostrarlos en pantalla
-window.onerror = function(msg, src, line, col, err) {
-  var root = document.getElementById('root');
-  if (root) root.innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;min-height:100vh;word-break:break-word"><b>Error:</b><br><br>' + msg + '<br><small style="color:#706860">Line ' + line + '</small></div>';
+// === LOADER ROBUSTO CON FALLBACKS ===
+window.onerror = function(msg, src, line, col, e) {
+  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:20px;background:#030302;min-height:100vh;word-break:break-word;font-size:12px"><b>Error JS:</b><br>' + msg + '<br>Línea: ' + line + '<br>' + (e&&e.stack?e.stack.slice(0,500):'') + '</div>';
 };
 window.onunhandledrejection = function(e) {
-  console.error('[SetLab] Promise error:', e.reason);
+  console.error('[SetLab]', e.reason);
 };
+
+function showErr(msg) {
+  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:20px;background:#030302;min-height:100vh;word-break:break-word;font-size:12px">' + msg + '</div>';
+}
+
+var REACT_URLS = [
+  ['https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'],
+  ['https://unpkg.com/react@18.2.0/umd/react.production.min.js',
+   'https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js'],
+  ['https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js',
+   'https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js'],
+];
+
+var cdnIndex = 0;
+
+function loadReact() {
+  if (cdnIndex >= REACT_URLS.length) {
+    showErr('No se pudo cargar React desde ningún CDN.<br>Verificá tu conexión a internet.');
+    return;
+  }
+  var urls = REACT_URLS[cdnIndex];
+  var s1 = document.createElement('script');
+  s1.src = urls[0];
+  s1.onerror = function() { cdnIndex++; loadReact(); };
+  s1.onload = function() {
+    var s2 = document.createElement('script');
+    s2.src = urls[1];
+    s2.onerror = function() { cdnIndex++; loadReact(); };
+    s2.onload = function() { startApp(); };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+}
+
+function startApp() {
+  // El código de la app se ejecuta aquí
+  try {
+    runApp();
+  } catch(e) {
+    showErr('<b>Error al iniciar:</b><br>' + e.message + '<br><small>' + (e.stack||'').slice(0,400) + '</small>');
+  }
+}
+
+loadReact();
 </script>
 <script>
+function runApp() {
 
 const { useState, useMemo, useRef, useEffect, useContext, createContext } = React;
 
@@ -2613,17 +2656,10 @@ class ErrorBoundary extends React.Component {
 }
 
 // Capturar errores globales (incluyendo async)
-window.onerror = function(msg, src, line, col, err) {
-  document.getElementById('root').innerHTML = '<div style="color:#ef4444;font-family:monospace;padding:40px;background:#030302;min-height:100vh;word-break:break-word"><b>Error global:</b><br><br>' + msg + '<br><small style="color:#706860">Line ' + line + ': ' + (err && err.stack ? err.stack : '') + '</small></div>';
-};
-window.onunhandledrejection = function(e) {
-  console.error('[SetLab] Unhandled promise rejection:', e.reason);
-};
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   React.createElement(ErrorBoundary, null, React.createElement(App, null))
 );
-
+} // end runApp()
 </script>
 
 
