@@ -770,17 +770,17 @@ async function searchItunesPreview(track) {
   return null;
 }
 
-// ── FUENTE 3: Jamendo ─────────────────────────────────────────────────────
+// ── FUENTE 3: Jamendo via proxy ───────────────────────────────────────────
 async function searchJamendoPreview(track) {
   const CLIENT_ID = "b6747d04";
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1 = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   try {
-    const res = await fetch(
-      `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&search=${encodeURIComponent(a1 + ' ' + t1)}&include=musicinfo`,
-      { signal: AbortSignal.timeout(6000) }
-    );
-    const data = await res.json();
+    const jamUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&search=${encodeURIComponent(a1 + ' ' + t1)}&include=musicinfo`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(jamUrl)}`;
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    const wrap = await res.json();
+    const data = JSON.parse(wrap.contents || '{}');
     const best = (data?.results || [])
       .filter(r => r.audio)
       .map(r => ({ r, s: matchScore(r.artist_name, r.name, track) }))
@@ -788,6 +788,36 @@ async function searchJamendoPreview(track) {
       .sort((a, b) => b.s - a.s)[0];
     if (best) return { url: best.r.audio, source: "Jamendo" };
   } catch {}
+  return null;
+}
+
+// ── FUENTE 4: SoundCloud embed search via proxy ───────────────────────────
+// Busca en SoundCloud scrapeando el HTML de búsqueda via allorigins
+// y extrae la URL de la primera track que coincida para reproducirla en iframe.
+async function searchSoundCloudEmbed(track) {
+  const a1 = track.artist.split(/[&,+]/)[0].trim();
+  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+  const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
+  for (const q of queries) {
+    try {
+      const scUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(q)}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(scUrl)}`;
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+      const wrap = await res.json();
+      const html = wrap.contents || "";
+      // Extraemos URLs de tracks de SoundCloud del HTML
+      const matches = [...html.matchAll(/\"permalink_url\":\"(https:\\\/\\\/soundcloud\.com\\\/[^"]+)\"/g)]
+        .map(m => m[1].replace(/\\\//g, '/'));
+      // Filtramos URLs que parecen tracks (no playlists ni perfiles)
+      const trackUrls = matches.filter(u => {
+        const parts = u.replace('https://soundcloud.com/', '').split('/');
+        return parts.length === 2 && !['sets','likes','followers','following','tracks','reposts'].includes(parts[1]);
+      });
+      if (trackUrls.length === 0) continue;
+      // Devolvemos la primera URL para reproducir en iframe de SC
+      return { url: null, source: "SC", scUrl: trackUrls[0] };
+    } catch {}
+  }
   return null;
 }
 
@@ -846,9 +876,10 @@ function stopYT() {
 
 // ── ORQUESTADOR PRINCIPAL ──────────────────────────────────────────────────
 // Fase 1 (paralela, rápida): Deezer + iTunes + Jamendo — audio directo 30s
-// Fase 2 (fallback): videoId de YT para iframe embed via allorigins proxy
+// Fase 2: SoundCloud embed search — excelente para electrónica underground
+// Fase 3 (fallback): videoId de YT para iframe embed via allorigins proxy
 async function findPreviewUrl(track) {
-  // FASE 1: Race paralelo entre fuentes rápidas
+  // FASE 1: Race paralelo entre fuentes con audio directo
   const fase1 = await new Promise(resolve => {
     let done = false;
     const finish = r => { if (!done) { done = true; resolve(r); } };
@@ -868,7 +899,16 @@ async function findPreviewUrl(track) {
   });
   if (fase1) return fase1;
 
-  // FASE 2: Buscar videoId de YouTube para iframe embed
+  // FASE 2: SoundCloud embed (ideal para underground / techno / electrónica)
+  try {
+    const sc = await Promise.race([
+      searchSoundCloudEmbed(track),
+      new Promise(r => setTimeout(() => r(null), 10000)),
+    ]);
+    if (sc?.scUrl) return sc;
+  } catch {}
+
+  // FASE 3: Buscar videoId de YouTube para iframe embed
   try {
     const videoId = await Promise.race([
       findYTVideoIdViaOembed(track),
@@ -1014,7 +1054,19 @@ function PreviewButton({ track, accent }) {
     try {
       const r = await findPreviewUrl(track);
 
-      // 3a: URL de audio directo (Deezer, iTunes, Jamendo, Invidious stream)
+      // 3a-sc: SoundCloud encontrado por búsqueda (electrónica underground)
+      if (r?.source === "SC" && r?.scUrl) {
+        try {
+          _scPlayingSetState = setState; _scPlayingTrackId = track.id;
+          await playSoundCloudTrack(r.scUrl);
+          _previewAvailableCache.add(track.id);
+          setState("playing"); setSource("SC");
+          _scOnEnd = () => { setState("idle"); setSource(""); _scPlayingSetState = null; _scPlayingTrackId = null; };
+          return;
+        } catch { stopAll(); }
+      }
+
+      // 3b: URL de audio directo (Deezer, iTunes, Jamendo)
       if (r?.url) {
         try {
           await playAudioUrl(r.url);
@@ -1025,7 +1077,7 @@ function PreviewButton({ track, accent }) {
         } catch { stopAll(); }
       }
 
-      // 3b: Solo videoId disponible → iframe embed de YouTube
+      // 3c: Solo videoId disponible → iframe embed de YouTube
       if (r?.videoId && r?.source === "YT") {
         const iframe = getYTIframe();
         _ytIframe.src = `https://www.youtube.com/embed/${r.videoId}?autoplay=1&start=30`;
@@ -1044,7 +1096,7 @@ function PreviewButton({ track, accent }) {
   // Si el estado es "gone" no renderizamos nada (no hay preescucha disponible)
   if (state === "gone") return null;
 
-  const isSC = isSoundCloudUrl(track.soundcloudUrl);
+  const isSC = isSoundCloudUrl(track.soundcloudUrl) || source === "SC";
   const isYT = source === "YT";
   const activeColor = isSC ? "#ff5500" : isYT ? "#ff0000" : accent;
 
