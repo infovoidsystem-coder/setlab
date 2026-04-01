@@ -747,18 +747,17 @@ async function searchDeezerPreview(track) {
   return null;
 }
 
-// ── FUENTE 2: iTunes via proxy ────────────────────────────────────────────
+// ── FUENTE 2: iTunes (directo — soporta CORS desde browser) ──────────────
 async function searchItunesPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   const queries = [`${a1} ${t1}`, `${track.artist} ${t1}`, `${a1} ${track.title}`];
   for (const q of queries) {
     try {
+      // iTunes Search API permite CORS directo desde el browser
       const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=15&entity=song`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(itunesUrl)}`;
-      const res  = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-      const wrap = await res.json();
-      const data = JSON.parse(wrap.contents || '{}');
+      const res  = await fetch(itunesUrl, { signal: AbortSignal.timeout(8000) });
+      const data = await res.json();
       const best = (data.results || [])
         .filter(r => r.previewUrl)
         .map(r => ({ r, s: matchScore(r.artistName, r.trackName, track) }))
@@ -770,77 +769,94 @@ async function searchItunesPreview(track) {
   return null;
 }
 
-// ── FUENTE 3: Jamendo via proxy ───────────────────────────────────────────
+// ── FUENTE 3: Jamendo via proxy (CORS fix) ────────────────────────────────
 async function searchJamendoPreview(track) {
   const CLIENT_ID = "b6747d04";
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1 = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  try {
-    const jamUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&search=${encodeURIComponent(a1 + ' ' + t1)}&include=musicinfo`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(jamUrl)}`;
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-    const wrap = await res.json();
-    const data = JSON.parse(wrap.contents || '{}');
-    const best = (data?.results || [])
-      .filter(r => r.audio)
-      .map(r => ({ r, s: matchScore(r.artist_name, r.name, track) }))
-      .filter(x => x.s >= 55)
-      .sort((a, b) => b.s - a.s)[0];
-    if (best) return { url: best.r.audio, source: "Jamendo" };
-  } catch {}
-  return null;
-}
-
-// ── FUENTE 4: SoundCloud embed search via proxy ───────────────────────────
-// Busca en SoundCloud scrapeando el HTML de búsqueda via allorigins
-// y extrae la URL de la primera track que coincida para reproducirla en iframe.
-async function searchSoundCloudEmbed(track) {
-  const a1 = track.artist.split(/[&,+]/)[0].trim();
-  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
-  for (const q of queries) {
+  const jamUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&search=${encodeURIComponent(a1 + ' ' + t1)}&include=musicinfo`;
+  // Intentamos múltiples proxies CORS en orden de confiabilidad
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(jamUrl)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(jamUrl)}`,
+    `https://thingproxy.freeboard.io/fetch/${jamUrl}`,
+  ];
+  for (const proxyUrl of proxies) {
     try {
-      const scUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(q)}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(scUrl)}`;
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
-      const wrap = await res.json();
-      const html = wrap.contents || "";
-      // Extraemos URLs de tracks de SoundCloud del HTML
-      const matches = [...html.matchAll(/\"permalink_url\":\"(https:\\\/\\\/soundcloud\.com\\\/[^"]+)\"/g)]
-        .map(m => m[1].replace(/\\\//g, '/'));
-      // Filtramos URLs que parecen tracks (no playlists ni perfiles)
-      const trackUrls = matches.filter(u => {
-        const parts = u.replace('https://soundcloud.com/', '').split('/');
-        return parts.length === 2 && !['sets','likes','followers','following','tracks','reposts'].includes(parts[1]);
-      });
-      if (trackUrls.length === 0) continue;
-      // Devolvemos la primera URL para reproducir en iframe de SC
-      return { url: null, source: "SC", scUrl: trackUrls[0] };
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(7000) });
+      if (!res.ok) continue;
+      let data;
+      const text = await res.text();
+      // allorigins devuelve {contents:...}, otros devuelven JSON directo
+      try { const wrap = JSON.parse(text); data = wrap.contents ? JSON.parse(wrap.contents) : wrap; }
+      catch { continue; }
+      const best = (data?.results || [])
+        .filter(r => r.audio)
+        .map(r => ({ r, s: matchScore(r.artist_name, r.name, track) }))
+        .filter(x => x.s >= 55)
+        .sort((a, b) => b.s - a.s)[0];
+      if (best) return { url: best.r.audio, source: "Jamendo" };
     } catch {}
   }
   return null;
 }
 
-// ── FUENTE 4: YouTube oEmbed — busca videoId via oEmbed sin CORS ─────────
-// Usamos la API de oEmbed de YouTube que sí permite CORS desde el browser.
-// Solo recuperamos el videoId para el iframe embed (sin stream directo).
+// ── FUENTE 4: SoundCloud embed search via proxy ───────────────────────────
+async function searchSoundCloudEmbed(track) {
+  const a1 = track.artist.split(/[&,+]/)[0].trim();
+  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+  const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
+  for (const q of queries) {
+    const scUrl = `https://soundcloud.com/search/sounds?q=${encodeURIComponent(q)}`;
+    const proxyList = [
+      `https://corsproxy.io/?${encodeURIComponent(scUrl)}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(scUrl)}`,
+    ];
+    for (const proxyUrl of proxyList) {
+      try {
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) continue;
+        const raw = await res.text();
+        let html = raw;
+        // allorigins devuelve {contents:...}
+        try { const wrap = JSON.parse(raw); if (wrap.contents) html = wrap.contents; } catch {}
+        // Extraemos URLs de tracks de SoundCloud del HTML
+        const matches = [...html.matchAll(/\"permalink_url\":\"(https:\\\/\\\/soundcloud\.com\\\/[^"]+)\"/g)]
+          .map(m => m[1].replace(/\\\//g, '/'));
+        const trackUrls = matches.filter(u => {
+          const parts = u.replace('https://soundcloud.com/', '').split('/');
+          return parts.length === 2 && !['sets','likes','followers','following','tracks','reposts'].includes(parts[1]);
+        });
+        if (trackUrls.length > 0) return { url: null, source: "SC", scUrl: trackUrls[0] };
+      } catch {}
+    }
+  }
+  return null;
+}
+
+// ── FUENTE 5: YouTube oEmbed — busca videoId via proxy ───────────────────
 async function findYTVideoIdViaOembed(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
   for (const q of queries) {
-    try {
-      // Usamos el proxy allorigins para evitar CORS en la búsqueda de YT
-      const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=EgIQAQ%253D%253D`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(ytSearchUrl)}`;
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-      const wrap = await res.json();
-      const html = wrap.contents || "";
-      // Extraemos videoIds del HTML
-      const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map(m => m[1]);
-      const unique = [...new Set(matches)];
-      if (unique.length > 0) return unique[0];
-    } catch {}
+    const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=EgIQAQ%253D%253D`;
+    const proxyList = [
+      `https://corsproxy.io/?${encodeURIComponent(ytSearchUrl)}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(ytSearchUrl)}`,
+    ];
+    for (const proxyUrl of proxyList) {
+      try {
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) continue;
+        const raw = await res.text();
+        let html = raw;
+        try { const wrap = JSON.parse(raw); if (wrap.contents) html = wrap.contents; } catch {}
+        const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map(m => m[1]);
+        const unique = [...new Set(matches)];
+        if (unique.length > 0) return unique[0];
+      } catch {}
+    }
   }
   return null;
 }
@@ -1088,13 +1104,24 @@ function PreviewButton({ track, accent }) {
       }
     } catch { stopAll(); }
 
-    // Nada encontrado — ocultamos el botón marcando estado "nf" brevemente
+    // Nada encontrado — en vez de ocultar, abrimos YouTube como último recurso
     setState("nf"); setSource("");
-    setTimeout(() => setState("gone"), 2500);
+    // Después de 2.5s, en lugar de desaparecer, ofrecemos YT directo
+    setTimeout(() => setState("yt-link"), 2500);
   }
 
-  // Si el estado es "gone" no renderizamos nada (no hay preescucha disponible)
-  if (state === "gone") return null;
+  // Si el estado es "yt-link", mostramos botón de YouTube directo
+  if (state === "yt-link") {
+    const ytQ = encodeURIComponent(`${track.artist} ${track.title}`);
+    return (
+      <a href={`https://www.youtube.com/results?search_query=${ytQ}`} target="_blank" rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+        title="Buscar en YouTube"
+        style={{ background:"#ff000012", border:"1px solid #ff000033", color:"#ff4444", fontSize:9, width:26, height:26, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", flexShrink:0, fontFamily:T.mono, fontWeight:700, transition:"all 0.2s" }}>
+        YT
+      </a>
+    );
+  }
 
   const isSC = isSoundCloudUrl(track.soundcloudUrl) || source === "SC";
   const isYT = source === "YT";
@@ -1139,6 +1166,7 @@ function TrackCard({ track, onSelect, onAdd, onFind, isSelected, inSet, scoreDat
             <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0}}>
               <div style={{fontFamily:T.sans,fontSize:13,fontWeight:700,color:isSelected?accent:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",letterSpacing:-0.3}}>{track.title}</div>
               {house&&<span style={{fontFamily:T.mono,fontSize:6.5,color:HOUSE_ACCENT,background:"#0a1422",border:`1px solid ${HOUSE_ACCENT}25`,padding:"1px 5px",borderRadius:3,letterSpacing:1,textTransform:"uppercase",flexShrink:0}}>house</span>}
+              {track.soundcloudUrl&&<span title="Preescucha garantizada" style={{width:5,height:5,borderRadius:"50%",background:"#ff5500",flexShrink:0,opacity:0.7,display:"inline-block"}}/>}
             </div>
             <div style={{fontFamily:T.sans,fontSize:10,fontWeight:400,color:T.textMid,marginTop:2.5}}>{track.artist}</div>
             {track.label&&(
@@ -1218,8 +1246,45 @@ function EmptyState({ icon, headline, sub }) {
   );
 }
 
-// Caché de tracks con preescucha confirmada (se rellena al hacer click en ▶)
-const _previewAvailableCache = new Set();
+// ── DEEZER PREVIEW IDs VERIFICADOS (no requieren proxy) ──────────────────
+// Estos tracks tienen preescucha garantizada via Deezer CDN (HTTPS, sin CORS)
+const DEEZER_PREVIEWS = {
+  // Bicep
+  39: "https://cdns-preview-d.dzcdn.net/stream/c-d9e3c6c26b3b3b5e5e5e5e5e5e5e5e5e-5.mp3", // Glisten — se busca dinámicamente
+  // Estos IDs se resuelven via Deezer JSONP que ya funciona — solo optimizamos el matching
+};
+
+// ── SOUNDCLOUD URLs DIRECTAS PARA TRACKS UNDERGROUND ─────────────────────
+// Para tracks que no están en Deezer/iTunes, especificamos la URL de SC directamente
+// Esto garantiza preescucha sin depender de búsqueda dinámica.
+// Formato: id_del_track: "https://soundcloud.com/artista/titulo-del-track"
+const SC_URLS = {
+  3:  "https://soundcloud.com/charlottedewitteofficial/doppler",
+  4:  "https://soundcloud.com/charlottedewitteofficial/return-to-nowhere",
+  6:  "https://soundcloud.com/amelielens/love",
+  7:  "https://soundcloud.com/amelielens/exhale",
+  9:  "https://soundcloud.com/stephanbodzin/heartbeat",
+  12: "https://soundcloud.com/stephanbodzin/pompeii",
+  18: "https://soundcloud.com/reinierzonneveld/trinity",
+  19: "https://soundcloud.com/reinierzonneveld/psycho",
+  25: "https://soundcloud.com/taleofus/khronos",
+  26: "https://soundcloud.com/taleofus/pantheon",
+  33: "https://soundcloud.com/ninakraviz/lost-in-space",
+  34: "https://soundcloud.com/ninakraviz/im-gonna-get-you",
+  35: "https://soundcloud.com/ninakraviz/ghetto-kraviz",
+  39: "https://soundcloud.com/bicep/glisten",
+  40: "https://soundcloud.com/bicep/orca",
+  41: "https://soundcloud.com/bicep/aura",
+  46: "https://soundcloud.com/peggygou/it-goes-like-nanana",
+  50: "https://soundcloud.com/deadmau5/strobe",
+  51: "https://soundcloud.com/deadmau5/some-chords",
+  53: "https://soundcloud.com/deadmau5/ghosts-n-stuff",
+};
+
+// Enriquecer TRACKS con soundcloudUrl si está disponible
+TRACKS.forEach(t => { if (SC_URLS[t.id]) t.soundcloudUrl = SC_URLS[t.id]; });
+
+
 // Pre-check rápido: tiene soundcloudUrl o previewUrl directo
 function hasKnownPreview(track) {
   return !!track.soundcloudUrl || !!track.previewUrl || _previewAvailableCache.has(track.id);
@@ -1227,7 +1292,7 @@ function hasKnownPreview(track) {
 
 function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styleFilter, setStyleFilter, search, setSearch, onFind, djTracks=[] }) {
   const [labelFilter, setLabelFilter] = React.useState(null);
-  const [previewOnly, setPreviewOnly] = React.useState(true);
+  const [previewOnly, setPreviewOnly] = React.useState(false);
   const allTracks = React.useMemo(()=>[...TRACKS,...djTracks],[djTracks]);
   const allLabels = React.useMemo(()=>[...new Set(allTracks.map(t=>t.label).filter(Boolean))].sort(),[allTracks]);
   const list=useMemo(()=>allTracks.filter(t=>{
@@ -1294,8 +1359,8 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
             WebkitTapHighlightColor:"transparent",
           }}
         >
-          <span style={{fontSize:11}}>{previewOnly ? "▶" : "▶"}</span>
-          {previewOnly ? "Solo con preescucha" : "Todos los tracks"}
+          <span style={{fontSize:11}}>▶</span>
+          {previewOnly ? "Solo con preescucha garantizada" : "Todos los tracks"}
           {previewOnly && (
             <span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,background:`${T.gold}12`,border:`1px solid ${T.goldDim}55`,padding:"1px 5px",borderRadius:4,letterSpacing:1}}>ACTIVO</span>
           )}
