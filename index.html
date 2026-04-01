@@ -657,8 +657,8 @@ function FindModal({ track, onClose }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MOTOR DE PREESCUCHA — Multi-fuente paralelo con matching estricto
-// Fuentes: Deezer JSONP → iTunes → Beatport embed → YouTube iframe
+// MOTOR DE PREESCUCHA — Multi-fuente paralelo + YouTube/Invidious como garantía
+// Fuentes: Deezer JSONP → iTunes → Jamendo → Invidious (YT audio) → SoundCloud
 // ══════════════════════════════════════════════════════════════════════════════
 
 let _previewAudio = null;
@@ -674,8 +674,7 @@ function normStr(s) {
     .replace(/\s+/g, " ").trim();
 }
 
-// matchScore: calibrado para electrónica (títulos cortos/raros, artistas con alias)
-// Umbral recomendado ≥55 (artista + título deben coincidir, pero acepta variantes de mix)
+// matchScore: calibrado para electrónica
 function matchScore(rArtistRaw, rTitleRaw, track) {
   const rArtist = normStr(rArtistRaw);
   const rTitle  = normStr(rTitleRaw);
@@ -685,26 +684,21 @@ function matchScore(rArtistRaw, rTitleRaw, track) {
   const tTitleC = clean(tTitle);
   const rTitleC = clean(rTitle);
 
-  // ── Artista: primer bloque significativo debe coincidir ──────────────────
   const tArtistFirst = tArtist.split(' ')[0];
   const artistExact  = rArtist === tArtist || rArtist.includes(tArtist) || tArtist.includes(rArtist);
   const artistFirst  = tArtistFirst.length >= 4 && rArtist.includes(tArtistFirst);
   if (!artistExact && !artistFirst) return 0;
 
-  // ── Título: al menos 60% de palabras significativas deben coincidir ──────
   const tWords   = tTitleC.split(' ').filter(w => w.length >= 3);
   const titleExact = rTitleC === tTitleC || rTitleC.includes(tTitleC) || tTitleC.includes(rTitleC);
   const titleWords = tWords.length > 0 && tWords.filter(w => rTitleC.includes(w)).length >= Math.ceil(tWords.length * 0.6);
   if (!titleExact && !titleWords) return 0;
 
   let score = 0;
-
-  // Artista (0–50)
   if (rArtist === tArtist) score += 50;
   else if (artistExact)    score += 40;
   else if (artistFirst)    score += 25;
 
-  // Título (0–50)
   if (rTitleC === tTitleC) score += 50;
   else if (titleExact)     score += 40;
   else {
@@ -712,10 +706,10 @@ function matchScore(rArtistRaw, rTitleRaw, track) {
     score += Math.round((matched / Math.max(tWords.length, 1)) * 32);
   }
 
-  return score; // umbral: ≥55
+  return score;
 }
 
-// ── FUENTE 1: Deezer JSONP (mejor cobertura electrónica, sin CORS) ────────
+// ── FUENTE 1: Deezer JSONP ────────────────────────────────────────────────
 function deezerJsonp(query) {
   return new Promise((resolve, reject) => {
     const cb = '__dz_' + Date.now() + '_' + Math.random().toString(36).slice(2);
@@ -732,43 +726,35 @@ function deezerJsonp(query) {
 async function searchDeezerPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-
-  // Queries en orden de precisión
   const queries = [
     `artist:"${a1}" track:"${t1}"`,
     `${a1} ${t1}`,
     `${track.artist} ${track.title}`,
     `${a1} ${track.title}`,
-    t1, // solo título — luego filtramos por artista
+    t1,
   ];
-
   for (const q of queries) {
     try {
       const data = await deezerJsonp(q);
       if (!data?.data?.length) continue;
-      const withPreview = data.data.filter(r => r.preview);
-      // Umbral 55: permite variantes de mix/edit pero exige artista+título
-      const scored = withPreview
+      const scored = data.data.filter(r => r.preview)
         .map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
         .filter(x => x.s >= 55)
         .sort((a, b) => b.s - a.s);
       if (scored.length > 0) return { url: scored[0].r.preview, source: "Deezer" };
     } catch {}
   }
-
   return null;
 }
 
-// ── FUENTE 2: iTunes via AllOrigins proxy (evita CORS) ───────────────────
+// ── FUENTE 2: iTunes via proxy ────────────────────────────────────────────
 async function searchItunesPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   const queries = [`${a1} ${t1}`, `${track.artist} ${t1}`, `${a1} ${track.title}`];
-
   for (const q of queries) {
     try {
       const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=15&entity=song`;
-      // AllOrigins es un proxy público de CORS gratuito y estable
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(itunesUrl)}`;
       const res  = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
       const wrap = await res.json();
@@ -784,71 +770,7 @@ async function searchItunesPreview(track) {
   return null;
 }
 
-// ── FUENTE 3: Beatport (preview de 128kbps, formato conocido) ────────────
-async function searchBeatportPreview(track) {
-  return null; // requiere proxy — stub activo
-}
-
-// ── FUENTE 4: YouTube iframe (fallback — sin audio directo, pero reproduce) ───
-let _ytIframe = null;
-let _ytReady = false;
-let _ytPlaying = false;
-let _ytTrackId = null;
-let _ytSetState = null;
-let _ytOnEnd = null;
-
-function getYTIframe() {
-  if (_ytIframe) return _ytIframe;
-  const iframe = document.createElement("iframe");
-  iframe.id = "yt-hidden-player";
-  iframe.allow = "autoplay; encrypted-media";
-  iframe.style.cssText = "position:fixed;width:1px;height:1px;bottom:0;right:0;opacity:0;pointer-events:none;border:none;";
-  iframe.src = "about:blank";
-  document.body.appendChild(iframe);
-  _ytIframe = iframe;
-  return iframe;
-}
-
-function stopYT() {
-  if (_ytIframe) { _ytIframe.src = "about:blank"; }
-  _ytPlaying = false; _ytTrackId = null;
-  if (_ytSetState) { _ytSetState("idle"); _ytSetState = null; }
-  _ytOnEnd = null;
-}
-
-// ── FUENTE 5: MusicBrainz → preview via cover art/stream links ────────────
-// MB es totalmente pública, busca recordings y retorna metadatos
-async function searchMusicBrainzPreview(track) {
-  const a1 = encodeURIComponent(track.artist.split(/[&,+]/)[0].trim());
-  const t1 = encodeURIComponent(track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim());
-  try {
-    const res = await fetch(
-      `https://musicbrainz.org/ws/2/recording/?query=artist:${a1}+AND+recording:${t1}&limit=5&fmt=json`,
-      { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'SetLabDJPlanner/1.0' } }
-    );
-    const data = await res.json();
-    // MB no provee audio directamente, pero podemos usar su ID para buscar en Deezer
-    const recordings = data?.recordings || [];
-    for (const rec of recordings) {
-      const s = matchScore(rec['artist-credit']?.[0]?.name, rec.title, track);
-      if (s >= 55) {
-        // Intentamos con el MBID en Deezer (relación cruzada)
-        try {
-          const dzRes = await deezerJsonp(`${track.artist} ${track.title}`);
-          if (dzRes?.data?.length) {
-            const best = dzRes.data.filter(r => r.preview)
-              .map(r => ({ r, s: matchScore(r.artist?.name, r.title, track) }))
-              .filter(x => x.s >= 55).sort((a, b) => b.s - a.s)[0];
-            if (best) return { url: best.r.preview, source: "MB+Dz" };
-          }
-        } catch {}
-      }
-    }
-  } catch {}
-  return null;
-}
-
-// ── FUENTE 6: Jamendo (electrónica con licencia libre) ────────────────────
+// ── FUENTE 3: Jamendo ─────────────────────────────────────────────────────
 async function searchJamendoPreview(track) {
   const CLIENT_ID = "b6747d04";
   const a1 = track.artist.split(/[&,+]/)[0].trim();
@@ -869,62 +791,176 @@ async function searchJamendoPreview(track) {
   return null;
 }
 
-// Busca el videoId más relevante via YouTube Data API (sin key) usando noembed
-async function searchYouTubeVideoId(track) {
+// ── FUENTE 4: Invidious — audio stream de YouTube sin API key ────────────
+// Invidious es una interfaz open-source de YT con API pública y CORS habilitado.
+// Usamos múltiples instancias como fallback automático.
+const INVIDIOUS_INSTANCES = [
+  "https://invidious.privacyredirect.com",
+  "https://inv.nadeko.net",
+  "https://yt.artemislena.eu",
+  "https://invidious.lunar.icu",
+  "https://iv.datura.network",
+];
+
+async function searchInvidiousAudio(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  // Usamos el endpoint de YouTube search con términos estrictos
-  // Sin API key usamos el truco de invidious (instancia pública) que sí tiene CORS
+  // Construimos queries de búsqueda ordenadas de más a menos específica
+  const searchTerms = [
+    `${a1} ${t1} official`,
+    `${a1} ${t1}`,
+    `${track.artist} ${track.title}`,
+    `${a1} ${track.title}`,
+  ];
+
+  for (const instance of INVIDIOUS_INSTANCES) {
+    for (const term of searchTerms) {
+      try {
+        const searchUrl = `${instance}/api/v1/search?q=${encodeURIComponent(term)}&type=video&fields=videoId,title,author,lengthSeconds&page=1`;
+        const res = await fetch(searchUrl, { signal: AbortSignal.timeout(7000) });
+        if (!res.ok) continue;
+        const results = await res.json();
+        if (!Array.isArray(results) || results.length === 0) continue;
+
+        // Filtramos videos con duración razonable para un track (2-15 min)
+        const candidates = results.filter(v =>
+          v.lengthSeconds >= 100 && v.lengthSeconds <= 900
+        );
+        if (candidates.length === 0) continue;
+
+        // Evaluamos con matchScore usando title + author del video
+        const scored = candidates
+          .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
+          .filter(x => x.s >= 40) // umbral más bajo porque YT usa títulos descriptivos
+          .sort((a, b) => b.s - a.s);
+
+        if (scored.length === 0) continue;
+        const videoId = scored[0].v.videoId;
+
+        // Obtenemos el stream de audio via Invidious
+        const streamUrl = `${instance}/api/v1/videos/${videoId}?fields=adaptiveFormats,formatStreams`;
+        const streamRes = await fetch(streamUrl, { signal: AbortSignal.timeout(7000) });
+        if (!streamRes.ok) continue;
+        const streamData = await streamRes.json();
+
+        // Buscamos el mejor formato de audio (preferimos opus/webm, luego mp4)
+        const formats = [
+          ...(streamData.adaptiveFormats || []).filter(f => f.type?.startsWith("audio/")),
+          ...(streamData.formatStreams || []).filter(f => f.type?.startsWith("audio/")),
+        ];
+
+        // Priorizamos calidad media (no la más alta para cargar rápido)
+        const audioFmt = formats.find(f => f.bitrate && parseInt(f.bitrate) <= 128000 && f.url)
+          || formats.find(f => f.url);
+
+        if (audioFmt?.url) {
+          return { url: audioFmt.url, source: "YT", videoId, instance };
+        }
+      } catch {}
+    }
+  }
   return null;
 }
 
-// ── FUENTE 5: Last.fm (metadata + link a preview en SoundCloud/YouTube) ───
-// Last.fm tiene API pública con key. Usamos la key pública demo (rate-limited).
-const LFM_KEY = "b25b959554ed76058ac220b7b2e0a026"; // key pública de demos Last.fm
-async function searchLastFm(track) {
-  const a1 = encodeURIComponent(track.artist.split(/[&,+]/)[0].trim());
-  const t1  = encodeURIComponent(track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim());
-  try {
-    const res  = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.search&track=${t1}&artist=${a1}&api_key=${LFM_KEY}&format=json&limit=5`, { signal: AbortSignal.timeout(5000) });
-    const data = await res.json();
-    const results = data?.results?.trackmatches?.track || [];
-    const arr = Array.isArray(results) ? results : [results];
-    const best = arr
-      .map(r => ({ r, s: matchScore(r.artist, r.name, track) }))
-      .filter(x => x.s >= 80)
-      .sort((a, b) => b.s - a.s)[0];
-    if (best) return { mbid: best.r.mbid, url: best.r.url };
-  } catch {}
-  return null;
+// ── FUENTE 5: YouTube embed iframe (fallback visual — sin extracción de audio) ──
+// Cargamos el video de YT en un iframe oculto. El usuario escucha pero no vemos el audio.
+let _ytIframe = null;
+let _ytPlaying = false;
+let _ytTrackId = null;
+let _ytSetState = null;
+let _ytVideoId = null;
+
+function getYTIframe() {
+  if (_ytIframe) return _ytIframe;
+  const iframe = document.createElement("iframe");
+  iframe.id = "yt-hidden-player";
+  iframe.allow = "autoplay; encrypted-media";
+  iframe.style.cssText = "position:fixed;width:1px;height:1px;bottom:0;right:0;opacity:0;pointer-events:none;border:none;";
+  iframe.src = "about:blank";
+  document.body.appendChild(iframe);
+  _ytIframe = iframe;
+  return iframe;
 }
 
+function stopYT() {
+  if (_ytIframe) { _ytIframe.src = "about:blank"; }
+  _ytPlaying = false; _ytTrackId = null; _ytVideoId = null;
+  if (_ytSetState) { _ytSetState("idle"); _ytSetState = null; }
+}
 
+// Busca videoId en Invidious (solo metadatos, sin stream)
+async function findYouTubeVideoId(track) {
+  const a1 = track.artist.split(/[&,+]/)[0].trim();
+  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+  const searchTerms = [`${a1} ${t1} official`, `${a1} ${t1}`, `${track.artist} ${track.title}`];
 
+  for (const instance of INVIDIOUS_INSTANCES) {
+    for (const term of searchTerms) {
+      try {
+        const res = await fetch(
+          `${instance}/api/v1/search?q=${encodeURIComponent(term)}&type=video&fields=videoId,title,author,lengthSeconds&page=1`,
+          { signal: AbortSignal.timeout(6000) }
+        );
+        if (!res.ok) continue;
+        const results = await res.json();
+        if (!Array.isArray(results)) continue;
+        const candidates = results.filter(v => v.lengthSeconds >= 100 && v.lengthSeconds <= 900);
+        const scored = candidates
+          .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
+          .filter(x => x.s >= 40)
+          .sort((a, b) => b.s - a.s);
+        if (scored.length > 0) return scored[0].v.videoId;
+      } catch {}
+    }
+  }
+  return null;
+}
 
 
 // ── ORQUESTADOR PRINCIPAL ──────────────────────────────────────────────────
-// Race paralelo: todas las fuentes al mismo tiempo, gana la primera con resultado
+// Fase 1 (paralela, rápida): Deezer + iTunes + Jamendo — audio directo 30s
+// Fase 2 (fallback): Invidious audio stream — cubre casi todo lo de YouTube
+// Fase 3 (último recurso): videoId de YT para iframe embed
 async function findPreviewUrl(track) {
-  return new Promise(resolve => {
+  // FASE 1: Race paralelo entre fuentes rápidas
+  const fase1 = await new Promise(resolve => {
     let done = false;
-    const finish = result => { if (!done) { done = true; resolve(result); } };
-
+    const finish = r => { if (!done) { done = true; resolve(r); } };
     const sources = [
       searchDeezerPreview(track),
       searchItunesPreview(track),
       searchJamendoPreview(track),
     ];
-
     let pending = sources.length;
     sources.forEach(p => {
-      Promise.resolve(p).then(result => {
-        if (result?.url) finish(result);
+      Promise.resolve(p).then(r => {
+        if (r?.url) finish(r);
         else { pending--; if (pending === 0) finish(null); }
       }).catch(() => { pending--; if (pending === 0) finish(null); });
     });
-
-    setTimeout(() => finish(null), 15000);
+    setTimeout(() => finish(null), 12000);
   });
+  if (fase1) return fase1;
+
+  // FASE 2: Invidious (audio stream de YouTube) — cubre electrónica underground
+  try {
+    const inv = await Promise.race([
+      searchInvidiousAudio(track),
+      new Promise(r => setTimeout(() => r(null), 15000)),
+    ]);
+    if (inv?.url) return inv;
+  } catch {}
+
+  // FASE 3: Si Invidious encontró videoId pero falló el stream, usamos iframe embed
+  try {
+    const videoId = await Promise.race([
+      findYouTubeVideoId(track),
+      new Promise(r => setTimeout(() => r(null), 10000)),
+    ]);
+    if (videoId) return { url: null, source: "YT", videoId };
+  } catch {}
+
+  return null;
 }
 
 
@@ -1057,28 +1093,45 @@ function PreviewButton({ track, accent }) {
       } catch { stopAll(); }
     }
 
-    // 3: Orquestador paralelo — Deezer + iTunes + Jamendo al mismo tiempo
+    // 3: Orquestador completo — Deezer / iTunes / Jamendo → Invidious → YT iframe
     try {
       const r = await findPreviewUrl(track);
+
+      // 3a: URL de audio directo (Deezer, iTunes, Jamendo, Invidious stream)
       if (r?.url) {
-        await playAudioUrl(r.url);
-        setState("playing"); setSource(r.source || "▶");
-        _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
+        try {
+          await playAudioUrl(r.url);
+          setState("playing"); setSource(r.source || "▶");
+          _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
+          return;
+        } catch { stopAll(); }
+      }
+
+      // 3b: Solo videoId disponible → iframe embed de YouTube
+      if (r?.videoId && r?.source === "YT") {
+        const iframe = getYTIframe();
+        _ytIframe.src = `https://www.youtube.com/embed/${r.videoId}?autoplay=1&start=30`;
+        _ytPlaying = true; _ytTrackId = track.id; _ytSetState = setState; _ytVideoId = r.videoId;
+        setState("playing"); setSource("YT");
         return;
       }
     } catch { stopAll(); }
 
+    // Nada encontrado — ocultamos el botón marcando estado "nf" brevemente
     setState("nf"); setSource("");
-    setTimeout(() => setState("idle"), 3000);
+    setTimeout(() => setState("gone"), 2500);
   }
+
+  // Si el estado es "gone" no renderizamos nada (no hay preescucha disponible)
+  if (state === "gone") return null;
 
   const isSC = isSoundCloudUrl(track.soundcloudUrl);
   const isYT = source === "YT";
-  const activeColor = isSC ? "#ff5500" : isYT ? "#ff4444" : accent;
+  const activeColor = isSC ? "#ff5500" : isYT ? "#ff0000" : accent;
 
   const map = {
     idle:    { icon:"▶", color: isSC ? "#ff5500" : T.textDim, bg: T.surface, border: T.border, title: "Preescucha" },
-    loading: { icon:"…", color:"#f59e0b", bg:"#1a1200", border:"#f59e0b33", title:"Buscando en Deezer / iTunes / YouTube…" },
+    loading: { icon:"…", color:"#f59e0b", bg:"#1a1200", border:"#f59e0b33", title:"Buscando preview…" },
     playing: { icon:"■", color: activeColor, bg:`${activeColor}12`, border:`${activeColor}55`, title:`Detener (${source || "audio"})` },
     nf:      { icon:"✕", color: T.textGhost, bg: T.surface, border: T.border, title:"No encontrado" },
   };
