@@ -1668,11 +1668,32 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
         </div>
       </div>
       <div style={{padding:"10px 14px 0",flexShrink:0}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}>
-          <span style={{fontFamily:T.sans,fontSize:9,color:T.textDim,fontWeight:500}}>popularidad máxima <span style={{color:"#a0a09a"}}>— anti-mainstream</span></span>
-          <span style={{fontFamily:T.mono,fontSize:10,color:T.gold,fontWeight:600}}>≤ {maxPop}</span>
+        <div style={{display:"flex",gap:6}}>
+          {[
+            {label:"Todo",        emoji:"🌍", value:100, mode:"all",        desc:"Todo el catálogo"},
+            {label:"Popular",     emoji:"⭐", value:100, mode:"popular",    desc:"Artistas conocidos"},
+            {label:"Underground", emoji:"🔦", value:55,  mode:"underground",desc:"Menos mainstream"},
+          ].map(opt=>{
+            const isActive = opt.mode==="all"        ? maxPop===100 && styleFilter==="all"
+                           : opt.mode==="popular"    ? maxPop===100
+                           : maxPop < 100;
+            return (
+              <button key={opt.mode} onClick={()=>setMaxPop(opt.value)} style={{
+                flex:1, padding:"8px 4px", borderRadius:10, cursor:"pointer",
+                border:"1px solid " + (isActive ? T.gold+"55" : T.border),
+                background: isActive ? T.gold+"15" : T.surface,
+                color: isActive ? T.gold : T.textDim,
+                fontFamily:T.sans, fontWeight: isActive?700:500, fontSize:10,
+                WebkitTapHighlightColor:"transparent", transition:"all 0.15s",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+              }}>
+                <span style={{fontSize:15}}>{opt.emoji}</span>
+                <span>{opt.label}</span>
+                <span style={{fontSize:7, opacity:0.65, fontFamily:T.mono}}>{opt.desc}</span>
+              </button>
+            );
+          })}
         </div>
-        <input type="range" min={5} max={100} value={maxPop} onChange={e=>setMaxPop(+e.target.value)} style={{width:"100%",accentColor:T.gold,cursor:"pointer"}}/>
       </div>
       <div style={{padding:"8px 14px 0",flexShrink:0}}>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingBottom:4}}>
