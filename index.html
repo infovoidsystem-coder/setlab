@@ -946,6 +946,7 @@ function FindModal({ track, onClose }) {
 let _previewAudio = null;
 let _previewSetState = null;
 let _previewTrackId = null;
+const _previewAvailableCache = new Set();
 
 // ── Normalización de texto ────────────────────────────────────────────────
 function normStr(s) {
@@ -1671,7 +1672,7 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
           <span style={{fontFamily:T.sans,fontSize:9,color:T.textDim,fontWeight:500}}>popularidad máxima <span style={{color:"#a0a09a"}}>— anti-mainstream</span></span>
           <span style={{fontFamily:T.mono,fontSize:10,color:T.gold,fontWeight:600}}>≤ {maxPop}</span>
         </div>
-        <input type="range" min={5} max={80} value={maxPop} onChange={e=>setMaxPop(+e.target.value)} style={{width:"100%",accentColor:T.gold,cursor:"pointer"}}/>
+        <input type="range" min={5} max={100} value={maxPop} onChange={e=>setMaxPop(+e.target.value)} style={{width:"100%",accentColor:T.gold,cursor:"pointer"}}/>
       </div>
       <div style={{padding:"8px 14px 0",flexShrink:0}}>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingBottom:4}}>
@@ -3504,7 +3505,7 @@ function App() {
   const [seed,setSeed]=useState(null);
   const [mySet,setMySet]=useState([]);
   const [style,setStyle]=useState("all");
-  const [maxPop,setMaxPop]=useState(65);
+  const [maxPop,setMaxPop]=useState(100);
   const [search,setSearch]=useState("");
   const [findTrack,setFindTrack]=useState(null);
   const [djTracks,setDjTracks]=useState(()=>loadDjTracks());
