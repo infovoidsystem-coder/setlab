@@ -775,11 +775,11 @@ async function searchJamendoPreview(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1 = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   const jamUrl = `https://api.jamendo.com/v3.0/tracks/?client_id=${CLIENT_ID}&format=json&limit=10&search=${encodeURIComponent(a1 + ' ' + t1)}&include=musicinfo`;
-  // Intentamos múltiples proxies CORS en orden de confiabilidad
+  // Proxies CORS en orden de confiabilidad (thingproxy eliminado — DNS caído)
   const proxies = [
     `https://corsproxy.io/?${encodeURIComponent(jamUrl)}`,
     `https://api.allorigins.win/get?url=${encodeURIComponent(jamUrl)}`,
-    `https://thingproxy.freeboard.io/fetch/${jamUrl}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(jamUrl)}`,
   ];
   for (const proxyUrl of proxies) {
     try {
@@ -811,6 +811,7 @@ async function searchSoundCloudEmbed(track) {
     const proxyList = [
       `https://corsproxy.io/?${encodeURIComponent(scUrl)}`,
       `https://api.allorigins.win/get?url=${encodeURIComponent(scUrl)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(scUrl)}`,
     ];
     for (const proxyUrl of proxyList) {
       try {
@@ -834,10 +835,42 @@ async function searchSoundCloudEmbed(track) {
   return null;
 }
 
-// ── FUENTE 5: YouTube oEmbed — busca videoId via proxy ───────────────────
+// ── FUENTE 5: Invidious API — busca videoId sin proxy ni scraping ──────────
+// Invidious es un frontend de YT open-source; sus instancias públicas tienen CORS abierto
 async function findYTVideoIdViaOembed(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+  const q   = `${a1} ${t1}`;
+
+  // Instancias Invidious públicas con API habilitada
+  const instances = [
+    "https://invidious.nerdvpn.de",
+    "https://iv.datura.network",
+    "https://invidious.privacydev.net",
+    "https://invidious.slipfox.xyz",
+  ];
+
+  for (const inst of instances) {
+    try {
+      const url = `${inst}/api/v1/search?q=${encodeURIComponent(q)}&type=video&page=1`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        // Buscamos el resultado más relevante (que tenga el artista en el título/canal)
+        const a1Norm = normStr(a1);
+        const t1Norm = normStr(t1);
+        const best = data.find(v =>
+          normStr(v.author || "").includes(a1Norm) ||
+          normStr(v.title || "").includes(t1Norm) ||
+          normStr(v.title || "").includes(a1Norm)
+        ) || data[0];
+        if (best?.videoId) return best.videoId;
+      }
+    } catch {}
+  }
+
+  // Fallback: búsqueda via proxy de HTML de YT (método anterior)
   const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
   for (const q of queries) {
     const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=EgIQAQ%253D%253D`;
@@ -1110,16 +1143,42 @@ function PreviewButton({ track, accent }) {
     setTimeout(() => setState("yt-link"), 2500);
   }
 
-  // Si el estado es "yt-link", mostramos botón de YouTube directo
+  // Si el estado es "yt-link", intentamos embed de YT directo por búsqueda
   if (state === "yt-link") {
     const ytQ = encodeURIComponent(`${track.artist} ${track.title}`);
+    // Intentamos una última búsqueda en Invidious al hacer click en YT
+    const handleYtClick = async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setState("loading");
+      try {
+        const videoId = await Promise.race([
+          findYTVideoIdViaOembed(track),
+          new Promise(r => setTimeout(() => r(null), 8000)),
+        ]);
+        if (videoId) {
+          const iframe = getYTIframe();
+          _ytIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=30`;
+          _ytPlaying = true; _ytTrackId = track.id; _ytSetState = setState; _ytVideoId = videoId;
+          _previewAvailableCache.add(track.id);
+          setState("playing"); setSource("YT");
+        } else {
+          // Fallback final: abrir YouTube en nueva pestaña
+          window.open(`https://www.youtube.com/results?search_query=${ytQ}`, "_blank", "noopener");
+          setState("nf");
+          setTimeout(() => setState("yt-link"), 2000);
+        }
+      } catch {
+        window.open(`https://www.youtube.com/results?search_query=${ytQ}`, "_blank", "noopener");
+        setState("yt-link");
+      }
+    };
     return (
-      <a href={`https://www.youtube.com/results?search_query=${ytQ}`} target="_blank" rel="noopener noreferrer"
-        onClick={e => e.stopPropagation()}
+      <button onClick={handleYtClick}
         title="Buscar en YouTube"
-        style={{ background:"#ff000012", border:"1px solid #ff000033", color:"#ff4444", fontSize:9, width:26, height:26, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", flexShrink:0, fontFamily:T.mono, fontWeight:700, transition:"all 0.2s" }}>
+        style={{ background:"#ff000012", border:"1px solid #ff000033", color:"#ff4444", fontSize:9, width:26, height:26, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none", flexShrink:0, fontFamily:T.mono, fontWeight:700, transition:"all 0.2s", cursor:"pointer" }}>
         YT
-      </a>
+      </button>
     );
   }
 
