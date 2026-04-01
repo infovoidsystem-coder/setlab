@@ -911,12 +911,13 @@ async function findYTVideoIdViaOembed(track) {
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
   const q   = `${a1} ${t1}`;
 
-  // Instancias Invidious públicas con API habilitada
+  // Instancias Invidious públicas con API habilitada (actualizadas abril 2025)
   const instances = [
-    "https://invidious.nerdvpn.de",
-    "https://iv.datura.network",
-    "https://invidious.privacydev.net",
-    "https://invidious.slipfox.xyz",
+    "https://invidious.fdn.fr",
+    "https://yt.cdaut.de",
+    "https://invidious.lunar.icu",
+    "https://inv.nadeko.net",
+    "https://invidious.perennialte.ch",
   ];
 
   for (const inst of instances) {
@@ -1206,41 +1207,17 @@ function PreviewButton({ track, accent }) {
       }
     } catch { stopAll(); }
 
-    // Nada encontrado — en vez de ocultar, abrimos YouTube como último recurso
-    setState("nf"); setSource("");
-    // Después de 2.5s, en lugar de desaparecer, ofrecemos YT directo
-    setTimeout(() => setState("yt-link"), 2500);
+    // Nada encontrado — mostramos botón YT directo de inmediato
+    setState("yt-link"); setSource("");
   }
 
-  // Si el estado es "yt-link", intentamos embed de YT directo por búsqueda
+  // Si el estado es "yt-link", abrimos YouTube directamente (Invidious no es confiable)
   if (state === "yt-link") {
     const ytQ = encodeURIComponent(`${track.artist} ${track.title}`);
-    // Intentamos una última búsqueda en Invidious al hacer click en YT
-    const handleYtClick = async (e) => {
+    const handleYtClick = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      setState("loading");
-      try {
-        const videoId = await Promise.race([
-          findYTVideoIdViaOembed(track),
-          new Promise(r => setTimeout(() => r(null), 8000)),
-        ]);
-        if (videoId) {
-          const iframe = getYTIframe();
-          _ytIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=30`;
-          _ytPlaying = true; _ytTrackId = track.id; _ytSetState = setState; _ytVideoId = videoId;
-          _previewAvailableCache.add(track.id);
-          setState("playing"); setSource("YT");
-        } else {
-          // Fallback final: abrir YouTube en nueva pestaña
-          window.open(`https://www.youtube.com/results?search_query=${ytQ}`, "_blank", "noopener");
-          setState("nf");
-          setTimeout(() => setState("yt-link"), 2000);
-        }
-      } catch {
-        window.open(`https://www.youtube.com/results?search_query=${ytQ}`, "_blank", "noopener");
-        setState("yt-link");
-      }
+      window.open(`https://www.youtube.com/results?search_query=${ytQ}`, "_blank", "noopener");
     };
     return (
       <button onClick={handleYtClick}
