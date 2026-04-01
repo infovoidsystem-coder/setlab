@@ -1716,16 +1716,28 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
           )}
         </button>
       </div>
-      <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
+      <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{list.length} tracks{labelFilter?` · ${labelFilter}`:""}{previewOnly?" · con preescucha":""}</span>
-        {seed&&<span style={{fontFamily:T.mono,fontSize:8.5,color:T.goldDim}}>semilla: {seed.title}</span>}
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {(styleFilter!=="all"||labelFilter||previewOnly||maxPop<100)&&(
+            <button onClick={()=>{setStyleFilter("all");setLabelFilter(null);setPreviewOnly(false);setMaxPop(100);setSearch("");}} style={{background:"#2a1010",border:"1px solid #ef444433",color:"#ef4444",fontFamily:T.sans,fontWeight:700,fontSize:8,padding:"3px 10px",borderRadius:8,cursor:"pointer",letterSpacing:0.5}}>&#x2715; limpiar filtros</button>
+          )}
+          {seed&&<span style={{fontFamily:T.mono,fontSize:8.5,color:T.goldDim}}>semilla: {seed.title}</span>}
+        </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {list.map(t=>(
             <TrackCard key={t.id} track={t} isSelected={seed?.id===t.id} onSelect={()=>setSeed(seed?.id===t.id?null:t)} onAdd={addToSet} onFind={onFind} inSet={mySet.some(s=>s.id===t.id)}/>
           ))}
-          {list.length===0&&<div style={{textAlign:"center",padding:"60px 0",fontFamily:T.sans,fontSize:11,color:"#8a8480"}}>sin resultados</div>}
+          {list.length===0&&(
+            <div style={{textAlign:"center",padding:"50px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+              <div style={{fontSize:28,opacity:0.15}}>&#128269;</div>
+              <div style={{fontFamily:T.sans,fontSize:12,fontWeight:700,color:"#6a6460"}}>Sin resultados</div>
+              <div style={{fontFamily:T.sans,fontSize:10,color:"#504844",lineHeight:1.9}}>Los filtros activos no combinan entre si.<br/>Proba limpiarlos para ver todos los tracks.</div>
+              <button onClick={()=>{setStyleFilter("all");setLabelFilter(null);setPreviewOnly(false);setMaxPop(100);setSearch("");}} style={{background:"#1a1000",border:"1px solid #c9a84c44",color:"#c9a84c",fontFamily:T.sans,fontWeight:700,fontSize:10,padding:"8px 18px",borderRadius:10,cursor:"pointer",letterSpacing:0.5,marginTop:4}}>Limpiar todos los filtros</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
