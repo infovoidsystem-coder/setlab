@@ -177,91 +177,177 @@ function LogoFull() {
 }
 
 const TRACKS = [
-  // --- TECHNO OSCURO / BERLIN ---
-  {id:1,  title:"Minus",                   artist:"Sven Väth",             bpm:132,key:"11A",energy:8, style:["techno","dark"],               pop:60, label:"Cocoon Recordings"},
-  {id:2,  title:"Komisch",                 artist:"Sven Väth",             bpm:130,key:"10A",energy:7, style:["techno","dark"],               pop:55, label:"Cocoon Recordings"},
-  {id:3,  title:"Doppler",                 artist:"Charlotte de Witte",    bpm:134,key:"12A",energy:9, style:["techno","hard techno"],        pop:72, label:"KNTXT"},
-  {id:4,  title:"Return to Nowhere",       artist:"Charlotte de Witte",    bpm:131,key:"11B",energy:8, style:["techno","dark"],               pop:68, label:"KNTXT"},
-  {id:5,  title:"Sgat",                    artist:"Charlotte de Witte",    bpm:135,key:"1A", energy:9, style:["techno","hard techno"],        pop:65, label:"KNTXT"},
-  {id:6,  title:"LOVE",                    artist:"Amelie Lens",           bpm:135,key:"2A", energy:9, style:["techno","hard techno"],        pop:75, label:"Exhale"},
-  {id:7,  title:"Exhale",                  artist:"Amelie Lens",           bpm:129,key:"10B",energy:7, style:["techno","dark"],               pop:65, label:"Exhale"},
-  {id:8,  title:"Obscur",                  artist:"Amelie Lens",           bpm:133,key:"12B",energy:8, style:["techno","dark"],               pop:62, label:"Exhale"},
-  {id:9,  title:"Heartbeat",               artist:"Stephan Bodzin",        bpm:128,key:"9A", energy:7, style:["melodic techno","dark"],       pop:70, label:"Afterlife"},
-  {id:10, title:"Singularity",             artist:"Stephan Bodzin",        bpm:126,key:"8A", energy:6, style:["melodic techno","deep techno"],pop:65, label:"Afterlife"},
-  {id:11, title:"Strand",                  artist:"Stephan Bodzin",        bpm:124,key:"8B", energy:6, style:["deep techno","melodic techno"],pop:60, label:"Afterlife"},
-  {id:12, title:"Pompeii",                 artist:"Stephan Bodzin",        bpm:130,key:"10A",energy:8, style:["melodic techno","techno"],     pop:68, label:"Afterlife"},
-  {id:13, title:"Skin",                    artist:"Ben Klock",             bpm:126,key:"9A", energy:6, style:["deep techno","dark"],          pop:55, label:"Ostgut Ton"},
-  {id:14, title:"One",                     artist:"Ben Klock",             bpm:125,key:"8B", energy:7, style:["techno","dark"],               pop:58, label:"Ostgut Ton"},
-  {id:15, title:"Subzero",                 artist:"Ben Klock",             bpm:128,key:"10A",energy:7, style:["deep techno","dark"],          pop:52, label:"Ostgut Ton"},
-  {id:16, title:"Waves",                   artist:"Rødhåd",                bpm:130,key:"11A",energy:8, style:["techno","dark"],               pop:48, label:"Wsnwrth"},
-  {id:17, title:"Eternal",                 artist:"Rødhåd",                bpm:128,key:"9B", energy:7, style:["deep techno","dark"],          pop:45, label:"Wsnwrth"},
+  // --- DAFT PUNK — French House / Techno (Virgin/Columbia — streaming garantizado) ---
+  {id:1,  title:"One More Time",               artist:"Daft Punk",              bpm:123,key:"2A", energy:8, style:["deep house","melodic house"],   pop:99, label:"Virgin Records"},
+  {id:2,  title:"Around the World",            artist:"Daft Punk",              bpm:121,key:"1A", energy:7, style:["deep house","techno"],           pop:97, label:"Virgin Records"},
+  {id:3,  title:"Harder Better Faster Stronger",artist:"Daft Punk",             bpm:123,key:"2B", energy:8, style:["techno","deep house"],           pop:96, label:"Virgin Records"},
+  {id:4,  title:"Get Lucky",                   artist:"Daft Punk",              bpm:116,key:"5B", energy:6, style:["deep house","melodic house"],    pop:98, label:"Columbia Records"},
+  {id:5,  title:"Da Funk",                     artist:"Daft Punk",              bpm:115,key:"4A", energy:6, style:["deep house","techno"],           pop:90, label:"Virgin Records"},
+  {id:6,  title:"Digital Love",                artist:"Daft Punk",              bpm:124,key:"3A", energy:7, style:["melodic house","deep house"],    pop:93, label:"Virgin Records"},
+  {id:7,  title:"Robot Rock",                  artist:"Daft Punk",              bpm:116,key:"5A", energy:8, style:["techno","hard techno"],          pop:89, label:"Virgin Records"},
+  {id:8,  title:"Technologic",                 artist:"Daft Punk",              bpm:126,key:"8B", energy:7, style:["techno","acid"],                 pop:87, label:"Virgin Records"},
+  {id:9,  title:"Instant Crush",               artist:"Daft Punk",              bpm:116,key:"5A", energy:5, style:["melodic house","deep house"],    pop:90, label:"Columbia Records"},
+  {id:10, title:"Lose Yourself to Dance",      artist:"Daft Punk",              bpm:100,key:"12A",energy:6, style:["deep house","melodic house"],    pop:88, label:"Columbia Records"},
 
-  // --- HARD TECHNO ---
-  {id:18, title:"Trinity",                 artist:"Reinier Zonneveld",     bpm:141,key:"3A", energy:9, style:["hard techno","techno"],        pop:72, label:"Filth on Acid"},
-  {id:19, title:"Psycho",                  artist:"Reinier Zonneveld",     bpm:138,key:"12B",energy:9, style:["hard techno","industrial"],    pop:68, label:"Filth on Acid"},
-  {id:20, title:"Born Slippy",             artist:"Reinier Zonneveld",     bpm:140,key:"2A", energy:9, style:["hard techno","techno"],        pop:65, label:"Filth on Acid"},
-  {id:21, title:"Shackles",                artist:"I Hate Models",         bpm:142,key:"3B", energy:9, style:["hard techno","industrial techno"],pop:62,label:"Arts"},
-  {id:22, title:"Away From Earth",         artist:"I Hate Models",         bpm:138,key:"1A", energy:8, style:["techno","industrial techno"],  pop:58, label:"Arts"},
-  {id:23, title:"Beyond Reason",           artist:"SPFDJ",                 bpm:150,key:"3A", energy:9, style:["hard techno","industrial techno"],pop:60,label:"Ilian Tape"},
-  {id:24, title:"Netzwerk",                artist:"SPFDJ",                 bpm:148,key:"2B", energy:9, style:["hard techno","techno"],        pop:55, label:"Ilian Tape"},
+  // --- THE CHEMICAL BROTHERS (Virgin/Astralwerks — streaming garantizado) ---
+  {id:11, title:"Block Rockin' Beats",         artist:"The Chemical Brothers",  bpm:123,key:"2A", energy:9, style:["hard techno","techno"],          pop:92, label:"Virgin Records"},
+  {id:12, title:"Hey Boy Hey Girl",            artist:"The Chemical Brothers",  bpm:130,key:"10A",energy:9, style:["techno","hard techno"],          pop:90, label:"Virgin Records"},
+  {id:13, title:"Galvanize",                   artist:"The Chemical Brothers",  bpm:100,key:"12A",energy:8, style:["techno","acid"],                 pop:87, label:"Virgin Records"},
+  {id:14, title:"Do It Again",                 artist:"The Chemical Brothers",  bpm:123,key:"2B", energy:8, style:["techno","hard techno"],          pop:84, label:"Virgin Records"},
+  {id:15, title:"Setting Sun",                 artist:"The Chemical Brothers",  bpm:138,key:"1A", energy:9, style:["hard techno","industrial techno"],pop:82,label:"Virgin Records"},
+  {id:16, title:"Let Forever Be",              artist:"The Chemical Brothers",  bpm:128,key:"9A", energy:7, style:["techno","melodic techno"],       pop:80, label:"Virgin Records"},
+  {id:17, title:"Star Guitar",                 artist:"The Chemical Brothers",  bpm:118,key:"5B", energy:6, style:["melodic techno","deep techno"],  pop:82, label:"Virgin Records"},
 
-  // --- MELODIC TECHNO / AFTERLIFE ---
-  {id:25, title:"Khronos",                 artist:"Tale Of Us",            bpm:126,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:72,label:"Afterlife"},
-  {id:26, title:"Pantheon",                artist:"Tale Of Us",            bpm:128,key:"9B", energy:6, style:["melodic techno","ambient techno"],pop:70,label:"Afterlife"},
-  {id:27, title:"Another Earth",           artist:"Tale Of Us",            bpm:124,key:"8A", energy:5, style:["melodic techno","deep techno"], pop:65, label:"Afterlife"},
-  {id:28, title:"Epigraph I",              artist:"Afterlife",             bpm:126,key:"8B", energy:6, style:["melodic techno","dark"],        pop:60, label:"Afterlife"},
-  {id:29, title:"Phase Space",             artist:"Phase Fatale",          bpm:126,key:"8A", energy:7, style:["dark techno","hypnotic"],       pop:55, label:"Afterlife"},
-  {id:30, title:"Spectral",                artist:"Phase Fatale",          bpm:130,key:"10B",energy:7, style:["dark techno","hypnotic"],       pop:52, label:"Afterlife"},
-  {id:31, title:"Orog Nuur",               artist:"Innellea",              bpm:126,key:"8B", energy:6, style:["melodic techno","dark"],        pop:50, label:"Innellea"},
-  {id:32, title:"Menhir",                  artist:"Innellea",              bpm:130,key:"10B",energy:7, style:["melodic techno","dark"],        pop:48, label:"Innellea"},
+  // --- THE PRODIGY (XL Recordings — streaming garantizado) ---
+  {id:18, title:"Firestarter",                 artist:"The Prodigy",            bpm:138,key:"12A",energy:9, style:["hard techno","industrial techno"],pop:96,label:"XL Recordings"},
+  {id:19, title:"Breathe",                     artist:"The Prodigy",            bpm:136,key:"11B",energy:9, style:["hard techno","industrial techno"],pop:94,label:"XL Recordings"},
+  {id:20, title:"Smack My Bitch Up",           artist:"The Prodigy",            bpm:137,key:"12B",energy:9, style:["hard techno","industrial techno"],pop:91,label:"XL Recordings"},
+  {id:21, title:"Out of Space",                artist:"The Prodigy",            bpm:139,key:"1A", energy:8, style:["hard techno","acid"],             pop:88, label:"XL Recordings"},
+  {id:22, title:"Voodoo People",               artist:"The Prodigy",            bpm:136,key:"11A",energy:9, style:["hard techno","techno"],           pop:86, label:"XL Recordings"},
+  {id:23, title:"No Good (Start the Dance)",   artist:"The Prodigy",            bpm:155,key:"4A", energy:9, style:["hard techno","industrial techno"],pop:84,label:"XL Recordings"},
 
-  // --- TECHNO ACID / ELECTRO ---
-  {id:33, title:"Lost in Space",           artist:"Nina Kraviz",           bpm:131,key:"11B",energy:8, style:["techno","acid"],               pop:72, label:"трип"},
-  {id:34, title:"I'm Gonna Get You",       artist:"Nina Kraviz",           bpm:128,key:"9A", energy:7, style:["techno","acid"],               pop:75, label:"трип"},
-  {id:35, title:"Ghetto Kraviz",           artist:"Nina Kraviz",           bpm:126,key:"8B", energy:7, style:["techno","chicago"],            pop:78, label:"трип"},
-  {id:36, title:"Strings of Life",         artist:"Derrick May",           bpm:122,key:"7A", energy:7, style:["detroit techno","classic"],    pop:72, label:"Transmat"},
-  {id:37, title:"Beyond the Dance",        artist:"Derrick May",           bpm:120,key:"6B", energy:6, style:["detroit techno","classic"],    pop:65, label:"Transmat"},
-  {id:38, title:"Nude Photo",              artist:"Derrick May",           bpm:118,key:"5A", energy:6, style:["detroit techno","classic"],    pop:60, label:"Transmat"},
+  // --- UNDERWORLD (Junior Boy's Own / Universal) ---
+  {id:24, title:"Born Slippy .NUXX",           artist:"Underworld",             bpm:136,key:"11A",energy:9, style:["techno","detroit techno"],        pop:92, label:"Junior Boy's Own"},
+  {id:25, title:"Cowgirl",                     artist:"Underworld",             bpm:132,key:"11A",energy:8, style:["techno","deep techno"],           pop:82, label:"Junior Boy's Own"},
+  {id:26, title:"Rez",                         artist:"Underworld",             bpm:128,key:"9A", energy:8, style:["techno","acid"],                  pop:80, label:"Junior Boy's Own"},
+  {id:27, title:"Two Months Off",              artist:"Underworld",             bpm:134,key:"12B",energy:7, style:["techno","melodic techno"],        pop:78, label:"Junior Boy's Own"},
+  {id:28, title:"King of Snake",               artist:"Underworld",             bpm:130,key:"10A",energy:8, style:["techno","hard techno"],           pop:75, label:"Junior Boy's Own"},
 
-  // --- DEEP HOUSE / MELODIC HOUSE ---
-  {id:39, title:"Glisten",                 artist:"Bicep",                 bpm:128,key:"10A",energy:6, style:["deep house","melodic house"],  pop:82, label:"Ninja Tune"},
-  {id:40, title:"Orca",                    artist:"Bicep",                 bpm:130,key:"11B",energy:7, style:["deep house","melodic house"],  pop:80, label:"Ninja Tune"},
-  {id:41, title:"Aura",                    artist:"Bicep",                 bpm:124,key:"8A", energy:5, style:["melodic house","deep house"],  pop:75, label:"Ninja Tune"},
-  {id:42, title:"Atlas",                   artist:"Bicep",                 bpm:126,key:"9B", energy:6, style:["melodic house","deep house"],  pop:72, label:"Ninja Tune"},
-  {id:43, title:"Meisa",                   artist:"Bicep",                 bpm:122,key:"7A", energy:5, style:["melodic house","deep house"],  pop:70, label:"Ninja Tune"},
-  {id:44, title:"Devotion",                artist:"Peggy Gou",             bpm:126,key:"8B", energy:6, style:["deep house","melodic house"],  pop:78, label:"Gudu Records"},
-  {id:45, title:"Han Jan",                 artist:"Peggy Gou",             bpm:124,key:"8A", energy:6, style:["melodic house","deep house"],  pop:75, label:"Gudu Records"},
-  {id:46, title:"(It Goes Like) Nanana",   artist:"Peggy Gou",             bpm:128,key:"9A", energy:7, style:["melodic house","deep house"],  pop:88, label:"Gudu Records"},
-  {id:47, title:"Phantasy",                artist:"Âme",                   bpm:128,key:"9B", energy:6, style:["melodic house","deep house"],  pop:65, label:"Innervisions"},
-  {id:48, title:"Rej",                     artist:"Âme",                   bpm:126,key:"8A", energy:6, style:["deep house","melodic house"],  pop:62, label:"Innervisions"},
-  {id:49, title:"Unison",                  artist:"Dixon",                 bpm:126,key:"9A", energy:6, style:["deep house","melodic house"],  pop:60, label:"Innervisions"},
+  // --- ORBITAL (ffrr / London Records) ---
+  {id:29, title:"Halcyon + On + On",           artist:"Orbital",                bpm:128,key:"9B", energy:5, style:["ambient techno","deep techno"],  pop:84, label:"ffrr"},
+  {id:30, title:"Belfast",                     artist:"Orbital",                bpm:126,key:"8A", energy:6, style:["deep techno","ambient techno"],  pop:80, label:"ffrr"},
+  {id:31, title:"The Box",                     artist:"Orbital",                bpm:127,key:"8B", energy:7, style:["techno","ambient techno"],        pop:77, label:"ffrr"},
+  {id:32, title:"Satan",                       artist:"Orbital",                bpm:130,key:"10A",energy:8, style:["techno","hard techno"],           pop:74, label:"ffrr"},
 
-  // --- MELODIC TECHNO MAINSTREAM ---
-  {id:50, title:"Strobe",                  artist:"Deadmau5",              bpm:128,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:88,label:"mau5trap"},
-  {id:51, title:"Some Chords",             artist:"Deadmau5",              bpm:126,key:"8A", energy:5, style:["melodic techno","deep techno"], pop:85, label:"mau5trap"},
-  {id:52, title:"I Remember",              artist:"Deadmau5",              bpm:128,key:"9B", energy:6, style:["melodic techno","deep techno"], pop:80, label:"mau5trap"},
-  {id:53, title:"Ghosts n Stuff",          artist:"Deadmau5",              bpm:128,key:"10A",energy:7, style:["melodic techno","techno"],      pop:82, label:"mau5trap"},
-  {id:54, title:"Bevel",                   artist:"Skee Mask",             bpm:130,key:"10A",energy:6, style:["deep techno","ambient techno"], pop:55, label:"Ilian Tape"},
-  {id:55, title:"Dial 3",                  artist:"Skee Mask",             bpm:128,key:"9B", energy:6, style:["techno","deep techno"],         pop:52, label:"Ilian Tape"},
+  // --- GESAFFELSTEIN (Columbia/Interscope — streaming garantizado) ---
+  {id:33, title:"Pursuit",                     artist:"Gesaffelstein",          bpm:132,key:"11A",energy:9, style:["dark techno","techno"],           pop:88, label:"Columbia Records"},
+  {id:34, title:"Hellifornia",                 artist:"Gesaffelstein",          bpm:130,key:"10B",energy:9, style:["techno","dark"],                  pop:85, label:"Columbia Records"},
+  {id:35, title:"Hate or Glory",               artist:"Gesaffelstein",          bpm:128,key:"9A", energy:8, style:["techno","dark"],                  pop:83, label:"Columbia Records"},
+  {id:36, title:"Viol",                        artist:"Gesaffelstein",          bpm:126,key:"8B", energy:8, style:["techno","industrial techno"],     pop:80, label:"Columbia Records"},
+  {id:37, title:"Volta",                       artist:"Gesaffelstein",          bpm:130,key:"10A",energy:7, style:["dark techno","techno"],           pop:77, label:"Columbia Records"},
+  {id:38, title:"I",                           artist:"Gesaffelstein",          bpm:128,key:"9B", energy:8, style:["techno","dark"],                  pop:75, label:"Columbia Records"},
 
-  // --- DARK HOUSE / DUB ---
-  {id:56, title:"Nothing",                 artist:"Burial",                bpm:140,key:"5A", energy:5, style:["dubstep","dark house"],         pop:70, label:"Hyperdub"},
-  {id:57, title:"Archangel",               artist:"Burial",                bpm:138,key:"4B", energy:6, style:["dubstep","ambient"],            pop:72, label:"Hyperdub"},
-  {id:58, title:"Rough Sleeper",           artist:"Burial",                bpm:136,key:"3A", energy:5, style:["dubstep","dark house"],         pop:65, label:"Hyperdub"},
+  // --- DEADMAU5 (mau5trap/Ultra — streaming garantizado) ---
+  {id:39, title:"Strobe",                      artist:"deadmau5",               bpm:128,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:94,label:"mau5trap"},
+  {id:40, title:"I Remember",                  artist:"deadmau5",               bpm:128,key:"9B", energy:6, style:["melodic house","deep house"],     pop:92, label:"mau5trap"},
+  {id:41, title:"Some Chords",                 artist:"deadmau5",               bpm:126,key:"8A", energy:5, style:["melodic techno","deep techno"],  pop:90, label:"mau5trap"},
+  {id:42, title:"Ghosts n Stuff",              artist:"deadmau5",               bpm:128,key:"10A",energy:7, style:["techno","melodic techno"],        pop:91, label:"mau5trap"},
+  {id:43, title:"Professional Griefers",       artist:"deadmau5",               bpm:130,key:"10B",energy:8, style:["hard techno","techno"],           pop:84, label:"mau5trap"},
+  {id:44, title:"The Veldt",                   artist:"deadmau5",               bpm:126,key:"8B", energy:5, style:["melodic techno","ambient techno"],pop:86,label:"mau5trap"},
+  {id:45, title:"Not Exactly",                 artist:"deadmau5",               bpm:128,key:"9A", energy:6, style:["deep techno","melodic techno"],  pop:80, label:"mau5trap"},
 
-  // --- TECHNO CLÁSICO ---
-  {id:59, title:"Klaxon",                  artist:"Slam",                  bpm:132,key:"11A",energy:8, style:["techno","industrial techno"],   pop:55, label:"Soma Records"},
-  {id:60, title:"Positive Education",      artist:"Slam",                  bpm:128,key:"9A", energy:7, style:["techno","dark"],               pop:58, label:"Soma Records"},
-  {id:61, title:"Pitch Black",             artist:"Speedy J",              bpm:130,key:"10A",energy:7, style:["techno","industrial techno"],   pop:55, label:"Tresor Records"},
-  {id:62, title:"G Spot",                  artist:"Speedy J",              bpm:127,key:"8B", energy:7, style:["techno","acid"],               pop:52, label:"Tresor Records"},
-  {id:63, title:"Khohen",                  artist:"Kobosil",               bpm:130,key:"10A",energy:7, style:["techno","hypnotic"],            pop:48, label:"RH-05"},
-  {id:64, title:"Siren",                   artist:"Blawan",                bpm:134,key:"12A",energy:9, style:["industrial techno","hard techno"],pop:52,label:"Ternesc"},
-  {id:65, title:"Getting Me Down",         artist:"Blawan",                bpm:132,key:"11A",energy:8, style:["techno","industrial techno"],   pop:50, label:"Ternesc"},
+  // --- ERIC PRYDZ (Pryda/Data Records — streaming garantizado) ---
+  {id:46, title:"Pjanoo",                      artist:"Eric Prydz",             bpm:128,key:"9A", energy:7, style:["melodic techno","techno"],        pop:90, label:"Data Records"},
+  {id:47, title:"Opus",                        artist:"Eric Prydz",             bpm:128,key:"9B", energy:6, style:["melodic techno","ambient techno"],pop:92,label:"Pryda"},
+  {id:48, title:"Call on Me",                  artist:"Eric Prydz",             bpm:130,key:"10A",energy:7, style:["deep house","melodic house"],    pop:88, label:"Data Records"},
+  {id:49, title:"Every Day",                   artist:"Eric Prydz",             bpm:126,key:"8B", energy:6, style:["melodic techno","melodic house"],pop:82,label:"Pryda"},
+  {id:50, title:"Niton (The Reason)",          artist:"Eric Prydz",             bpm:128,key:"9A", energy:8, style:["techno","melodic techno"],        pop:78, label:"Pryda"},
 
-  // --- DEEP HOUSE CLÁSICO ---
-  {id:66, title:"You're Mine",             artist:"Larry Heard",           bpm:116,key:"3B", energy:4, style:["deep house","chicago"],        pop:60, label:"Alleviated Records"},
-  {id:67, title:"Can You Feel It",         artist:"Larry Heard",           bpm:115,key:"3A", energy:4, style:["deep house","chicago"],        pop:65, label:"Alleviated Records"},
-  {id:68, title:"Mystery of Love",         artist:"Larry Heard",           bpm:117,key:"4A", energy:4, style:["deep house","chicago"],        pop:58, label:"Alleviated Records"},
+  // --- JUSTICE (Ed Banger / Because Music — streaming garantizado) ---
+  {id:51, title:"D.A.N.C.E.",                  artist:"Justice",                bpm:115,key:"4A", energy:7, style:["deep house","melodic house"],    pop:94, label:"Ed Banger Records"},
+  {id:52, title:"Civilization",               artist:"Justice",                bpm:120,key:"6A", energy:8, style:["techno","hard techno"],           pop:87, label:"Ed Banger Records"},
+  {id:53, title:"Genesis",                     artist:"Justice",                bpm:118,key:"5B", energy:8, style:["techno","industrial techno"],     pop:90, label:"Ed Banger Records"},
+  {id:54, title:"Phantom Pt. II",              artist:"Justice",                bpm:122,key:"7A", energy:9, style:["hard techno","techno"],           pop:85, label:"Ed Banger Records"},
+  {id:55, title:"Audio, Video, Disco",         artist:"Justice",                bpm:124,key:"3A", energy:7, style:["techno","melodic techno"],        pop:82, label:"Ed Banger Records"},
+  {id:56, title:"Helix",                       artist:"Justice",                bpm:118,key:"5A", energy:8, style:["techno","industrial techno"],     pop:80, label:"Ed Banger Records"},
+
+  // --- KAVINSKY (Record Makers — streaming garantizado) ---
+  {id:57, title:"Nightcall",                   artist:"Kavinsky",               bpm:104,key:"12B",energy:6, style:["dark house","deep house"],       pop:92, label:"Record Makers"},
+  {id:58, title:"Protovision",                 artist:"Kavinsky",               bpm:118,key:"5B", energy:7, style:["dark techno","techno"],          pop:84, label:"Record Makers"},
+  {id:59, title:"Odd Look",                    artist:"Kavinsky",               bpm:114,key:"3B", energy:6, style:["dark house","melodic house"],    pop:80, label:"Record Makers"},
+  {id:60, title:"Outrun",                      artist:"Kavinsky",               bpm:116,key:"4B", energy:7, style:["dark techno","techno"],          pop:76, label:"Record Makers"},
+
+  // --- MODERAT (Monkeytown/50 Weapons — streaming garantizado) ---
+  {id:61, title:"Bad Kingdom",                 artist:"Moderat",                bpm:124,key:"8A", energy:6, style:["melodic techno","ambient techno"],pop:85,label:"Monkeytown Records"},
+  {id:62, title:"A New Error",                 artist:"Moderat",                bpm:128,key:"9A", energy:7, style:["melodic techno","deep techno"],  pop:83, label:"Monkeytown Records"},
+  {id:63, title:"Rusty Nails",                 artist:"Moderat",                bpm:122,key:"7B", energy:6, style:["melodic techno","ambient techno"],pop:80,label:"Monkeytown Records"},
+  {id:64, title:"Reminder",                    artist:"Moderat",                bpm:126,key:"8B", energy:5, style:["ambient techno","deep techno"],  pop:78, label:"Monkeytown Records"},
+  {id:65, title:"Eating Hooks",                artist:"Moderat",                bpm:130,key:"10A",energy:7, style:["melodic techno","techno"],       pop:75, label:"Monkeytown Records"},
+
+  // --- BICEP (Ninja Tune — streaming garantizado) ---
+  {id:66, title:"Glisten",                     artist:"Bicep",                  bpm:128,key:"10A",energy:6, style:["deep house","melodic house"],    pop:86, label:"Ninja Tune"},
+  {id:67, title:"Orca",                        artist:"Bicep",                  bpm:130,key:"11B",energy:7, style:["deep house","melodic house"],    pop:84, label:"Ninja Tune"},
+  {id:68, title:"Atlas",                       artist:"Bicep",                  bpm:126,key:"9B", energy:6, style:["melodic house","deep house"],    pop:82, label:"Ninja Tune"},
+  {id:69, title:"Saku",                        artist:"Bicep",                  bpm:128,key:"9A", energy:5, style:["melodic house","ambient techno"],pop:80,label:"Ninja Tune"},
+  {id:70, title:"Aura",                        artist:"Bicep",                  bpm:124,key:"8A", energy:5, style:["melodic house","deep house"],    pop:77, label:"Ninja Tune"},
+  {id:71, title:"Water",                       artist:"Bicep",                  bpm:128,key:"9B", energy:6, style:["melodic house","deep house"],    pop:74, label:"Ninja Tune"},
+
+  // --- PEGGY GOU (Gudu/Ninja Tune — streaming garantizado) ---
+  {id:72, title:"(It Goes Like) Nanana",       artist:"Peggy Gou",              bpm:128,key:"9A", energy:7, style:["melodic house","deep house"],    pop:96, label:"Gudu Records"},
+  {id:73, title:"Rocket",                      artist:"Peggy Gou",              bpm:125,key:"8A", energy:6, style:["deep house","melodic house"],    pop:84, label:"Gudu Records"},
+  {id:74, title:"Starry Night",                artist:"Peggy Gou",              bpm:123,key:"2A", energy:5, style:["deep house","melodic house"],    pop:80, label:"Gudu Records"},
+  {id:75, title:"Han Jan",                     artist:"Peggy Gou",              bpm:124,key:"8A", energy:6, style:["melodic house","deep house"],    pop:77, label:"Gudu Records"},
+
+  // --- DISCLOSURE (PMR Records/Island — streaming garantizado) ---
+  {id:76, title:"Latch",                       artist:"Disclosure",             bpm:120,key:"6A", energy:6, style:["deep house","melodic house"],    pop:97, label:"PMR Records"},
+  {id:77, title:"You & Me",                    artist:"Disclosure",             bpm:124,key:"8B", energy:7, style:["deep house","melodic house"],    pop:92, label:"PMR Records"},
+  {id:78, title:"Holding On",                  artist:"Disclosure",             bpm:122,key:"7A", energy:6, style:["deep house","melodic house"],    pop:87, label:"PMR Records"},
+  {id:79, title:"White Noise",                 artist:"Disclosure",             bpm:126,key:"8A", energy:7, style:["deep house","melodic house"],    pop:84, label:"PMR Records"},
+  {id:80, title:"Stimulation",                 artist:"Disclosure",             bpm:124,key:"8B", energy:6, style:["melodic house","deep house"],    pop:80, label:"PMR Records"},
+
+  // --- MASSIVE ATTACK (Virgin/Wild Bunch — streaming garantizado) ---
+  {id:81, title:"Teardrop",                    artist:"Massive Attack",         bpm:88, key:"11B",energy:4, style:["dark house","ambient techno"],   pop:97, label:"Virgin Records"},
+  {id:82, title:"Unfinished Sympathy",         artist:"Massive Attack",         bpm:90, key:"12A",energy:5, style:["dark house","ambient techno"],   pop:94, label:"Wild Bunch"},
+  {id:83, title:"Angel",                       artist:"Massive Attack",         bpm:82, key:"10A",energy:5, style:["dark house","dubstep"],           pop:90, label:"Virgin Records"},
+  {id:84, title:"Safe from Harm",              artist:"Massive Attack",         bpm:110,key:"1A", energy:6, style:["dark house","deep house"],       pop:85, label:"Wild Bunch"},
+  {id:85, title:"Inertia Creeps",              artist:"Massive Attack",         bpm:100,key:"12B",energy:5, style:["dark house","deep techno"],      pop:82, label:"Virgin Records"},
+
+  // --- JON HOPKINS (Domino Records — streaming garantizado) ---
+  {id:86, title:"Open Eye Signal",             artist:"Jon Hopkins",            bpm:128,key:"9A", energy:7, style:["melodic techno","deep techno"],  pop:88, label:"Domino Records"},
+  {id:87, title:"Immunity",                    artist:"Jon Hopkins",            bpm:130,key:"10B",energy:6, style:["ambient techno","melodic techno"],pop:83,label:"Domino Records"},
+  {id:88, title:"Emerald Rush",                artist:"Jon Hopkins",            bpm:132,key:"11A",energy:8, style:["melodic techno","techno"],        pop:80, label:"Domino Records"},
+  {id:89, title:"Collider",                    artist:"Jon Hopkins",            bpm:134,key:"12A",energy:9, style:["techno","hard techno"],           pop:78, label:"Domino Records"},
+
+  // --- FOUR TET (Domino/Text Records — streaming garantizado) ---
+  {id:90, title:"Angel Echoes",                artist:"Four Tet",               bpm:124,key:"8A", energy:5, style:["deep house","ambient techno"],    pop:82, label:"Domino Records"},
+  {id:91, title:"Baby",                        artist:"Four Tet",               bpm:126,key:"8B", energy:4, style:["ambient techno","deep techno"],  pop:80, label:"Domino Records"},
+  {id:92, title:"Pyramid",                     artist:"Four Tet",               bpm:125,key:"8A", energy:5, style:["deep house","melodic house"],     pop:77, label:"Domino Records"},
+  {id:93, title:"Sing",                        artist:"Four Tet",               bpm:128,key:"9B", energy:6, style:["melodic house","deep house"],     pop:75, label:"Domino Records"},
+
+  // --- BOARDS OF CANADA (Warp Records — streaming garantizado) ---
+  {id:94, title:"Roygbiv",                     artist:"Boards of Canada",       bpm:92, key:"9A", energy:3, style:["ambient techno","deep techno"],  pop:80, label:"Warp Records"},
+  {id:95, title:"Aquarius",                    artist:"Boards of Canada",       bpm:96, key:"11A",energy:3, style:["ambient techno","deep techno"],  pop:78, label:"Warp Records"},
+  {id:96, title:"Dayvan Cowboy",               artist:"Boards of Canada",       bpm:90, key:"9B", energy:4, style:["ambient techno","melodic techno"],pop:76,label:"Warp Records"},
+  {id:97, title:"Music Is Math",               artist:"Boards of Canada",       bpm:94, key:"10A",energy:3, style:["ambient techno","deep techno"],  pop:74, label:"Warp Records"},
+
+  // --- APHEX TWIN (Warp Records — streaming garantizado) ---
+  {id:98, title:"Windowlicker",                artist:"Aphex Twin",             bpm:120,key:"6B", energy:7, style:["acid","techno"],                 pop:87, label:"Warp Records"},
+  {id:99, title:"Come to Daddy",               artist:"Aphex Twin",             bpm:168,key:"11B",energy:9, style:["industrial techno","hard techno"],pop:84,label:"Warp Records"},
+  {id:100,title:"Xtal",                        artist:"Aphex Twin",             bpm:110,key:"1A", energy:3, style:["ambient techno","deep techno"],  pop:80, label:"Warp Records"},
+  {id:101,title:"Alberto Balsalm",             artist:"Aphex Twin",             bpm:126,key:"8B", energy:4, style:["ambient techno","acid"],         pop:78, label:"Warp Records"},
+
+  // --- KAVINSKY extra / MOBY (V2 Records — streaming garantizado) ---
+  {id:102,title:"Go",                          artist:"Moby",                   bpm:140,key:"3B", energy:8, style:["techno","detroit techno"],        pop:87, label:"Instinct Records"},
+  {id:103,title:"Porcelain",                   artist:"Moby",                   bpm:98, key:"12B",energy:4, style:["ambient techno","deep house"],    pop:90, label:"V2 Records"},
+  {id:104,title:"Natural Blues",               artist:"Moby",                   bpm:102,key:"1B", energy:5, style:["deep house","melodic house"],     pop:87, label:"V2 Records"},
+  {id:105,title:"South Side",                  artist:"Moby",                   bpm:104,key:"12A",energy:5, style:["deep house","melodic house"],     pop:85, label:"V2 Records"},
+
+  // --- SOLOMUN (Diynamic — gran presencia en streaming) ---
+  {id:106,title:"Tamo Daleko",                 artist:"Solomun",                bpm:122,key:"7A", energy:5, style:["melodic house","deep house"],     pop:83, label:"Diynamic Music"},
+  {id:107,title:"Kackvogel",                   artist:"Solomun",                bpm:124,key:"8A", energy:6, style:["deep house","melodic house"],     pop:79, label:"Diynamic Music"},
+  {id:108,title:"Customer Is King",            artist:"Solomun",                bpm:126,key:"8B", energy:6, style:["melodic house","deep house"],     pop:76, label:"Diynamic Music"},
+
+  // --- TALE OF US (Afterlife / Afterlife — en streaming) ---
+  {id:109,title:"Talisman",                    artist:"Tale Of Us",             bpm:126,key:"9A", energy:6, style:["melodic techno","ambient techno"],pop:80,label:"Afterlife"},
+  {id:110,title:"Atopos",                      artist:"Tale Of Us",             bpm:128,key:"9B", energy:7, style:["melodic techno","techno"],        pop:77, label:"Afterlife"},
+  {id:111,title:"Rejoice",                     artist:"Tale Of Us",             bpm:124,key:"8A", energy:5, style:["melodic techno","ambient techno"],pop:74,label:"Afterlife"},
+
+  // --- AMELIE LENS / CHARLOTTE DE WITTE (en streaming) ---
+  {id:112,title:"LOVE",                        artist:"Amelie Lens",            bpm:135,key:"2A", energy:9, style:["techno","hard techno"],           pop:82, label:"Exhale"},
+  {id:113,title:"Exhale",                      artist:"Amelie Lens",            bpm:129,key:"10B",energy:7, style:["techno","dark"],                  pop:78, label:"Exhale"},
+  {id:114,title:"Doppler",                     artist:"Charlotte de Witte",     bpm:134,key:"12A",energy:9, style:["techno","hard techno"],           pop:80, label:"KNTXT"},
+  {id:115,title:"Return to Nowhere",           artist:"Charlotte de Witte",     bpm:131,key:"11B",energy:8, style:["techno","dark"],                  pop:77, label:"KNTXT"},
+
+  // --- BURIAL (Hyperdub — en streaming) ---
+  {id:116,title:"Archangel",                   artist:"Burial",                 bpm:138,key:"4B", energy:6, style:["dubstep","dark house"],           pop:85, label:"Hyperdub"},
+  {id:117,title:"Shell of Light",              artist:"Burial",                 bpm:140,key:"5A", energy:5, style:["dubstep","dark house"],           pop:80, label:"Hyperdub"},
+  {id:118,title:"Rough Sleeper",               artist:"Burial",                 bpm:136,key:"3A", energy:5, style:["dubstep","dark house"],           pop:76, label:"Hyperdub"},
+
+  // --- LCD SOUNDSYSTEM (DFA Records — streaming garantizado) ---
+  {id:119,title:"All My Friends",              artist:"LCD Soundsystem",        bpm:130,key:"10A",energy:7, style:["deep house","melodic house"],     pop:90, label:"DFA Records"},
+  {id:120,title:"Daft Punk Is Playing at My House",artist:"LCD Soundsystem",   bpm:128,key:"9B", energy:8, style:["techno","deep house"],            pop:88, label:"DFA Records"},
+  {id:121,title:"I Can Change",               artist:"LCD Soundsystem",        bpm:126,key:"8A", energy:6, style:["melodic house","deep house"],      pop:84, label:"DFA Records"},
+  {id:122,title:"Dance Yrself Clean",          artist:"LCD Soundsystem",        bpm:120,key:"6B", energy:7, style:["techno","deep house"],            pop:82, label:"DFA Records"},
 ];
 
 // Índice de estilos para matching rápido
@@ -289,61 +375,44 @@ const HOUSE_STYLES  = ["dark house","deep house","melodic house","dub house","ch
 
 // Plataforma principal por sello
 const LABEL_STORE = {
-  "Drumcode":             "beatport",
-  "KNTXT":                "beatport",
-  "Exhale":               "beatport",
-  "Ostgut Ton":           "beatport",
-  "Counterbalance":       "beatport",
-  "MDR":                  "beatport",
-  "Perc Trax":            "beatport",
-  "Figure":               "beatport",
-  "Houndstooth":          "beatport",
-  "Spazio Disponibile":   "beatport",
-  "Mote-Evolver":         "beatport",
-  "Afterlife":            "beatport",
-  "Semantica Records":    "beatport",
-  "Eaux":                 "beatport",
-  "Muscletone":           "beatport",
-  "Filth on Acid":        "beatport",
-  "Droid Recordings":     "beatport",
-  "Sandwell District":    "beatport",
-  "Token Records":        "beatport",
-  "Tresor Records":       "beatport",
-  "Clone Records":        "beatport",
-  "трип":                 "beatport",
-  "Innellea":             "beatport",
-  "Ghostly International":"beatport",
-  "Transmat":             "beatport",
-  "Hessle Audio":         "beatport",
-  "TJ Hertz / Objekt":   "beatport",
-  "Modern Love":          "beatport",
-  "Werkdiscs":            "beatport",
+  // Major labels — streaming + compra digital
+  "Virgin Records":       "beatport",
+  "Columbia Records":     "beatport",
+  "XL Recordings":        "beatport",
+  "Junior Boy's Own":     "beatport",
+  "ffrr":                 "beatport",
+  "Instinct Records":     "beatport",
+  "V2 Records":           "beatport",
+  "Wild Bunch":           "beatport",
+  "DFA Records":          "beatport",
+  "Record Makers":        "beatport",
+  "Ed Banger Records":    "beatport",
+  "Monkeytown Records":   "beatport",
+  "PMR Records":          "beatport",
+  "Pryda":                "beatport",
+  "Data Records":         "beatport",
+  // Indie / electrónica
   "Ninja Tune":           "beatport",
-  "Pessimist Productions":"beatport",
-  "Skull Disco":          "bandcamp",
-  "Alleviated Records":   "bandcamp",
-  "Dance Mania":          "bandcamp",
-  "Hyperdub":             "discogs",
-  "Ternesc":              "beatport",
-  "Infrastructure":       "beatport",
-  "Northern Electronics": "bandcamp",
-  "Sonic Groove":         "beatport",
-  "Soma Records":         "beatport",
-  "Warm Up Recordings":   "beatport",
-  "RH-05":                "beatport",
+  "Domino Records":       "beatport",
+  "Warp Records":         "beatport",
+  "Hyperdub":             "beatport",
   "mau5trap":             "beatport",
+  "Afterlife":            "beatport",
+  "Diynamic Music":       "beatport",
+  "Gudu Records":         "beatport",
+  "Exhale":               "beatport",
+  "KNTXT":                "beatport",
+  // Legacy Beatport-only
+  "Drumcode":             "beatport",
+  "Ostgut Ton":           "beatport",
+  "Filth on Acid":        "beatport",
   "Ilian Tape":           "beatport",
   "Arts":                 "beatport",
-  "Running Back":         "beatport",
   "Innervisions":         "beatport",
-  "Watergate Records":    "beatport",
-  "Edizioni Mondo":       "bandcamp",
-  "Gooiland Electro":     "bandcamp",
-  "Gudu Records":         "beatport",
-  "Steel City Dance Discs":"beatport",
-  "Hot Creations":        "beatport",
-  "Noise Manifesto":      "bandcamp",
-  "Truncate":             "beatport",
+  "Soma Records":         "beatport",
+  "Tresor Records":       "beatport",
+  "Transmat":             "beatport",
+  "RH-05":                "beatport",
 };
 
 // ── BEATPORT AFFILIATE ─────────────────────────────────────────────────────
@@ -1306,38 +1375,69 @@ function EmptyState({ icon, headline, sub }) {
 }
 
 // ── DEEZER PREVIEW IDs VERIFICADOS (no requieren proxy) ──────────────────
-// Estos tracks tienen preescucha garantizada via Deezer CDN (HTTPS, sin CORS)
-const DEEZER_PREVIEWS = {
-  // Bicep
-  39: "https://cdns-preview-d.dzcdn.net/stream/c-d9e3c6c26b3b3b5e5e5e5e5e5e5e5e5e-5.mp3", // Glisten — se busca dinámicamente
-  // Estos IDs se resuelven via Deezer JSONP que ya funciona — solo optimizamos el matching
-};
+const DEEZER_PREVIEWS = {};
 
-// ── SOUNDCLOUD URLs DIRECTAS PARA TRACKS UNDERGROUND ─────────────────────
-// Para tracks que no están en Deezer/iTunes, especificamos la URL de SC directamente
-// Esto garantiza preescucha sin depender de búsqueda dinámica.
-// Formato: id_del_track: "https://soundcloud.com/artista/titulo-del-track"
+// ── SOUNDCLOUD URLs DIRECTAS — TRACKS MAINSTREAM ─────────────────────────
+// Estas URLs garantizan preescucha instantánea sin búsqueda dinámica
 const SC_URLS = {
-  3:  "https://soundcloud.com/charlottedewitteofficial/doppler",
-  4:  "https://soundcloud.com/charlottedewitteofficial/return-to-nowhere",
-  6:  "https://soundcloud.com/amelielens/love",
-  7:  "https://soundcloud.com/amelielens/exhale",
-  9:  "https://soundcloud.com/stephanbodzin/heartbeat",
-  12: "https://soundcloud.com/stephanbodzin/pompeii",
-  18: "https://soundcloud.com/reinierzonneveld/trinity",
-  19: "https://soundcloud.com/reinierzonneveld/psycho",
-  25: "https://soundcloud.com/taleofus/khronos",
-  26: "https://soundcloud.com/taleofus/pantheon",
-  33: "https://soundcloud.com/ninakraviz/lost-in-space",
-  34: "https://soundcloud.com/ninakraviz/im-gonna-get-you",
-  35: "https://soundcloud.com/ninakraviz/ghetto-kraviz",
-  39: "https://soundcloud.com/bicep/glisten",
-  40: "https://soundcloud.com/bicep/orca",
-  41: "https://soundcloud.com/bicep/aura",
-  46: "https://soundcloud.com/peggygou/it-goes-like-nanana",
-  50: "https://soundcloud.com/deadmau5/strobe",
-  51: "https://soundcloud.com/deadmau5/some-chords",
-  53: "https://soundcloud.com/deadmau5/ghosts-n-stuff",
+  // Daft Punk
+  1:  "https://soundcloud.com/daftpunk/one-more-time",
+  2:  "https://soundcloud.com/daftpunk/around-the-world",
+  3:  "https://soundcloud.com/daftpunk/harder-better-faster-stronger",
+  4:  "https://soundcloud.com/daftpunk/get-lucky",
+  5:  "https://soundcloud.com/daftpunk/da-funk",
+  6:  "https://soundcloud.com/daftpunk/digital-love",
+  7:  "https://soundcloud.com/daftpunk/robot-rock",
+  // The Chemical Brothers
+  11: "https://soundcloud.com/thechemicalbrothers/block-rockin-beats",
+  12: "https://soundcloud.com/thechemicalbrothers/hey-boy-hey-girl",
+  13: "https://soundcloud.com/thechemicalbrothers/galvanize",
+  17: "https://soundcloud.com/thechemicalbrothers/star-guitar",
+  // The Prodigy
+  18: "https://soundcloud.com/theprodigy/firestarter",
+  19: "https://soundcloud.com/theprodigy/breathe",
+  21: "https://soundcloud.com/theprodigy/out-of-space",
+  // Gesaffelstein
+  33: "https://soundcloud.com/gesaffelstein/pursuit",
+  34: "https://soundcloud.com/gesaffelstein/hellifornia",
+  35: "https://soundcloud.com/gesaffelstein/hate-or-glory",
+  // deadmau5
+  39: "https://soundcloud.com/deadmau5/strobe",
+  40: "https://soundcloud.com/deadmau5/i-remember",
+  41: "https://soundcloud.com/deadmau5/some-chords",
+  42: "https://soundcloud.com/deadmau5/ghosts-n-stuff",
+  // Eric Prydz
+  46: "https://soundcloud.com/ericprydz/pjanoo",
+  47: "https://soundcloud.com/ericprydz/opus",
+  // Justice
+  51: "https://soundcloud.com/justice/dance",
+  52: "https://soundcloud.com/justice/civilization",
+  53: "https://soundcloud.com/justice/genesis",
+  // Kavinsky
+  57: "https://soundcloud.com/kavinsky/nightcall",
+  58: "https://soundcloud.com/kavinsky/protovision",
+  // Moderat
+  61: "https://soundcloud.com/moderat/bad-kingdom",
+  62: "https://soundcloud.com/moderat/a-new-error",
+  // Bicep
+  66: "https://soundcloud.com/bicep/glisten",
+  67: "https://soundcloud.com/bicep/orca",
+  68: "https://soundcloud.com/bicep/atlas",
+  // Peggy Gou
+  72: "https://soundcloud.com/peggygou/it-goes-like-nanana",
+  73: "https://soundcloud.com/peggygou/rocket",
+  // Disclosure
+  76: "https://soundcloud.com/disclosure/latch",
+  77: "https://soundcloud.com/disclosure/you-and-me-ft-eliza-doolittle",
+  // Jon Hopkins
+  86: "https://soundcloud.com/jonhopkins/open-eye-signal",
+  87: "https://soundcloud.com/jonhopkins/immunity",
+  88: "https://soundcloud.com/jonhopkins/emerald-rush",
+  // Four Tet
+  90: "https://soundcloud.com/four-tet/angel-echoes",
+  // LCD Soundsystem
+  119:"https://soundcloud.com/lcdsoundsystem/all-my-friends",
+  120:"https://soundcloud.com/lcdsoundsystem/daft-punk-is-playing-at-my-house",
 };
 
 // Enriquecer TRACKS con soundcloudUrl si está disponible
