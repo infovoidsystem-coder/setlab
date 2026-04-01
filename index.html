@@ -791,73 +791,26 @@ async function searchJamendoPreview(track) {
   return null;
 }
 
-// ── FUENTE 4: Invidious — audio stream de YouTube sin API key ────────────
-// Invidious es una interfaz open-source de YT con API pública y CORS habilitado.
-// Usamos múltiples instancias como fallback automático.
-const INVIDIOUS_INSTANCES = [
-  "https://invidious.privacyredirect.com",
-  "https://inv.nadeko.net",
-  "https://yt.artemislena.eu",
-  "https://invidious.lunar.icu",
-  "https://iv.datura.network",
-];
-
-async function searchInvidiousAudio(track) {
+// ── FUENTE 4: YouTube oEmbed — busca videoId via oEmbed sin CORS ─────────
+// Usamos la API de oEmbed de YouTube que sí permite CORS desde el browser.
+// Solo recuperamos el videoId para el iframe embed (sin stream directo).
+async function findYTVideoIdViaOembed(track) {
   const a1 = track.artist.split(/[&,+]/)[0].trim();
   const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  // Construimos queries de búsqueda ordenadas de más a menos específica
-  const searchTerms = [
-    `${a1} ${t1} official`,
-    `${a1} ${t1}`,
-    `${track.artist} ${track.title}`,
-    `${a1} ${track.title}`,
-  ];
-
-  for (const instance of INVIDIOUS_INSTANCES) {
-    for (const term of searchTerms) {
-      try {
-        const searchUrl = `${instance}/api/v1/search?q=${encodeURIComponent(term)}&type=video&fields=videoId,title,author,lengthSeconds&page=1`;
-        const res = await fetch(searchUrl, { signal: AbortSignal.timeout(7000) });
-        if (!res.ok) continue;
-        const results = await res.json();
-        if (!Array.isArray(results) || results.length === 0) continue;
-
-        // Filtramos videos con duración razonable para un track (2-15 min)
-        const candidates = results.filter(v =>
-          v.lengthSeconds >= 100 && v.lengthSeconds <= 900
-        );
-        if (candidates.length === 0) continue;
-
-        // Evaluamos con matchScore usando title + author del video
-        const scored = candidates
-          .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
-          .filter(x => x.s >= 40) // umbral más bajo porque YT usa títulos descriptivos
-          .sort((a, b) => b.s - a.s);
-
-        if (scored.length === 0) continue;
-        const videoId = scored[0].v.videoId;
-
-        // Obtenemos el stream de audio via Invidious
-        const streamUrl = `${instance}/api/v1/videos/${videoId}?fields=adaptiveFormats,formatStreams`;
-        const streamRes = await fetch(streamUrl, { signal: AbortSignal.timeout(7000) });
-        if (!streamRes.ok) continue;
-        const streamData = await streamRes.json();
-
-        // Buscamos el mejor formato de audio (preferimos opus/webm, luego mp4)
-        const formats = [
-          ...(streamData.adaptiveFormats || []).filter(f => f.type?.startsWith("audio/")),
-          ...(streamData.formatStreams || []).filter(f => f.type?.startsWith("audio/")),
-        ];
-
-        // Priorizamos calidad media (no la más alta para cargar rápido)
-        const audioFmt = formats.find(f => f.bitrate && parseInt(f.bitrate) <= 128000 && f.url)
-          || formats.find(f => f.url);
-
-        if (audioFmt?.url) {
-          return { url: audioFmt.url, source: "YT", videoId, instance };
-        }
-      } catch {}
-    }
+  const queries = [`${a1} ${t1}`, `${track.artist} ${track.title}`];
+  for (const q of queries) {
+    try {
+      // Usamos el proxy allorigins para evitar CORS en la búsqueda de YT
+      const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=EgIQAQ%253D%253D`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(ytSearchUrl)}`;
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+      const wrap = await res.json();
+      const html = wrap.contents || "";
+      // Extraemos videoIds del HTML
+      const matches = [...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map(m => m[1]);
+      const unique = [...new Set(matches)];
+      if (unique.length > 0) return unique[0];
+    } catch {}
   }
   return null;
 }
@@ -888,39 +841,12 @@ function stopYT() {
   if (_ytSetState) { _ytSetState("idle"); _ytSetState = null; }
 }
 
-// Busca videoId en Invidious (solo metadatos, sin stream)
-async function findYouTubeVideoId(track) {
-  const a1 = track.artist.split(/[&,+]/)[0].trim();
-  const t1  = track.title.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
-  const searchTerms = [`${a1} ${t1} official`, `${a1} ${t1}`, `${track.artist} ${track.title}`];
 
-  for (const instance of INVIDIOUS_INSTANCES) {
-    for (const term of searchTerms) {
-      try {
-        const res = await fetch(
-          `${instance}/api/v1/search?q=${encodeURIComponent(term)}&type=video&fields=videoId,title,author,lengthSeconds&page=1`,
-          { signal: AbortSignal.timeout(6000) }
-        );
-        if (!res.ok) continue;
-        const results = await res.json();
-        if (!Array.isArray(results)) continue;
-        const candidates = results.filter(v => v.lengthSeconds >= 100 && v.lengthSeconds <= 900);
-        const scored = candidates
-          .map(v => ({ v, s: matchScore(v.author, v.title, track) }))
-          .filter(x => x.s >= 40)
-          .sort((a, b) => b.s - a.s);
-        if (scored.length > 0) return scored[0].v.videoId;
-      } catch {}
-    }
-  }
-  return null;
-}
 
 
 // ── ORQUESTADOR PRINCIPAL ──────────────────────────────────────────────────
 // Fase 1 (paralela, rápida): Deezer + iTunes + Jamendo — audio directo 30s
-// Fase 2 (fallback): Invidious audio stream — cubre casi todo lo de YouTube
-// Fase 3 (último recurso): videoId de YT para iframe embed
+// Fase 2 (fallback): videoId de YT para iframe embed via allorigins proxy
 async function findPreviewUrl(track) {
   // FASE 1: Race paralelo entre fuentes rápidas
   const fase1 = await new Promise(resolve => {
@@ -942,19 +868,10 @@ async function findPreviewUrl(track) {
   });
   if (fase1) return fase1;
 
-  // FASE 2: Invidious (audio stream de YouTube) — cubre electrónica underground
-  try {
-    const inv = await Promise.race([
-      searchInvidiousAudio(track),
-      new Promise(r => setTimeout(() => r(null), 15000)),
-    ]);
-    if (inv?.url) return inv;
-  } catch {}
-
-  // FASE 3: Si Invidious encontró videoId pero falló el stream, usamos iframe embed
+  // FASE 2: Buscar videoId de YouTube para iframe embed
   try {
     const videoId = await Promise.race([
-      findYouTubeVideoId(track),
+      findYTVideoIdViaOembed(track),
       new Promise(r => setTimeout(() => r(null), 10000)),
     ]);
     if (videoId) return { url: null, source: "YT", videoId };
@@ -1101,6 +1018,7 @@ function PreviewButton({ track, accent }) {
       if (r?.url) {
         try {
           await playAudioUrl(r.url);
+          _previewAvailableCache.add(track.id);
           setState("playing"); setSource(r.source || "▶");
           _previewAudio.addEventListener("ended", () => { setState("idle"); setSource(""); _previewAudio = null; _previewSetState = null; _previewTrackId = null; });
           return;
@@ -1112,6 +1030,7 @@ function PreviewButton({ track, accent }) {
         const iframe = getYTIframe();
         _ytIframe.src = `https://www.youtube.com/embed/${r.videoId}?autoplay=1&start=30`;
         _ytPlaying = true; _ytTrackId = track.id; _ytSetState = setState; _ytVideoId = r.videoId;
+        _previewAvailableCache.add(track.id);
         setState("playing"); setSource("YT");
         return;
       }
@@ -1247,17 +1166,26 @@ function EmptyState({ icon, headline, sub }) {
   );
 }
 
+// Caché de tracks con preescucha confirmada (se rellena al hacer click en ▶)
+const _previewAvailableCache = new Set();
+// Pre-check rápido: tiene soundcloudUrl o previewUrl directo
+function hasKnownPreview(track) {
+  return !!track.soundcloudUrl || !!track.previewUrl || _previewAvailableCache.has(track.id);
+}
+
 function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styleFilter, setStyleFilter, search, setSearch, onFind, djTracks=[] }) {
   const [labelFilter, setLabelFilter] = React.useState(null);
+  const [previewOnly, setPreviewOnly] = React.useState(true);
   const allTracks = React.useMemo(()=>[...TRACKS,...djTracks],[djTracks]);
   const allLabels = React.useMemo(()=>[...new Set(allTracks.map(t=>t.label).filter(Boolean))].sort(),[allTracks]);
   const list=useMemo(()=>allTracks.filter(t=>{
     if(!t.isEmergent && t.pop>maxPop) return false; // emergentes siempre pasan
     if(styleFilter!=="all"&&!t.style.includes(styleFilter)) return false;
     if(labelFilter&&t.label!==labelFilter) return false;
+    if(previewOnly && !hasKnownPreview(t)) return false;
     if(search){const q=search.toLowerCase();return t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q)||(t.label||"").toLowerCase().includes(q);}
     return true;
-  }),[styleFilter,maxPop,search,labelFilter,allTracks]);
+  }),[styleFilter,maxPop,search,labelFilter,previewOnly,allTracks]);
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{padding:"8px 16px 0",flexShrink:0}}>
@@ -1300,8 +1228,29 @@ function LibraryScreen({ seed, setSeed, mySet, addToSet, maxPop, setMaxPop, styl
           ))}
         </div>
       </div>
+      <div style={{padding:"8px 14px 0",flexShrink:0}}>
+        <button
+          onClick={()=>setPreviewOnly(v=>!v)}
+          style={{
+            display:"flex",alignItems:"center",gap:7,
+            background: previewOnly ? `${T.gold}18` : T.isDark?"#1e1c18":"#ece8e2",
+            border:`1px solid ${previewOnly ? T.goldDim : T.isDark?"#2e2c28":"#d4cfc8"}`,
+            color: previewOnly ? T.gold : T.textDim,
+            fontFamily:T.sans, fontWeight:700, fontSize:9.5,
+            padding:"6px 13px", borderRadius:20, cursor:"pointer",
+            letterSpacing:0.5, transition:"all 0.15s",
+            WebkitTapHighlightColor:"transparent",
+          }}
+        >
+          <span style={{fontSize:11}}>{previewOnly ? "▶" : "▶"}</span>
+          {previewOnly ? "Solo con preescucha" : "Todos los tracks"}
+          {previewOnly && (
+            <span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,background:`${T.gold}12`,border:`1px solid ${T.goldDim}55`,padding:"1px 5px",borderRadius:4,letterSpacing:1}}>ACTIVO</span>
+          )}
+        </button>
+      </div>
       <div style={{padding:"6px 16px 4px",display:"flex",justifyContent:"space-between",flexShrink:0}}>
-        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{list.length} tracks{labelFilter?` · ${labelFilter}`:""}</span>
+        <span style={{fontFamily:T.mono,fontSize:8.5,color:T.textGhost}}>{list.length} tracks{labelFilter?` · ${labelFilter}`:""}{previewOnly?" · con preescucha":""}</span>
         {seed&&<span style={{fontFamily:T.mono,fontSize:8.5,color:T.goldDim}}>semilla: {seed.title}</span>}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"0 10px 90px",scrollbarWidth:"none"}}>
