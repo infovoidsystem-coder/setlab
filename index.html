@@ -1971,6 +1971,210 @@ function autoBuildAdvanced(opts) {
   return { seed: chosenSeed, tracks: sequence.slice(1) };
 }
 
+// ── PERFILES DE VENUE ────────────────────────────────────────────────────────
+// Cada perfil modifica: arco de energía, rango de BPM, bias de intensidad, variación base
+const VENUE_PROFILES = {
+  club: {
+    label: "Club Nocturno",
+    icon: "🏛",
+    desc: "Berlin, Fabric, D-Edge — oscuro e hipnótico",
+    color: "#a855f7",
+    arc: "peak",
+    bpmBias: 0,        // sin modificación
+    energyBias: 1,     // +1 a todo
+    variationBase: 0.45,
+    popMax: null,      // usa el global
+  },
+  afterhours: {
+    label: "After Hours",
+    icon: "🌅",
+    desc: "Madrugada, intensidad máxima hasta el amanecer",
+    color: "#f97316",
+    arc: "wave",
+    bpmBias: 4,
+    energyBias: 2,
+    variationBase: 0.35,
+    popMax: null,
+  },
+  festival: {
+    label: "Festival / Outdoor",
+    icon: "🎪",
+    desc: "Escenario grande, masivo, peak hour",
+    color: "#eab308",
+    arc: "buildup",
+    bpmBias: 2,
+    energyBias: 1,
+    variationBase: 0.55,
+    popMax: null,
+  },
+  sunset: {
+    label: "Sunset / Rooftop",
+    icon: "🌇",
+    desc: "Puesta del sol, melodic, emocional",
+    color: "#f472b6",
+    arc: "chill",
+    bpmBias: -4,
+    energyBias: -1,
+    variationBase: 0.4,
+    popMax: null,
+  },
+  opening: {
+    label: "Opening Set",
+    icon: "🌒",
+    desc: "Calentamiento suave, construye desde cero",
+    color: "#22d3ee",
+    arc: "buildup",
+    bpmBias: -6,
+    energyBias: -2,
+    variationBase: 0.4,
+    popMax: null,
+  },
+  closing: {
+    label: "Closing Set",
+    icon: "🌠",
+    desc: "El último set de la noche, narrativa completa",
+    color: "#4ade80",
+    arc: "dropdown",
+    bpmBias: 2,
+    energyBias: 0,
+    variationBase: 0.5,
+    popMax: null,
+  },
+};
+
+// ── ALGORITMO MEJORADO con venue + anti-repetición ────────────────────────────
+// Usa un pool de exclusión persistente para garantizar que cada regeneración
+// produzca una semilla distinta y tracks nunca repetidos entre reshuffles
+let _lastUsedSeedIds = new Set();
+let _lastUsedTrackIds = new Set();
+
+function autoBuildWithVenue(opts) {
+  var styles    = opts.styles;
+  var arcKey    = opts.arc;
+  var length    = opts.length;
+  var maxPop    = opts.maxPop;
+  var variation = opts.variation;
+  var bpmBias   = opts.bpmBias || 0;
+  var energyBias= opts.energyBias || 0;
+  var forceNew  = opts.forceNew || false;   // true = ignora cache
+
+  // Pool filtrado por estilo y popularidad
+  var pool = TRACKS.filter(function(t) {
+    if (t.pop > maxPop) return false;
+    for (var si = 0; si < styles.length; si++) {
+      if (matchesStyleFilter(t, styles[si])) return true;
+    }
+    return false;
+  });
+  if (pool.length === 0) return { seed: null, tracks: [], reshuffleCount: 0 };
+
+  var arcFn = (ENERGY_ARCS[arcKey] && ENERGY_ARCS[arcKey].fn)
+    ? ENERGY_ARCS[arcKey].fn
+    : ENERGY_ARCS.buildup.fn;
+
+  // ── Elegir semilla DIFERENTE a la última usada ──
+  var seedETarget = Math.min(10, Math.max(1, arcFn(0, 0) + energyBias));
+  var noiseMag = variation * 3.5;
+
+  // Excluir semillas ya usadas si hay suficiente pool
+  var seedCandidates = pool.slice().filter(function(t) {
+    return forceNew ? !_lastUsedSeedIds.has(t.id) : true;
+  });
+  if (seedCandidates.length === 0) {
+    _lastUsedSeedIds.clear();
+    seedCandidates = pool.slice();
+  }
+
+  seedCandidates.sort(function(a, b) {
+    var aDiff = Math.abs(a.energy - seedETarget);
+    var bDiff = Math.abs(b.energy - seedETarget);
+    return (aDiff + Math.random() * noiseMag) - (bDiff + Math.random() * noiseMag);
+  });
+
+  var chosenSeed = seedCandidates[0];
+  _lastUsedSeedIds.add(chosenSeed.id);
+  if (_lastUsedSeedIds.size > Math.floor(pool.length * 0.6)) _lastUsedSeedIds.clear();
+
+  var sequence  = [chosenSeed];
+  var usedIds   = {};
+  usedIds[chosenSeed.id] = true;
+
+  // Excluir tracks de sesiones anteriores para garantizar variedad entre reshuffles
+  var recentlyUsed = forceNew ? new Set(_lastUsedTrackIds) : new Set();
+
+  var denom = length > 1 ? length - 1 : 1;
+
+  for (var step = 0; step < length - 1; step++) {
+    var progress = (step + 1) / denom;
+    var targetE  = Math.min(10, Math.max(1, arcFn(progress, step + 1) + energyBias));
+    var last     = sequence[sequence.length - 1];
+
+    var usedStylesArr = [];
+    for (var si2 = 0; si2 < sequence.length; si2++) {
+      for (var si3 = 0; si3 < sequence[si2].style.length; si3++) {
+        usedStylesArr.push(sequence[si2].style[si3]);
+      }
+    }
+
+    // Penalizar artistas recientes (últimos 3 tracks)
+    var recentArtists = [];
+    for (var ri = Math.max(0, sequence.length - 3); ri < sequence.length; ri++) {
+      recentArtists.push(sequence[ri].artist);
+    }
+
+    var candidates = [];
+    for (var ci = 0; ci < pool.length; ci++) {
+      var t = pool[ci];
+      if (usedIds[t.id]) continue;
+
+      var bpmTarget = last.bpm + bpmBias * 0.3; // drift sutil por venue
+      var bpmDiff   = Math.abs(t.bpm - bpmTarget);
+      var bpmScore  = bpmDiff===0?100:bpmDiff<=2?95:bpmDiff<=4?85:bpmDiff<=7?65:bpmDiff<=12?35:bpmDiff<=16?15:5;
+      var keyScore  = camelotScore(last.key, t.key);
+      var eDiff     = Math.abs(t.energy - targetE);
+      var arcBonus  = eDiff===0?40:eDiff===1?20:eDiff===2?0:-20*(eDiff-2);
+
+      var cohesion = 0;
+      for (var csi = 0; csi < t.style.length; csi++) {
+        if (usedStylesArr.indexOf(t.style[csi]) >= 0) cohesion += 10;
+      }
+
+      var totalDrift  = Math.abs(t.bpm - chosenSeed.bpm);
+      var driftPenalty = totalDrift > 18 ? -50 : totalDrift > 12 ? -20 : totalDrift > 8 ? -8 : 0;
+
+      // Penalización fuerte a tracks usados recientemente (anti-repetición)
+      var recentPenalty = recentlyUsed.has(t.id) ? -80 : 0;
+      var artistPenalty = recentArtists.indexOf(t.artist) >= 0 ? -40 : 0;
+
+      // Ruido aleatorio — controlado por variation
+      var randNoise = (Math.random() - 0.5) * variation * 50;
+
+      var score = bpmScore + keyScore + arcBonus + cohesion + driftPenalty + recentPenalty + artistPenalty + randNoise;
+      candidates.push({ track: t, score: score });
+    }
+
+    if (candidates.length === 0) break;
+    candidates.sort(function(a, b) { return b.score - a.score; });
+
+    // Elegir entre el top-3 (no siempre el #1) para más variedad
+    var topN = Math.min(3, candidates.length);
+    var chosen = candidates[Math.floor(Math.random() * topN * variation + 0.5 > topN-1 ? topN-1 : Math.floor(Math.random() * topN * variation + 0.5))].track;
+    // Simplificado: top-1 cuando variation=0, mezcla hasta top-3 cuando variation alto
+    var pickIdx = variation > 0.5 ? Math.floor(Math.random() * Math.min(3, candidates.length)) : 0;
+    chosen = candidates[pickIdx].track;
+
+    sequence.push(chosen);
+    usedIds[chosen.id] = true;
+    recentlyUsed.add(chosen.id);
+  }
+
+  // Actualizar cache de tracks usados para próximo reshuffle
+  sequence.forEach(function(t) { _lastUsedTrackIds.add(t.id); });
+  if (_lastUsedTrackIds.size > Math.floor(TRACKS.length * 0.5)) _lastUsedTrackIds.clear();
+
+  return { seed: chosenSeed, tracks: sequence.slice(1) };
+}
+
 // Estilos con labels bonitos para el modal
 const STYLE_BUILD_OPTIONS = [
   { group: "TECHNO", styles: [
@@ -2024,56 +2228,96 @@ function ArcSparkline({ arcKey, width=120, height=24 }) {
 }
 
 function AutoBuildModal({ onClose, onBuild, maxPop }) {
+  const [venue, setVenue]             = React.useState(null);
   const [selectedStyles, setSelectedStyles] = React.useState([]);
-  const [arc, setArc] = React.useState("buildup");
-  const [length, setLength] = React.useState(12);
-  const [variation, setVariation] = React.useState(0.3); // 0=determinista, 1=muy aleatorio
-  const [preview, setPreview] = React.useState(null);
-  const [step, setStep] = React.useState(0); // 0=estilos, 1=parámetros
+  const [arc, setArc]                 = React.useState("buildup");
+  const [length, setLength]           = React.useState(12);
+  const [variation, setVariation]     = React.useState(0.45);
+  const [preview, setPreview]         = React.useState(null);
+  const [step, setStep]               = React.useState(0); // 0=venue, 1=estilos, 2=config
+  const [reshuffleCount, setReshuffleCount] = React.useState(0);
 
-  const compute = (styles, arcKey, len, vari) => {
+  const getOpts = (styles, arcKey, len, vari, venuePrf) => {
+    const vp = venuePrf || (venue ? VENUE_PROFILES[venue] : null);
+    return {
+      styles,
+      arc: vp ? vp.arc : arcKey,
+      length: len,
+      maxPop: (vp && vp.popMax) ? vp.popMax : maxPop,
+      variation: vp ? Math.max(vp.variationBase, vari) : vari,
+      bpmBias: vp ? vp.bpmBias : 0,
+      energyBias: vp ? vp.energyBias : 0,
+      forceNew: true,
+    };
+  };
+
+  const compute = (styles, arcKey, len, vari, vp) => {
     if (styles.length === 0) { setPreview(null); return; }
-    const result = autoBuildAdvanced({ styles, arc: arcKey, length: len, maxPop, variation: vari });
+    const result = autoBuildWithVenue(getOpts(styles, arcKey, len, vari, vp));
     setPreview(result);
   };
-  const toggleStyle = (styleId) => {
-    const next = selectedStyles.includes(styleId) ? selectedStyles.filter(s=>s!==styleId) : [...selectedStyles, styleId];
-    setSelectedStyles(next);
-    compute(next, arc, length, variation);
+
+  const selectVenue = (key) => {
+    const vp = VENUE_PROFILES[key];
+    setVenue(key);
+    setArc(vp.arc);
+    setVariation(Math.max(vp.variationBase, variation));
+    compute(selectedStyles, vp.arc, length, Math.max(vp.variationBase, variation), vp);
+    if (selectedStyles.length > 0) setStep(1);
+    else setStep(1);
   };
-  const handleArc = (key) => { setArc(key); compute(selectedStyles, key, length, variation); };
-  const handleLength = (n) => { setLength(n); compute(selectedStyles, arc, n, variation); };
-  const handleVariation = (v) => { setVariation(v); compute(selectedStyles, arc, length, v); };
+
+  const toggleStyle = (styleId) => {
+    const next = selectedStyles.includes(styleId)
+      ? selectedStyles.filter(s => s !== styleId)
+      : [...selectedStyles, styleId];
+    setSelectedStyles(next);
+    compute(next, arc, length, variation, venue ? VENUE_PROFILES[venue] : null);
+  };
+
+  const handleArc      = (key) => { setArc(key); compute(selectedStyles, key, length, variation); };
+  const handleLength   = (n)   => { setLength(n); compute(selectedStyles, arc, n, variation); };
+  const handleVariation= (v)   => { setVariation(v); compute(selectedStyles, arc, length, v); };
+
+  const handleReshuffle = () => {
+    setReshuffleCount(c => c + 1);
+    compute(selectedStyles, arc, length, variation);
+  };
+
   const handleBuild = () => {
     if (!preview?.seed || preview.tracks.length === 0) return;
     onBuild(preview.seed, preview.tracks);
     onClose();
   };
-  const handleReshuffle = () => { compute(selectedStyles, arc, length, variation); };
 
   const canProceed = selectedStyles.length > 0;
-  const canBuild = preview?.seed && preview?.tracks?.length > 0;
+  const canBuild   = preview?.seed && preview?.tracks?.length > 0;
+  const activeVenue = venue ? VENUE_PROFILES[venue] : null;
+  const accentColor = activeVenue ? activeVenue.color : T.gold;
 
   return (
     <div style={{
-      position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:999,
+      position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:999,
       display:"flex",alignItems:"flex-end",justifyContent:"center"
     }} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
       <div style={{
-        width:"100%",maxWidth:430,maxHeight:"92vh",display:"flex",flexDirection:"column",
+        width:"100%",maxWidth:430,maxHeight:"94vh",display:"flex",flexDirection:"column",
         borderRadius:"18px 18px 0 0",overflow:"hidden",
         background:"#080705",border:"1px solid #1a1816",borderBottom:"none",
-        boxShadow:"0 -20px 60px #000c"
+        boxShadow:"0 -20px 60px #000e"
       }}>
 
         {/* ── HEADER ── */}
         <div style={{background:"#0a0906",borderBottom:"1px solid #141210",padding:"14px 18px 12px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <div style={{fontFamily:T.sans,fontWeight:800,fontSize:14,color:T.gold,letterSpacing:-0.3}}>✦ Auto Build</div>
+            <div style={{fontFamily:T.sans,fontWeight:800,fontSize:14,color:accentColor,letterSpacing:-0.3}}>
+              ✦ Auto Build{activeVenue ? ` · ${activeVenue.icon} ${activeVenue.label}` : ""}
+            </div>
             <div style={{fontFamily:T.mono,fontSize:7.5,color:"#aca49a",letterSpacing:1,marginTop:2}}>
-              {selectedStyles.length===0?"elegí estilo · configurá el arco · generá":
-               selectedStyles.length===1?`${selectedStyles[0]} · ${ENERGY_ARCS[arc].label}`:
-               `${selectedStyles.length} estilos fusionados · ${ENERGY_ARCS[arc].label}`}
+              {!venue ? "elegí el lugar donde vas a tocar" :
+               selectedStyles.length === 0 ? "ahora elegí el estilo" :
+               selectedStyles.length === 1 ? `${selectedStyles[0]} · ${ENERGY_ARCS[arc].label}` :
+               `${selectedStyles.length} estilos · ${ENERGY_ARCS[arc].label}`}
             </div>
           </div>
           <button onClick={onClose} style={{background:"none",border:"1px solid #1c1a18",color:"#b0aca8",width:26,height:26,borderRadius:7,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.sans,fontWeight:700}}>✕</button>
@@ -2081,25 +2325,65 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
 
         {/* ── TABS ── */}
         <div style={{display:"flex",background:"#060504",borderBottom:"1px solid #0e0c0a",flexShrink:0}}>
-          {[["estilos","0"],["energía + variación","1"]].map(([lbl,s])=>(
+          {[["venue","0"],["estilos","1"],["config","2"]].map(([lbl,s])=>(
             <button key={s} onClick={()=>setStep(+s)} style={{
               flex:1,padding:"9px 0",border:"none",cursor:"pointer",
               background:step===+s?"#0e0c09":"transparent",
               fontFamily:T.sans,fontWeight:700,fontSize:8.5,letterSpacing:0.5,
-              color:step===+s?T.gold:"#282624",
-              borderBottom:step===+s?`1.5px solid ${T.gold}`:"1.5px solid transparent",
+              color:step===+s?accentColor:"#282624",
+              borderBottom:step===+s?`1.5px solid ${accentColor}`:"1.5px solid transparent",
               WebkitTapHighlightColor:"transparent",transition:"all 0.12s"
-            }}>{lbl}{s==="0"&&selectedStyles.length>0?` (${selectedStyles.length})`:""}</button>
+            }}>
+              {lbl==="estilos"&&selectedStyles.length>0?`estilos (${selectedStyles.length})`:lbl}
+            </button>
           ))}
         </div>
 
         <div style={{flex:1,overflowY:"auto",scrollbarWidth:"none"}}>
 
-          {/* ══ TAB 0: ESTILOS ══ */}
+          {/* ══ TAB 0: VENUE ══ */}
           {step===0 && (
-            <div style={{padding:"10px 14px 100px"}}>
+            <div style={{padding:"12px 14px 100px"}}>
+              <div style={{fontFamily:T.sans,fontSize:9,color:T.textDim,lineHeight:1.7,marginBottom:12}}>
+                El venue define el <span style={{color:accentColor,fontWeight:700}}>arco de energía</span>, la <span style={{color:accentColor,fontWeight:700}}>intensidad</span> y el nivel de <span style={{color:accentColor,fontWeight:700}}>variación</span> del set.
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(VENUE_PROFILES).map(([key, vp]) => {
+                  const isActive = venue === key;
+                  return (
+                    <button key={key} onClick={()=>selectVenue(key)}
+                      style={{
+                        background: isActive ? `${vp.color}12` : T.surface,
+                        border: `1px solid ${isActive ? vp.color : T.border}`,
+                        borderRadius:12, padding:"12px 14px", cursor:"pointer",
+                        display:"flex", alignItems:"center", gap:12,
+                        WebkitTapHighlightColor:"transparent", transition:"all 0.1s", textAlign:"left"
+                      }}>
+                      <span style={{fontSize:20,flexShrink:0}}>{vp.icon}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:T.sans,fontWeight:700,fontSize:12,color:isActive?vp.color:T.text}}>{vp.label}</div>
+                        <div style={{fontFamily:T.mono,fontSize:7,color:T.textGhost,marginTop:2}}>{vp.desc}</div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
+                        <span style={{fontFamily:T.mono,fontSize:6.5,color:isActive?vp.color:T.textGhost,background:isActive?`${vp.color}18`:"#0a0806",border:`1px solid ${isActive?vp.color+"44":"#141210"}`,padding:"2px 6px",borderRadius:4,letterSpacing:0.5}}>
+                          {ENERGY_ARCS[vp.arc]?.icon} {ENERGY_ARCS[vp.arc]?.label}
+                        </span>
+                        <span style={{fontFamily:T.mono,fontSize:6,color:T.textGhost}}>
+                          {vp.energyBias > 0 ? `+${vp.energyBias} nrg` : vp.energyBias < 0 ? `${vp.energyBias} nrg` : "nrg neutro"}
+                          {" · "}
+                          {vp.bpmBias > 0 ? `+${vp.bpmBias} bpm` : vp.bpmBias < 0 ? `${vp.bpmBias} bpm` : "bpm neutro"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-              {/* Indicador multi-fusión */}
+          {/* ══ TAB 1: ESTILOS ══ */}
+          {step===1 && (
+            <div style={{padding:"10px 14px 100px"}}>
               {selectedStyles.length > 1 && (
                 <div style={{background:"#0d0a05",border:`1px solid ${T.goldDim}`,borderRadius:10,padding:"8px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:10,color:T.gold}}>⊕</span>
@@ -2110,7 +2394,6 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
                   <button onClick={()=>setSelectedStyles([])} style={{background:"none",border:"none",color:"#5a3a1a",fontSize:10,cursor:"pointer",fontFamily:T.sans,fontWeight:700}}>✕</button>
                 </div>
               )}
-
               {STYLE_BUILD_OPTIONS.map(group => (
                 <div key={group.group} style={{marginBottom:12}}>
                   <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>{group.group}</div>
@@ -2118,7 +2401,7 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
                     {group.styles.map(s => {
                       const active = selectedStyles.includes(s.id);
                       const isHs = HOUSE_STYLE_IDS.has(s.id);
-                      const ac = isHs ? HOUSE_ACCENT : T.gold;
+                      const ac = isHs ? HOUSE_ACCENT : (activeVenue ? activeVenue.color : T.gold);
                       const count = TRACKS.filter(t=>t.pop<=maxPop&&matchesStyleFilter(t,s.id)).length;
                       return (
                         <button key={s.id} onClick={()=>toggleStyle(s.id)}
@@ -2128,19 +2411,14 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
                             borderRadius:10,padding:"9px 13px",cursor:"pointer",
                             display:"flex",justifyContent:"space-between",alignItems:"center",
                             WebkitTapHighlightColor:"transparent",transition:"all 0.1s",textAlign:"left"
-                          }}
-                        >
+                          }}>
                           <div>
                             <div style={{fontFamily:T.sans,fontWeight:700,fontSize:11,color:active?ac:T.text,letterSpacing:-0.2}}>{s.label}</div>
                             <div style={{fontFamily:T.mono,fontSize:7,color:active?T.textDim:T.textGhost,marginTop:2}}>{s.desc}</div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                             <span style={{fontFamily:T.mono,fontSize:7,color:active?ac:T.textGhost}}>{count} tracks</span>
-                            <div style={{
-                              width:16,height:16,borderRadius:4,border:`1.5px solid ${active?ac:"#1e1c1a"}`,
-                              background:active?ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",
-                              fontSize:9,color:"#000",fontWeight:900,flexShrink:0
-                            }}>{active?"✓":""}</div>
+                            <div style={{width:16,height:16,borderRadius:4,border:`1.5px solid ${active?ac:"#1e1c1a"}`,background:active?ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#000",fontWeight:900,flexShrink:0}}>{active?"✓":""}</div>
                           </div>
                         </button>
                       );
@@ -2151,48 +2429,47 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
             </div>
           )}
 
-          {/* ══ TAB 1: ENERGÍA + VARIACIÓN ══ */}
-          {step===1 && (
+          {/* ══ TAB 2: CONFIG ══ */}
+          {step===2 && (
             <div style={{padding:"12px 14px 100px"}}>
-
               {/* Duración */}
-              <div style={{marginBottom:14}}>
+              <div style={{marginBottom:16}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                   <span style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>DURACIÓN</span>
-                  <span style={{fontFamily:T.mono,fontSize:9.5,color:T.gold}}>{length} tracks <span style={{color:"#a8a4a0",fontSize:7.5}}>≈ {Math.floor(length*7/60)}h{(length*7)%60>0?` ${(length*7)%60}m`:""}</span></span>
+                  <span style={{fontFamily:T.mono,fontSize:9.5,color:accentColor}}>{length} tracks <span style={{color:"#a8a4a0",fontSize:7.5}}>≈ {Math.floor(length*7/60)}h{(length*7)%60>0?` ${(length*7)%60}m`:""}</span></span>
                 </div>
                 <div style={{display:"flex",gap:4}}>
                   {[8,12,16,20,25,30].map(n=>(
                     <button key={n} onClick={()=>handleLength(n)}
                       style={{flex:1,padding:"8px 0",borderRadius:8,cursor:"pointer",border:"none",
                         fontFamily:T.sans,fontWeight:700,fontSize:11,
-                        background:length===n?"#1a1508":T.surface,color:length===n?T.gold:"#282624",
-                        outline:length===n?`1px solid ${T.goldDim}`:"1px solid #141210",WebkitTapHighlightColor:"transparent"
-                      }}
-                    >{n}</button>
+                        background:length===n?"#1a1508":T.surface,color:length===n?accentColor:"#282624",
+                        outline:length===n?`1px solid ${accentColor}55`:"1px solid #141210",WebkitTapHighlightColor:"transparent"
+                      }}>{n}</button>
                   ))}
                 </div>
               </div>
 
-              {/* Arco de energía */}
-              <div style={{marginBottom:14}}>
+              {/* Arco de energía — solo si no hay venue, si hay venue se muestra readonly */}
+              <div style={{marginBottom:16}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                   <span style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>ARCO DE ENERGÍA</span>
-                  <span style={{fontFamily:T.mono,fontSize:8,color:ENERGY_ARCS[arc].color}}>{ENERGY_ARCS[arc].icon} {ENERGY_ARCS[arc].label}</span>
+                  {activeVenue && <span style={{fontFamily:T.mono,fontSize:7,color:activeVenue.color,background:`${activeVenue.color}15`,border:`1px solid ${activeVenue.color}33`,padding:"2px 7px",borderRadius:4,letterSpacing:0.5}}>definido por venue</span>}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:3}}>
                   {Object.entries(ENERGY_ARCS).map(([key,a])=>{
                     const active = arc===key;
+                    const locked = !!activeVenue;
                     return (
-                      <button key={key} onClick={()=>handleArc(key)}
+                      <button key={key} onClick={()=>!locked&&handleArc(key)}
                         style={{
                           background:active?`${a.color}10`:"#0a0906",
                           border:`1px solid ${active?a.color:"#141210"}`,
-                          borderRadius:10,padding:"9px 13px",cursor:"pointer",
+                          borderRadius:10,padding:"9px 13px",cursor:locked?"default":"pointer",
                           display:"flex",justifyContent:"space-between",alignItems:"center",
+                          opacity:locked&&!active?0.35:1,
                           WebkitTapHighlightColor:"transparent",transition:"all 0.1s"
-                        }}
-                      >
+                        }}>
                         <div style={{textAlign:"left"}}>
                           <div style={{display:"flex",alignItems:"center",gap:7}}>
                             <span style={{fontFamily:T.mono,fontSize:13,color:active?a.color:"#a8a4a0"}}>{a.icon}</span>
@@ -2207,70 +2484,70 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
                 </div>
               </div>
 
-              {/* Variación */}
+              {/* Variación / unicidad */}
               <div style={{background:"#0a0906",border:"1px solid #141210",borderRadius:10,padding:"12px 14px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div>
-                    <div style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>VARIACIÓN</div>
-                    <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",marginTop:2}}>cuánto cambia el set cada vez</div>
+                    <div style={{fontFamily:T.sans,fontWeight:700,fontSize:9,color:T.textMid,letterSpacing:0.5}}>VARIACIÓN / UNICIDAD</div>
+                    <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",marginTop:2}}>qué tan diferente es cada set generado</div>
                   </div>
-                  <span style={{fontFamily:T.mono,fontSize:9,color:T.gold}}>
-                    {variation<0.2?"exacto":variation<0.5?"leve":variation<0.75?"medio":"alto"}
+                  <span style={{fontFamily:T.mono,fontSize:9,color:accentColor}}>
+                    {variation<0.2?"predecible":variation<0.45?"balanceado":variation<0.7?"creativo":"caótico"}
                   </span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:28,flexShrink:0}}>fijo</span>
+                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:32,flexShrink:0}}>estable</span>
                   <input type="range" min={0} max={1} step={0.05} value={variation}
                     onChange={e=>handleVariation(+e.target.value)}
-                    style={{flex:1,accentColor:T.gold,cursor:"pointer"}}
+                    style={{flex:1,accentColor:accentColor,cursor:"pointer"}}
                   />
-                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:28,flexShrink:0,textAlign:"right"}}>🎲</span>
+                  <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",width:32,flexShrink:0,textAlign:"right"}}>🎲 caos</span>
                 </div>
-                <div style={{marginTop:8,display:"flex",justifyContent:"space-between"}}>
-                  {["Siempre igual","Algo diferente","Bastante distinto","Total sorpresa"].map((lbl,i)=>(
-                    <span key={i} style={{fontFamily:T.mono,fontSize:6,color:"#9a9490",textAlign:"center",flex:1}}>{lbl}</span>
-                  ))}
+                <div style={{marginTop:8,padding:"8px 10px",background:"#060504",borderRadius:8,border:"1px solid #0e0c0a"}}>
+                  <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",lineHeight:1.7}}>
+                    Cada ⟳ reshuffle garantiza una <span style={{color:accentColor}}>semilla diferente</span> y tracks que no se repitan del build anterior. A mayor variación, más tracks inesperados pero harmónicamente compatibles.
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── PREVIEW ── (siempre visible al fondo) */}
+          {/* ── PREVIEW ── */}
           {preview?.seed && (
-            <div style={{margin:"0 14px 8px",background:"#0a0906",border:"1px solid #1a1814",borderRadius:12,padding:"10px 13px",flexShrink:0}}>
+            <div style={{margin:"0 14px 8px",background:"#0a0906",border:`1px solid ${canBuild?accentColor+"22":"#1a1814"}`,borderRadius:12,padding:"10px 13px",flexShrink:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                <div style={{fontFamily:T.mono,fontSize:7,color:"#aca49a",letterSpacing:1.5,textTransform:"uppercase"}}>preview</div>
-                <button onClick={handleReshuffle} style={{background:"none",border:"1px solid #1c1a18",color:"#aca49a",fontFamily:T.mono,fontSize:7,padding:"2px 8px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>⟳ otro set</button>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{fontFamily:T.mono,fontSize:7,color:"#aca49a",letterSpacing:1.5,textTransform:"uppercase"}}>preview</div>
+                  {reshuffleCount > 0 && <span style={{fontFamily:T.mono,fontSize:6.5,color:accentColor,background:`${accentColor}15`,border:`1px solid ${accentColor}33`,padding:"1px 5px",borderRadius:3,letterSpacing:0.5}}>#{reshuffleCount} generado</span>}
+                </div>
+                <button onClick={handleReshuffle} style={{background:"none",border:`1px solid ${accentColor}33`,color:accentColor,fontFamily:T.mono,fontSize:7,padding:"2px 8px",borderRadius:5,cursor:"pointer",letterSpacing:0.5}}>⟳ otro set</button>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-                <span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,width:12,textAlign:"center",flexShrink:0}}>S</span>
-                <span style={{fontFamily:T.sans,fontWeight:700,fontSize:10,color:T.gold,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{preview.seed.title}</span>
-                <span style={{fontFamily:T.mono,fontSize:7.5,color:"#a8a4a0",flexShrink:0}}>{preview.seed.bpm}</span>
+                <span style={{fontFamily:T.mono,fontSize:7,color:accentColor,width:12,textAlign:"center",flexShrink:0}}>S</span>
+                <span style={{fontFamily:T.sans,fontWeight:700,fontSize:10,color:accentColor,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{preview.seed.title}</span>
+                <span style={{fontFamily:T.mono,fontSize:7.5,color:"#a8a4a0",flexShrink:0}}>{preview.seed.bpm} BPM</span>
               </div>
-              {preview.tracks.slice(0,5).map((t,i)=>{
+              {preview.tracks.slice(0,6).map((t,i)=>{
                 const eColor = E_COLORS[t.energy] || "#333";
                 return (
                   <div key={t.id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
                     <span style={{fontFamily:T.mono,fontSize:7,color:T.textGhost,width:12,textAlign:"center",flexShrink:0}}>{i+1}</span>
                     <span style={{fontFamily:T.sans,fontSize:9,color:T.textMid,flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</span>
                     <span style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",flexShrink:0}}>{t.bpm}</span>
-                    <div style={{width:32,height:4,background:"#141210",borderRadius:2,flexShrink:0}}>
+                    <div style={{width:28,height:4,background:"#141210",borderRadius:2,flexShrink:0}}>
                       <div style={{width:`${t.energy*10}%`,height:"100%",background:eColor,borderRadius:2}}/>
                     </div>
                     <span style={{fontFamily:T.mono,fontSize:7,color:eColor,width:8,flexShrink:0}}>{t.energy}</span>
                   </div>
                 );
               })}
-              {preview.tracks.length > 5 && (
-                <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",paddingLeft:18,marginTop:2}}>+ {preview.tracks.length-5} tracks más</div>
-              )}
-              {preview.tracks.length === 0 && (
-                <div style={{fontFamily:T.sans,fontSize:9,color:"#a8a4a0",paddingLeft:18}}>Sin tracks disponibles con estos filtros.</div>
+              {preview.tracks.length > 6 && (
+                <div style={{fontFamily:T.mono,fontSize:7,color:"#a8a4a0",paddingLeft:18,marginTop:2}}>+ {preview.tracks.length-6} tracks más</div>
               )}
             </div>
           )}
 
-          {!preview && selectedStyles.length===0 && (
+          {!preview && selectedStyles.length === 0 && step !== 0 && (
             <div style={{textAlign:"center",padding:"20px 24px 8px"}}>
               <div style={{fontFamily:T.sans,fontSize:10,color:"#9a9490",lineHeight:1.8}}>Seleccioná al menos un estilo<br/>para generar el set</div>
             </div>
@@ -2282,27 +2559,29 @@ function AutoBuildModal({ onClose, onBuild, maxPop }) {
           <div style={{display:"flex",gap:6}}>
             {canProceed && (
               <button onClick={handleReshuffle}
+                title="Generar otro set completamente distinto"
                 style={{
-                  padding:"11px 14px",borderRadius:10,border:"1px solid #1c1a18",cursor:"pointer",
-                  background:"#0a0906",fontFamily:T.sans,fontWeight:700,fontSize:11,
-                  color:"#b0aca8",WebkitTapHighlightColor:"transparent"
+                  padding:"11px 14px",borderRadius:10,border:`1px solid ${accentColor}33`,cursor:"pointer",
+                  background:`${accentColor}0a`,fontFamily:T.sans,fontWeight:700,fontSize:13,
+                  color:accentColor,WebkitTapHighlightColor:"transparent",transition:"all 0.15s"
                 }}
               >⟳</button>
             )}
             <button
-              onClick={canBuild ? handleBuild : canProceed ? handleReshuffle : ()=>setStep(0)}
+              onClick={canBuild ? handleBuild : canProceed ? handleReshuffle : ()=>setStep(1)}
               style={{
                 flex:1,padding:"12px 0",borderRadius:10,border:"none",cursor:"pointer",
                 background: canBuild ? `linear-gradient(135deg,#1e1608,#0d0b05)` : canProceed ? "#0d0c08" : "#0a0906",
-                outline: canBuild ? `1px solid ${T.goldDim}` : canProceed ? `1px solid ${T.goldDim}55` : "1px solid #141210",
+                outline: canBuild ? `1px solid ${accentColor}66` : canProceed ? `1px solid ${accentColor}33` : "1px solid #141210",
                 fontFamily:T.sans,fontWeight:800,fontSize:11.5,letterSpacing:0.3,
-                color: canBuild ? T.gold : canProceed ? T.goldDim : "#282624",
+                color: canBuild ? accentColor : canProceed ? accentColor+"99" : "#282624",
                 transition:"all 0.18s",WebkitTapHighlightColor:"transparent"
               }}
             >
-              {!canProceed ? "↑ seleccioná un estilo primero" :
+              {!venue && !canProceed ? "↑ elegí un venue primero" :
+               !canProceed ? "↑ elegí un estilo" :
                !canBuild ? "⟳ generar set" :
-               `✦ ARMAR SET · ${(preview.tracks.length+1)} tracks`}
+               `✦ ARMAR SET · ${preview.tracks.length+1} tracks`}
             </button>
           </div>
         </div>
