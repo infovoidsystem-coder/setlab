@@ -2690,6 +2690,7 @@ function SetScreen({ mySet, setMySet, onFind }) {
                         {track.label&&<div style={{display:"flex",alignItems:"center",gap:3,marginTop:3}}><svg width="7" height="7" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke={T.goldDim} strokeWidth="1.5"/><circle cx="10" cy="10" r="3" stroke={T.goldDim} strokeWidth="1.2"/><circle cx="10" cy="10" r="1" fill={T.goldDim}/></svg><span style={{fontFamily:T.mono,fontSize:7,color:T.goldDim,letterSpacing:0.3}}>{track.label}</span></div>}
                       </div>
                       <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
+                        <PreviewButton track={track} accent={isHouseTrack(track)?HOUSE_ACCENT:T.gold}/>
                         <KeyPill k={track.key}/>
                         <span style={{fontFamily:T.mono,fontSize:9,color:T.textDim}}>{track.bpm}</span>
                       </div>
